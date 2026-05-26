@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://esm.sh https://*.esm.sh https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://*.esm.sh; img-src 'self' data: https:;">
+
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#030303" />
@@ -10,6 +13,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="IAmobil" />
     <title>iAmobil — Inteligência Imobiliária</title>
+    
     <style>
       /* Custom scrollbar */
       ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -17,6 +21,7 @@
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
+
     <script type="importmap">
     {
       "imports": {
@@ -31,6 +36,7 @@
       }
     }
     </script>
+    
     <link rel="stylesheet" href="/src/index.css">
   </head>
   <body>
