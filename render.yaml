@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 10000
       - key: ALLOWED_ORIGINS
-        value: "https://iamobil-frontend.pages.dev"
+        value: "https://iamobil-frontend.pages.dev,https://aimobil.onrender.com"
       - key: BCRYPT_ROUNDS
         value: 12
       - key: RATE_LIMIT_WINDOW
@@ -20,16 +20,16 @@ services:
         value: 100
       - key: LOG_LEVEL
         value: info
-      # ⚠️ Preencha estas variáveis no painel do Render (não colocar valores aqui)
+      - key: CLOUDFLARE_ACCOUNT_ID
+        value: "566c1241b1d7ea8f9e07d712713b940f"
+      - key: CLOUDFLARE_D1_DATABASE_ID
+        value: "6dfe2aea-8a1c-4e34-b28f-44cad100477f"
+      # ⚠️ Preencha estas variáveis no painel do Render (não colocar valores sensíveis aqui)
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: GROQ_API_KEY
-        sync: false
-      - key: CLOUDFLARE_ACCOUNT_ID
-        sync: false
-      - key: CLOUDFLARE_D1_DATABASE_ID
-        sync: false
-      - key: CLOUDFLARE_API_TOKEN
         sync: false
