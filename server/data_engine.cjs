@@ -1,5 +1,6 @@
 const { createClient } = require('@libsql/client');
 const path = require('path');
+const { CloudflareD1Client } = require('./d1_client.cjs');
 
 const dbPath = process.env.DATABASE_URL || 'file:' + path.join(__dirname, '../data/iamobil.db');
 const localDbPath = 'file:' + path.join(__dirname, '../data/iamobil.db');
@@ -7,6 +8,24 @@ const localDbPath = 'file:' + path.join(__dirname, '../data/iamobil.db');
 let client;
 
 async function initializeClientWithFallback() {
+  // Try Cloudflare D1 first
+  if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_DATABASE_ID && process.env.CLOUDFLARE_API_TOKEN) {
+    try {
+      console.log('Attempting to connect to remote Cloudflare D1 database...');
+      client = new CloudflareD1Client(
+        process.env.CLOUDFLARE_ACCOUNT_ID,
+        process.env.CLOUDFLARE_D1_DATABASE_ID,
+        process.env.CLOUDFLARE_API_TOKEN
+      );
+      await initializeTables();
+      console.log('Cloudflare D1 client created successfully');
+      return true;
+    } catch (e) {
+      console.log('Remote Cloudflare D1 connection failed:', e.message);
+      console.log('Falling back to other database options...');
+    }
+  }
+
   // Try remote database first if DATABASE_URL is set
   if (process.env.DATABASE_URL) {
     try {
