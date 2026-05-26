@@ -10,7 +10,7 @@ export function getApiUrl(): string {
     // In production, we expect this to be defined via environment variables
     // In development, fallback to default
     if (import.meta.env.PROD) {
-      return 'https://iamobil-gestor-imobili-rio.onrender.com'; // Production fallback
+      return 'https://aimobil.onrender.com'; // Production fallback
     }
     return 'http://localhost:10000'; // Development fallback
   }

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: iamobil-gestor
+    name: aimobil
     env: node
     plan: free
     buildCommand: npm install && npm run build
