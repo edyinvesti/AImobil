@@ -1,14 +1,9 @@
-const { createClient } = require('@libsql/client');
 const path = require('path');
 const { CloudflareD1Client } = require('./d1_client.cjs');
-
-const dbPath = process.env.DATABASE_URL || 'file:' + path.join(__dirname, '../data/iamobil.db');
-const localDbPath = 'file:' + path.join(__dirname, '../data/iamobil.db');
 
 let client;
 
 async function initializeClientWithFallback() {
-  // Try Cloudflare D1 first
   if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_DATABASE_ID && process.env.CLOUDFLARE_API_TOKEN) {
     try {
       console.log('Attempting to connect to remote Cloudflare D1 database...');
@@ -21,45 +16,12 @@ async function initializeClientWithFallback() {
       console.log('Cloudflare D1 client created successfully');
       return true;
     } catch (e) {
-      console.log('Remote Cloudflare D1 connection failed:', e.message);
-      console.log('Falling back to other database options...');
+      console.error('Remote Cloudflare D1 connection failed:', e.message);
+      client = null;
+      return false;
     }
-  }
-
-  // Try remote database first if DATABASE_URL is set
-  if (process.env.DATABASE_URL) {
-    try {
-      console.log('Attempting to connect to remote Turso database...');
-      client = createClient({ 
-        url: dbPath,
-        authToken: process.env.LIBSQL_AUTH_TOKEN || ''
-      });
-      await initializeTables();
-      console.log('Turso client created successfully');
-      return true;
-    } catch (e) {
-      console.log('Remote Turso connection failed:', e.message);
-      console.log('Falling back to local SQLite database...');
-      // Fall through to try local database
-    }
-  }
-  
-  // Try local database
-  try {
-    console.log('Attempting to connect to local SQLite database...');
-    client = createClient({ 
-      url: localDbPath
-    });
-    await initializeTables();
-    console.log('Local SQLite client created successfully');
-    return true;
-  } catch (e) {
-    console.log('Local database also failed:', e.message);
-    console.log('Error details:', {
-      message: e.message,
-      code: e.code,
-      stack: e.stack
-    });
+  } else {
+    console.error('Missing Cloudflare D1 credentials in environment variables.');
     client = null;
     return false;
   }
