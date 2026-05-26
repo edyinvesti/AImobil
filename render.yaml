@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: iamobil-gestor
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.cjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: BCRYPT_ROUNDS
+        value: 12
+      - key: RATE_LIMIT_WINDOW
+        value: 900000
+      - key: RATE_LIMIT_MAX
+        value: 100
+      - key: LOG_LEVEL
+        value: info
+      # ⚠️ Preencha estas variáveis no painel do Render (não colocar valores aqui)
+      - key: DATABASE_URL
+        sync: false
+      - key: LIBSQL_AUTH_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

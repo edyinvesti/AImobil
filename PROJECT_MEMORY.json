@@ -1,0 +1,38 @@
+{
+  "stack": [
+    "Node.js",
+    "Express.js",
+    "React 19 + TypeScript",
+    "Vite",
+    "Tailwind CSS 4",
+    "Hermes AI (Google Gemini)",
+    "Turso SQLite",
+    "bcryptjs",
+    "express-rate-limit",
+    "winston",
+    "express-validator"
+  ],
+  "erros_recorrentes": [],
+  "reparos_sucesso": [],
+  "conhecimento_arquivos": {
+    "server/index.cjs": "Servidor Express com bcrypt, rate limiting, winston logs e express-validator. Endpoints: auth, telegram webhook, properties, leads, health.",
+    "server/hermes-gateway-adapter.cjs": "Orquestração de IA usando Google Gemini 2.0 Flash.",
+    "server/data_engine.cjs": "Gestão de persistência de Leads e CRM em SQLite via libsql/Turso.",
+    "src/context/UserContext.tsx": "Estado global do usuário com sync para nuvem via CRECI.",
+    "src/hooks/useProperties.ts": "Hook para imóveis com SyncStatus (syncing, lastSync, error), cache inteligente e visibility API.",
+    "src/components/Dashboard.tsx": "Dashboard com feedback visual de sync (azul=sincronizando, verde=sincronizado, vermelho=erro).",
+    "src/components/PropertyForm.tsx": "Formulário de imóveis com compressão de imagens (max 800px, 60% quality, max 10 imgs).",
+    "src/utils.ts": "Funções utilitárias: compressImage (com auto-retry), compressImages (batch), getApiUrl."
+  },
+  "historico_correcoes": [
+    "2026-05-18: Removidos tokens expostos de render.yaml e .env",
+    "2026-05-18: Implementado backend seguro com bcrypt, rate limit, logs winston",
+    "2026-05-18: CORS configurável via ALLOWED_ORIGINS",
+    "2026-05-18: Compressão de imagens otimizada (800px, 60% quality, max 10)",
+    "2026-05-18: Polling substituído por cache inteligente (60s + visibility API)",
+    "2026-05-18: Validação de dados no backend com express-validator",
+    "2026-05-18: SyncStatus no frontend com feedback visual (sincronizando/sincronizado/erro)",
+    "2026-05-18: Abort controller para cancelar requisições duplicadas",
+    "2026-05-18: Error handling específico no frontend e backend"
+  ]
+}
