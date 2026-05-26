@@ -1143,7 +1143,7 @@ app.get('/api/partner/register', async (req, res) => {
     const creci = req.query.creci;
     if (!creci) return res.status(400).json({ error: 'CRECI obrigatório' });
 
-    // Try Turso DB first, fall back to in-memory Map
+    // Try Database first, fall back to in-memory Map
     let broker = null;
     if (DataEngine) {
       broker = await DataEngine.getBroker(creci);
@@ -1164,7 +1164,7 @@ app.post('/api/partner/register', async (req, res) => {
     const broker = req.body;
     if (!broker.creci) return res.status(400).json({ error: 'CRECI obrigatório' });
 
-    // Persist to Turso DB (primary) and in-memory Map (fallback)
+    // Persist to Database (primary) and in-memory Map (fallback)
     if (DataEngine) {
       await DataEngine.saveBroker(broker);
     }

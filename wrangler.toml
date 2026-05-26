@@ -1,0 +1,12 @@
+name = "iamobil-frontend"
+type = "javascript"
+
+account_id = "566c1241b1d7ea8f9e07d712713b940f"
+workers_dev = false
+compatibility_date = "2024-01-01"
+
+[site]
+bucket = "./dist"
+entry-point = "./"
+
+pages_build_output_dir = "dist"

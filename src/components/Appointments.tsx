@@ -154,7 +154,7 @@ export const Appointments: React.FC = () => {
            <Briefcase className="text-orange-500" size={24} />
         </div>
         <p className="text-sm font-medium text-gray-400 text-center max-w-2xl leading-relaxed">
-          Os dados acima são sincronizados via <span className="text-white font-bold">Turso Cloud Protocol</span>. 
+          Os dados acima são sincronizados via <span className="text-white font-bold">Cloud Sync Protocol</span>. 
           Suas interações no Telegram e WhatsApp são processadas pela nossa IA para fornecer insights de conversão e agendamentos inteligentes diretamente na sua mão.
         </p>
       </motion.div>

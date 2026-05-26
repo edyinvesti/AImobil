@@ -7,7 +7,7 @@ import fs from 'fs';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: mode === 'production' ? '/AImobil/' : '/',
+      base: '/',
       build: {
         chunkSizeWarningLimit: 1000,
       },
