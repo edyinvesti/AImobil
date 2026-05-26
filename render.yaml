@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 10000
       - key: ALLOWED_ORIGINS
-        value: "*"
+        value: "https://iamobil-frontend.pages.dev"
       - key: BCRYPT_ROUNDS
         value: 12
       - key: RATE_LIMIT_WINDOW
