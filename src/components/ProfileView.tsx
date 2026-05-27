@@ -142,14 +142,11 @@ export function ProfileView() {
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                disabled={isSaving}
-          <button
-            type='submit'
-            className='w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors'
-          >
-            Salvar Alterações
-          </button>
-        </form>
+            <button type='submit' className='w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors'>
+              Salvar Alterações
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
