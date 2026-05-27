@@ -22,7 +22,8 @@ interface PropertyCardProps {
 const resolveImageUrl = (url?: string) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return \\\\;
+  const baseUrl = import.meta.env.VITE_API_URL || '';
+  return baseUrl + url;
 };
 
 const getFallbackImage = (title: string, currentUrl: string) => {
@@ -49,11 +50,10 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
       className="group bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all duration-300 cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
-      {/* Glossy Image Container */}
       <div className="relative h-56 overflow-hidden bg-zinc-950">
         <img 
-          src={resolveImageUrl(getFallbackImage(property.title || ``, thumbnail || ``))}
-          alt={property.title}
+          src={resolveImageUrl(getFallbackImage(property.title || '', thumbnail))}
+          alt={property.title || ''}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
           onError={(e) => { 
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
@@ -64,7 +64,6 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-5 flex flex-col flex-grow">
         <div className="mb-4">
           <span className="text-2xl font-bold text-zinc-100">
@@ -81,11 +80,10 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
           <span className="line-clamp-1">{property.location}</span>
         </div>
 
-        {/* Specs */}
         <div className="grid grid-cols-4 gap-2 pt-4 border-t border-zinc-800 text-zinc-400 text-xs mt-auto">
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
-            <span className="font-semibold text-zinc-200">{property.size}m≤</span>
-            <span className="text-[10px] text-zinc-500 uppercase">¡rea</span>
+            <span className="font-semibold text-zinc-200">{property.size}m¬≤</span>
+            <span className="text-[10px] text-zinc-500 uppercase">√Årea</span>
           </div>
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
             <div className="flex items-center gap-1 text-zinc-200">
@@ -99,7 +97,7 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
               <Bath size={12} />
               <span className="font-semibold">{property.baths}</span>
             </div>
-            <span className="text-[10px] text-zinc-500 uppercase">SuÌtes</span>
+            <span className="text-[10px] text-zinc-500 uppercase">Su√≠tes</span>
           </div>
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
             <div className="flex items-center gap-1 text-zinc-200">
