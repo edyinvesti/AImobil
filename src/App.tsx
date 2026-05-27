@@ -90,7 +90,7 @@ export default function App() {
                   <Dashboard 
                     properties={properties} 
                     onAddClick={() => { setSelectedProperty(null); navigate('/form'); }}
-                    onPropertyClick={(p) => { setSelectedProperty(p); navigate('/details'); }}
+                    onPropertyClick={(p) => { setSelectedProperty(p); }}
                     onDelete={setPropertyToDelete}
                     onEdit={(p) => { setSelectedProperty(p); navigate('/form'); }}
                     onSync={forceSync}
@@ -126,15 +126,7 @@ export default function App() {
                 </motion.div>
               } />
 
-              <Route path="/details" element={
-                selectedProperty ? (
-                  <PropertyDetails 
-                    property={selectedProperty}
-                    profile={profile}
-                    onClose={() => navigate('/')}
-                  />
-                ) : <div className="p-12">Nenhum imóvel selecionado</div>
-              } />
+
             </Routes>
           </AnimatePresence>
         </main>
@@ -157,6 +149,17 @@ export default function App() {
         title="Excluir Imóvel"
         message="Tem certeza que deseja remover este imóvel da sua carteira?"
       />
+
+      {/* PropertyDetails fora do layout para fixed funcionar corretamente */}
+      <AnimatePresence>
+        {selectedProperty && (
+          <PropertyDetails
+            property={selectedProperty}
+            profile={profile}
+            onClose={() => setSelectedProperty(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

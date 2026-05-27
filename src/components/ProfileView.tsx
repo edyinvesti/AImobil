@@ -161,7 +161,7 @@ export function ProfileView() {
                 </label>
                 <input
                   className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-700"
-                  value={formData.Login}
+                  value={formData.Login} onChange={(e) => setFormData({...formData, Login: e.target.value})}
                   onChange={e => setFormData(prev => ({ ...prev, Login: e.target.value }))}
                   placeholder="Ex: 987456-F"
                 />
