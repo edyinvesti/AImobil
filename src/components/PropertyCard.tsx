@@ -1,148 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Trash2, Edit2, Square, Bed, ArrowRight, RefreshCw } from 'lucide-react';
-import { Property } from '../types';
-import { resolveImageUrl, getApiUrl } from '../utils';
+import React from 'react';
+import { MapPin, BedDouble, Bath, Car } from 'lucide-react';
+
+interface Property {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  beds: number;
+  baths: number;
+  parking: number;
+  size: number;
+  thumbnail?: string;
+  type?: string;
+}
 
 interface PropertyCardProps {
   property: Property;
-  onClick: () => void;
-  onDelete: (id: string) => void;
-  onEdit: (property: Property) => void;
+  onClick?: () => void;
 }
 
-export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick, onDelete, onEdit }) => {
-  // Use the thumbnail from property data, or fall back to first image
-  const [thumbnail, setThumbnail] = useState<string | null>(property.thumbnail || (property.images && property.images.length > 0 ? property.images[0] : null));
+const resolveImageUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return \\\\;
+};
 
-  useEffect(() => {
-    if (property.thumbnail || (property.images && property.images.length > 0)) {
-      setThumbnail(property.thumbnail || (property.images ? property.images[0] : null));
-      return;
+const getFallbackImage = (title: string, currentUrl: string) => {
+  const lowerTitle = title ? title.toLowerCase() : '';
+  const urlStr = currentUrl ? String(currentUrl) : '';
+  
+  if (!urlStr || urlStr.includes('placeholder') || urlStr.includes('test') || urlStr.includes('feia') || urlStr.length < 5) {
+    if (lowerTitle.includes('fazenda') || lowerTitle.includes('sitio') || lowerTitle.includes('chacara') || lowerTitle.includes('rubao')) {
+      return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80';
     }
-
-    let isMounted = true;
-    if (!thumbnail && property.id && !property.id.includes('prop_migrated')) {
-      const targetId = property.remoteId || property.id;
-      fetch(`${getApiUrl()}/api/partner/property-image?id=${targetId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (isMounted && data.success && data.images && data.images.length > 0) {
-            setThumbnail(data.images[0]);
-          }
-        })
-        .catch(err => console.error("Erro ao carregar imagem sob demanda:", err));
+    if (lowerTitle.includes('casa') || lowerTitle.includes('mansao')) {
+      return 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80';
     }
-    
-    return () => { isMounted = false; };
-  }, [property.id, property.remoteId, property.thumbnail, property.images, thumbnail]);
+    return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
+  }
+  return urlStr;
+};
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(price);
-
+export function PropertyCard({ property, onClick }: PropertyCardProps) {
+  const thumbnail = property.thumbnail || '';
+  
   return (
     <div 
-      className="group relative bg-[#0d0d0d] border border-white/10 rounded-[2.5rem] overflow-hidden hover:border-orange-500/50 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] cursor-pointer flex flex-col"
+      className="group bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all duration-300 cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
-       {/* Glossy Image Container */}
-       <div className="relative h-56 overflow-hidden">
-         {thumbnail ? (
-           <img 
-             src={resolveImageUrl(getFallbackImage(property.title, thumbnail))}
-             alt={property.title}
-             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-           />
-         ) : (
-           <div className="w-full h-full bg-white/5 flex items-center justify-center">
-             <MapPin className="text-gray-800" size={32} />
-           </div>
-         )}
-        
-        {/* Gradients and Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-transparent to-black/20 opacity-80" />
-        <div className="absolute inset-0 bg-orange-500/0 group-hover:bg-orange-500/5 transition-colors duration-500" />
-        
-        {/* Badges */}
-        <div className="absolute top-5 left-5 flex gap-2">
-            <span className="px-4 py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-[8px] font-black uppercase text-white tracking-widest">
-                {property.type}
-            </span>
-            {property.remoteId ? (
-                <span className="px-4 py-1.5 bg-orange-500 text-white border border-orange-400 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg shadow-orange-500/20">
-                    <div className="w-1 h-1 rounded-full bg-white animate-pulse" />
-                    Hub
-                </span>
-            ) : (
-                <span className="px-4 py-1.5 bg-white/10 text-gray-400 border border-white/5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 backdrop-blur-md">
-                    <RefreshCw size={8} className="animate-spin" />
-                    Local (Syncing...)
-                </span>
-            )}
-        </div>
-
-        {/* Price Floating Overlay */}
-        <div className="absolute bottom-5 left-5">
-           <p className="text-2xl font-black text-white tracking-tighter drop-shadow-lg">
-             {formatPrice(property.price)}
-           </p>
+      {/* Glossy Image Container */}
+      <div className="relative h-56 overflow-hidden bg-zinc-950">
+        <img 
+          src={resolveImageUrl(getFallbackImage(property.title, thumbnail))}
+          alt={property.title}
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+          onError={(e) => { 
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
+          }}
+        />
+        <div className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-emerald-400 border border-emerald-500/20">
+          {property.type || 'Venda'}
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="p-6 md:p-8 space-y-5 flex-1 flex flex-col">
-        <div className="space-y-1">
-          <h3 className="text-lg font-black text-white leading-tight truncate group-hover:text-orange-500 transition-colors uppercase tracking-tighter">
-            {property.title}
-          </h3>
-          <p className="text-gray-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 truncate">
-            <MapPin size={10} className="text-orange-500" /> {property.address}
-          </p>
+      {/* Content */}
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="mb-4">
+          <span className="text-2xl font-bold text-zinc-100">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price)}
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-gray-500">
-          <div className="flex items-center gap-2">
-            <Square size={12} className="text-orange-500/40" />
-            <span className="text-[10px] font-black text-gray-400">{property.size}mÂ²</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Bed size={12} className="text-orange-500/40" />
-            <span className="text-[10px] font-black text-gray-400">{property.bedrooms} Dorm</span>
-          </div>
-          {property.suites > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-orange-500/60">{property.suites} S</span>
-            </div>
-          )}
-          {property.parkingSpaces > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-orange-500/60">{property.parkingSpaces} V</span>
-            </div>
-          )}
+        <h3 className="text-lg font-semibold text-zinc-200 mb-2 line-clamp-1 group-hover:text-emerald-400 transition-colors">
+          {property.title}
+        </h3>
+
+        <div className="flex items-center gap-1.5 text-zinc-400 text-sm mb-5">
+          <MapPin size={16} className="text-zinc-500 shrink-0" />
+          <span className="line-clamp-1">{property.location}</span>
         </div>
 
-        <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center">
-          <div className="flex gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onEdit(property); }}
-              className="p-3 bg-white/5 hover:bg-orange-500/10 text-gray-600 hover:text-orange-500 rounded-2xl transition-all border border-transparent hover:border-orange-500/20"
-            >
-              <Edit2 size={14} />
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-              className="p-3 bg-white/5 hover:bg-red-500/10 text-gray-600 hover:text-red-500 rounded-2xl transition-all border border-transparent hover:border-red-500/20"
-            >
-              <Trash2 size={14} />
-            </button>
+        {/* Specs */}
+        <div className="grid grid-cols-4 gap-2 pt-4 border-t border-zinc-800 text-zinc-400 text-xs mt-auto">
+          <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
+            <span className="font-semibold text-zinc-200">{property.size}m²</span>
+            <span className="text-[10px] text-zinc-500 uppercase">Área</span>
           </div>
-          
-          <div className="flex items-center gap-2 text-[10px] font-black text-orange-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-            Detalhes <ArrowRight size={14} />
+          <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
+            <div className="flex items-center gap-1 text-zinc-200">
+              <BedDouble size={12} />
+              <span className="font-semibold">{property.beds}</span>
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase">Dorm</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
+            <div className="flex items-center gap-1 text-zinc-200">
+              <Bath size={12} />
+              <span className="font-semibold">{property.baths}</span>
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase">Suítes</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
+            <div className="flex items-center gap-1 text-zinc-200">
+              <Car size={12} />
+              <span className="font-semibold">{property.parking}</span>
+            </div>
+            <span className="text-[10px] text-zinc-500 uppercase">Vagas</span>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
+}
