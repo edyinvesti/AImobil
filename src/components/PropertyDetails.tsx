@@ -19,7 +19,7 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
 
     React.useEffect(() => {
       let cancelled = false;
-      console.log(`[PropertyDetails] Fetching images for property ID: ${initialProperty.id}`);
+      // console.log(`[PropertyDetails] Fetching images for property ID: ${initialProperty.id}`);
       setLoadingImages(true);
       
       // Add explicit check for ID
@@ -31,17 +31,17 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
 
       fetch(`${getApiUrl()}/api/partner/property-image?id=${initialProperty.id}`)
         .then(r => {
-          console.log(`[PropertyDetails] Image fetch status: ${r.status}`);
+          // console.log(`[PropertyDetails] Image fetch status: ${r.status}`);
           if (!r.ok) {
             throw new Error(`HTTP ${r.status}: ${r.statusText}`);
           }
           return r.json();
         })
         .then(d => {
-          console.log(`[PropertyDetails] Image fetch response:`, d);
+          // console.log(`[PropertyDetails] Image fetch response:`, d);
           if (!cancelled) {
             if (d.success && d.images?.length > 0) {
-              console.log(`[PropertyDetails] Setting ${d.images.length} images`);
+              // console.log(`[PropertyDetails] Setting ${d.images.length} images`);
               setProperty(prev => ({ ...prev, images: d.images }));
             } else {
               console.warn('[PropertyDetails] No images in response:', d);

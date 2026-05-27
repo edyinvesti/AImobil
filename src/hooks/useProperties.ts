@@ -108,15 +108,15 @@ export function useProperties(baseCreci?: string) {
       
        try {
          const url = `${API_BASE}/api/partner/properties?creci=${encodeURIComponent(creci)}`;
-         console.log('[useProperties] Fetching:', url);
+         // console.log('[useProperties] Fetching:', url);
          const res = await fetch(url, {
            signal: abortControllerRef.current.signal
          });
          
-         console.log('[useProperties] Status:', res.status);
+         // console.log('[useProperties] Status:', res.status);
          if (res.ok) {
            const data = await res.json();
-           console.log('[useProperties] Data success:', data.success, 'Count:', data.count);
+           // console.log('[useProperties] Data success:', data.success, 'Count:', data.count);
            
            // Validate API response structure
            if (!data || typeof data !== 'object') {
@@ -141,17 +141,17 @@ export function useProperties(baseCreci?: string) {
                const isDeleted = deletedIds.has(p.id || '');
                const isMigrated = typeof p.id === 'string' && p.id.includes("prop_migrated");
                if (isDeleted) {
-                 console.log('[useProperties] Filtered out deleted ID:', p.id);
+                 // console.log('[useProperties] Filtered out deleted ID:', p.id);
                }
                if (isMigrated) {
-                 console.log('[useProperties] Filtered out migrated ID:', p.id);
+                 // console.log('[useProperties] Filtered out migrated ID:', p.id);
                }
                return !isDeleted && !isMigrated;
              })
              .map(normalizeProperty)
              .filter((p): p is Property => !!p); // Filter out any invalid normalized properties
 
-           console.log('[useProperties] Cloud items after filter:', cloudItems.length);
+           // console.log('[useProperties] Cloud items after filter:', cloudItems.length);
            const cloudIds = new Set(cloudItems.map((p: Property) => p.id));
            
            const merged = [...cloudItems];
@@ -166,7 +166,7 @@ export function useProperties(baseCreci?: string) {
              }
            });
            
-           console.log('[useProperties] Final merged properties:', merged.length);
+           // console.log('[useProperties] Final merged properties:', merged.length);
            
            // Only update state and storage if component is still mounted
            if (isMountedRef.current) {

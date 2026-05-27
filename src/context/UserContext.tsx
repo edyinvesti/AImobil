@@ -42,12 +42,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!API_URL || !profile.creci) return;
 
       try {
-        console.log(`[UserContext] Buscando perfil na nuvem para CRECI: ${profile.creci}`);
+        // // console.log removido;
         const response = await fetch(`${API_URL}/api/partner/register?creci=${encodeURIComponent(profile.creci)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.broker) {
-            console.log("[UserContext] Perfil encontrado na nuvem:", data.broker);
+            // console.log("[UserContext] Perfil encontrado na nuvem:", data.broker);
             const cloudProfile = {
               creci: data.broker.creci,
               name: data.broker.name || '',
@@ -85,7 +85,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-      console.log("[UserContext] Perfil sincronizado com a nuvem.");
+      // console.log("[UserContext] Perfil sincronizado com a nuvem.");
     } catch (error) {
       console.error("[UserContext] Falha ao enviar perfil para nuvem:", error);
       syncQueue.enqueue({
