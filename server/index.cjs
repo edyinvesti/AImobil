@@ -832,7 +832,7 @@ async function sendTelegramMessage(chatId, text) {
 
 app.post('/api/auth/register',
   authLimiter,
-  body('creci').isLength({ min: 3, max: 20 }).trim(),
+  body('login').isLength({ min: 3, max: 20 }).trim(),
   body('password').isLength({ min: 6, max: 100 }),
   body('name').isLength({ min: 2, max: 100 }).trim(),
   body('email').isEmail().normalizeEmail(),
@@ -886,20 +886,20 @@ app.post('/api/auth/login',
         return res.status(400).json({ error: 'CRECI e senha são obrigatórios' });
       }
 
-      const { creci, password } = req.body;
+      const { login, password } = req.body;
       const safeCreci = sanitizeInput(creci);
       const user = users.get(safeCreci);
 
       if (!user) {
         logger.warn('Login failed - user not found', { creci: safeCreci });
-        return res.status(401).json({ error: 'CRECI ou senha incorretos' });
+        return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
       const isValid = await bcrypt.compare(password, user.password);
       
       if (!isValid) {
         logger.warn('Login failed - wrong password', { creci: safeCreci });
-        return res.status(401).json({ error: 'CRECI ou senha incorretos' });
+        return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
       const token = Buffer.from(`${safeCreci}:${Date.now()}`).toString('base64');
