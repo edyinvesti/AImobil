@@ -9,17 +9,20 @@ const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
 
 // TelegramService inline
-const TELEGRAM_BOT_TOKEN_2 = process.env.TELEGRAM_BOT_TOKEN;
-const MISTRAL_API_KEY_2 = process.env.MISTRAL_API_KEY;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 class TelegramService {
   constructor() { 
+    if (!TELEGRAM_BOT_TOKEN) {
+      throw new Error('TELEGRAM_BOT_TOKEN is required but not configured');
+    }
     this.analytics = { messagesReceived: 0, messagesSent: 0, startTime: Date.now() }; 
     this.conversations = new Map();
   }
   getMainKeyboard() { return { keyboard: [[{ text: '🏠 Meus Imóveis' }, { text: '👥 Meus Leads' }],[{ text: '📅 Agendamentos' }, { text: '📊 Dashboard' }],[{ text: '❓ Ajuda' }, { text: '⚙️ Configurações' }]], resize_keyboard: true }; }
   getBackKeyboard() { return { keyboard: [[{ text: '🔙 Menu Principal' }]], resize_keyboard: true }; }
-  async sendMessage(chatId, text, options) { if (!TELEGRAM_BOT_TOKEN_2) { logger.error('Telegram token missing!'); return { ok: false }; } try { let r = await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN_2 + '/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4096), reply_markup: options?.reply_markup }) }); const result = await r.json(); this.analytics.messagesSent++; logger.info('Telegram sendMessage result', { chatId, ok: result.ok, error: result.description }); return result; } catch (e) { logger.error('Telegram sendMessage error', { error: e.message }); return { ok: false }; } }
+   async sendMessage(chatId, text, options) { if (!TELEGRAM_BOT_TOKEN) { logger.error('Telegram token missing!'); return { ok: false }; } try { let r = await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4096), reply_markup: options?.reply_markup }) }); const result = await r.json(); this.analytics.messagesSent++; logger.info('Telegram sendMessage result', { chatId, ok: result.ok, error: result.description }); return result; } catch (e) { logger.error('Telegram sendMessage error', { error: e.message }); return { ok: false }; } }
   async sendWelcomeMessage(chatId, userName) { return this.sendMessage(chatId, '🤖 Bem-vindo!\n\nOlá ' + userName + '!\n\nRecursos:\n🏠 Meus Imóveis\n👥 Meus Leads\n📅 Agendamentos\n📊 Dashboard', { reply_markup: this.getMainKeyboard() }); }
   async sendHelpMessage(chatId) { return this.sendMessage(chatId, '❓ Ajuda\n\n/start - Iniciar\n/help - Esta ajuda\n/imoveis - Imóveis\n/leads - Leads\n/agenda - Agenda\n/dashboard - Resumo\n/stats - Estatísticas\n/limpar - Limpar', { reply_markup: this.getMainKeyboard() }); }
   addToConversation(chatId, role, content) { if (!this.conversations.has(chatId)) this.conversations.set(chatId, []); const h = this.conversations.get(chatId); h.push({ role, content, timestamp: Date.now() }); if (h.length > 20) h.shift(); this.conversations.set(chatId, h); }
@@ -197,7 +200,7 @@ Ajude o usuário com:
 Seja breve, profissional e responda sempre em português brasileiro.
 Evite usar markdown complexo que possa causar erros de parsing.`;
 
-  if (MISTRAL_API_KEY_2) {
+  if (MISTRAL_API_KEY) {
     try {
       const response = await fetch(
         'https://api.mistral.ai/v1/chat/completions',
@@ -205,7 +208,7 @@ Evite usar markdown complexo que possa causar erros de parsing.`;
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${MISTRAL_API_KEY_2}`
+            'Authorization': `Bearer ${MISTRAL_API_KEY}`
           },
           body: JSON.stringify({
             model: 'mistral-small-latest',
@@ -752,7 +755,7 @@ async function handleStats(chatId) {
 
 async function handleSettings(chatId) {
   const user = telegramUsers.get(chatId);
-  const linked = user?.creci ? `✅ Vinculado (${user.creci})` : '❌ Não vinculado';
+  const linked = user?.creci ? `✅ Vinculado (${user.login})` : '❌ Não vinculado';
   const lang = userTranslations.get(chatId) || 'pt';
   const langNames = { pt: 'Português', en: 'English', es: 'Español' };
 
@@ -845,17 +848,17 @@ app.post('/api/auth/register',
       }
 
       const { creci, password, name, email, phone, telegramId } = req.body;
-      const safeCreci = sanitizeInput(creci);
+      const safeLogin = sanitizeInput(creci);
 
-      if (users.has(safeCreci)) {
-        logger.warn('Registration failed - CRECI exists', { creci: safeCreci });
+      if (users.has(safeLogin)) {
+        logger.warn('Registration failed - CRECI exists', { creci: safeLogin });
         return res.status(409).json({ error: 'CRECI já cadastrado' });
       }
 
       const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
       
       const user = {
-        creci: safeCreci,
+        creci: safeLogin,
         password: hashedPassword,
         name: sanitizeInput(name),
         email: sanitizeInput(email),
@@ -864,10 +867,10 @@ app.post('/api/auth/register',
         createdAt: Date.now()
       };
 
-      users.set(safeCreci, user);
+      users.set(safeLogin, user);
       
-      logger.info('User registered', { creci: safeCreci });
-      res.status(201).json({ success: true, creci: safeCreci });
+      logger.info('User registered', { creci: safeLogin });
+      res.status(201).json({ success: true, creci: safeLogin });
     } catch (e) {
       logger.error('Registration error', { error: e.message });
       res.status(500).json({ error: 'Erro interno' });
@@ -887,28 +890,28 @@ app.post('/api/auth/login',
       }
 
       const { login, password } = req.body;
-      const safeCreci = sanitizeInput(creci);
-      const user = users.get(safeCreci);
+      const safeLogin = sanitizeInput(creci);
+      const user = users.get(safeLogin);
 
       if (!user) {
-        logger.warn('Login failed - user not found', { creci: safeCreci });
+        logger.warn('Login failed - user not found', { creci: safeLogin });
         return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
       const isValid = await bcrypt.compare(password, user.password);
       
       if (!isValid) {
-        logger.warn('Login failed - wrong password', { creci: safeCreci });
+        logger.warn('Login failed - wrong password', { creci: safeLogin });
         return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
-      const token = Buffer.from(`${safeCreci}:${Date.now()}`).toString('base64');
+      const token = Buffer.from(`${safeLogin}:${Date.now()}`).toString('base64');
       
-      logger.info('Login successful', { creci: safeCreci });
+      logger.info('Login successful', { creci: safeLogin });
       res.json({ 
         success: true, 
         token,
-        user: { creci: safeCreci, name: user.name, email: user.email, phone: user.phone, telegramId: user.telegramId }
+        user: { creci: safeLogin, name: user.name, email: user.email, phone: user.phone, telegramId: user.telegramId }
       });
     } catch (e) {
       logger.error('Login error', { error: e.message });
@@ -932,15 +935,15 @@ app.post('/api/telegram/webhook', async (req, res) => {
   }
 });
 
-app.get('/api/profile/:creci/telegram-id', (req, res) => {
-  const user = users.get(req.params.creci);
+app.get('/api/profile/:login/telegram-id', (req, res) => {
+  const user = users.get(req.params.login);
   if (!user) {
     return res.status(404).json({ error: 'Usuário não encontrado' });
   }
   res.json({ telegramId: user.telegramId || null });
 });
 
-app.post('/api/profile/:creci/telegram-id',
+app.post('/api/profile/:login/telegram-id',
   body('telegramId').isLength({ min: 1, max: 50 }).trim(),
   (req, res) => {
     try {
@@ -948,13 +951,13 @@ app.post('/api/profile/:creci/telegram-id',
       if (!errors.isEmpty()) {
         return res.status(400).json({ error: 'Telegram ID inválido', details: errors.array() });
       }
-      const user = users.get(req.params.creci);
+      const user = users.get(req.params.login);
       if (!user) {
         return res.status(404).json({ error: 'Usuário não encontrado' });
       }
       user.telegramId = sanitizeInput(req.body.telegramId);
-      users.set(req.params.creci, user);
-      logger.info('Telegram ID updated', { creci: req.params.creci });
+      users.set(req.params.login, user);
+      logger.info('Telegram ID updated', { creci: req.params.login });
       res.json({ success: true, telegramId: user.telegramId });
     } catch (e) {
       logger.error('Telegram ID update error', { error: e.message });
@@ -1064,8 +1067,8 @@ app.get('/api/partner/properties', async (req, res) => {
     if (creci && creci.trim()) {
       const target = creci.trim().toLowerCase();
       properties = properties.filter(p => {
-        const bc = (p.brokerCreci || '').toString().trim().toLowerCase();
-        const b_c = (p.broker_creci || '').toString().trim().toLowerCase();
+        const bc = (p.brokerLogin || '').toString().trim().toLowerCase();
+        const b_c = (p.broker_login || '').toString().trim().toLowerCase();
         return bc === target || b_c === target;
       });
     }
@@ -1170,15 +1173,15 @@ app.get('/api/partner/register', async (req, res) => {
 app.post('/api/partner/register', async (req, res) => {
   try {
     const broker = req.body;
-    if (!broker.creci) return res.status(400).json({ error: 'CRECI obrigatório' });
+    if (!broker.login) return res.status(400).json({ error: 'CRECI obrigatório' });
 
     // Persist to Database (primary) and in-memory Map (fallback)
     if (DataEngine) {
       await DataEngine.saveBroker(broker);
     }
-    users.set(broker.creci, { ...broker, updatedAt: Date.now() });
+    users.set(broker.login, { ...broker, updatedAt: Date.now() });
 
-    logger.info('Broker profile saved', { creci: broker.creci, hasPhoto: !!broker.photo });
+    logger.info('Broker profile saved', { creci: broker.login, hasPhoto: !!broker.photo });
     res.json({ success: true });
   } catch (e) {
     logger.error('Save broker error', { error: e.message });
