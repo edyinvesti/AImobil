@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Calendar, Info, CheckCircle2, Car, Maximize2, Share2, Printer, Zap, Phone, Image } from 'lucide-react';
+import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Calendar, Info, CheckCircle2, Car, Maximize2, Share2, Printer, Zap, Phone, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
 import { resolveImageUrl, getApiUrl } from '../utils';
@@ -15,6 +15,7 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
     const [zoomedImage, setZoomedImage] = React.useState<string | null>(null);
     const [isPublishing, setIsPublishing] = React.useState(false);
     const [loadingImages, setLoadingImages] = React.useState(true);
+    const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
     React.useEffect(() => {
       let cancelled = false;
@@ -95,13 +96,48 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
                             <span className="text-[10px] font-black uppercase tracking-widest">Carregando...</span>
                         </div>
                     ) : property.images.length > 0 ? (
-                        <div className="flex h-[40vh] md:h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-                            {property.images.map((img, i) => (
-                                <div key={i} className="relative h-full w-full flex-shrink-0 snap-center group cursor-zoom-in" onClick={() => setZoomedImage(resolveImageUrl(img))}>
-                                    <img src={resolveImageUrl(img)} className="h-full w-full object-cover" alt="" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-                                </div>
-                            ))}
+                        <div className="relative h-[40vh] md:h-full w-full group overflow-hidden bg-black">
+                            <AnimatePresence mode="wait">
+                                <motion.div 
+                                    key={currentImageIndex}
+                                    initial={{ opacity: 0, scale: 1.05 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="absolute inset-0 cursor-zoom-in"
+                                    onClick={() => setZoomedImage(resolveImageUrl(property.images[currentImageIndex]))}
+                                >
+                                    <img src={resolveImageUrl(property.images[currentImageIndex])} className="h-full w-full object-cover" alt="" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                                </motion.div>
+                            </AnimatePresence>
+
+                            {property.images.length > 1 && (
+                                <>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + property.images.length) % property.images.length); }}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 active:scale-95"
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % property.images.length); }}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/40 hover:bg-black/80 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 active:scale-95"
+                                    >
+                                        <ChevronRight size={24} />
+                                    </button>
+
+                                    <div className="absolute bottom-32 left-0 right-0 flex justify-center gap-2">
+                                        {property.images.map((_, idx) => (
+                                            <button 
+                                                key={idx}
+                                                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                                                className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/50'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="w-full h-full bg-white/5 flex flex-col items-center justify-center text-white/10 gap-4">
