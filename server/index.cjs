@@ -1,26 +1,4 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const multer = require('multer');
-const upload = multer({ dest: 'public/uploads/' });
-
-const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
-const winston = require('winston');
-const bcrypt = require('bcryptjs');
-const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
-
-// ... (AQUI VOCÊ COLA O SEU CÓDIGO DO TELEGRAMSERVICE, CLASSES E VARIÁVEIS QUE VOCÊ JÁ TINHA) ...
-
-const app = express();
-app.set('trust proxy', 1);
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
-app.use(cors({ origin: allowedOrigins, credentials: true }));
-
-app.use(express.json({ limit: '10mb' }));
-
-// A SUA ROTA DE PROPERTIES ÚNICA E CORRETA
+// A ROTA DE PROPERTIES
 app.post('/api/partner/properties', upload.single('image'), async (req, res) => {
   if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
   try {
@@ -38,8 +16,11 @@ app.post('/api/partner/properties', upload.single('image'), async (req, res) => 
   }
 });
 
-// ... (AQUI VOCÊ COLA O RESTO DO SEU CÓDIGO ORIGINAL QUE VEM DEPOIS DA ROTA DE PROPERTIES) ...
-// Garante que o servidor fique ativo ouvindo as requisições
+// ... (Restante do seu código original aqui) ...
+
+// DEFINIÇÃO DA PORTA E INICIALIZAÇÃO DO SERVIDOR (APENAS UMA VEZ)
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Servidor IAmobil rodando na porta ${PORT}`);
 });
