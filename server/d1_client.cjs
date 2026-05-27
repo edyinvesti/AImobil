@@ -1,5 +1,4 @@
 // Use native fetch
-
 class CloudflareD1Client {
   constructor(accountId, databaseId, apiToken) {
     this.accountId = accountId;
@@ -29,12 +28,12 @@ class CloudflareD1Client {
         params: args
       })
     });
-    
+
     const result = await response.json();
     if (!result.success) {
       throw new Error(result.errors?.[0]?.message || 'D1 Query failed');
     }
-    
+
     const d1Result = result.result[0];
     return {
       rows: d1Result.results || [],
@@ -43,7 +42,6 @@ class CloudflareD1Client {
   }
 
   async batch(queries) {
-    // Cloudflare D1 HTTP API expects object, not array, so we execute sequentially for batch
     const results = [];
     for (const q of queries) {
       const res = await this.execute(q);
