@@ -11,8 +11,7 @@ const winston = require('winston');
 const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
 
-// ... (Mantenha aqui todo o seu código de TelegramService, classes e constantes que você já tinha)
-// ...
+// ... (AQUI VOCÊ COLA O SEU CÓDIGO DO TELEGRAMSERVICE, CLASSES E VARIÁVEIS QUE VOCÊ JÁ TINHA) ...
 
 const app = express();
 app.set('trust proxy', 1);
@@ -21,7 +20,7 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.use(express.json({ limit: '10mb' }));
 
-// ROTA DE PROPERTIES CORRETA E ÚNICA
+// A SUA ROTA DE PROPERTIES ÚNICA E CORRETA
 app.post('/api/partner/properties', upload.single('image'), async (req, res) => {
   if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
   try {
@@ -39,4 +38,4 @@ app.post('/api/partner/properties', upload.single('image'), async (req, res) => 
   }
 });
 
-// ... (Continue o resto do seu arquivo original AQUI PARA BAIXO)
+// ... (AQUI VOCÊ COLA O RESTO DO SEU CÓDIGO ORIGINAL QUE VEM DEPOIS DA ROTA DE PROPERTIES) ...
