@@ -65,3 +65,13 @@ html, body {
 
 * { outline: 1px solid red !important; }
 
+
+/* Travamento final para IAmobil */
+body, html {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
