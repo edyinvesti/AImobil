@@ -160,7 +160,7 @@ class DataEngine {
     if (!client) return null;
     try {
        return await client.execute({
-         sql: `INSERT INTO properties (id, title, type, price, location, city, neighborhood, 
+         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
                bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
                livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
                brokerName, brokerCreci, broker_creci) 
