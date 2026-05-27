@@ -10,109 +10,6 @@ const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.c
 
 // TelegramService inline
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-class TelegramService {
-  constructor() { 
-    if (!TELEGRAM_BOT_TOKEN) {
-      throw new Error('TELEGRAM_BOT_TOKEN is required but not configured');
-    }
-    this.analytics = { messagesReceived: 0, messagesSent: 0, startTime: Date.now() }; 
-    this.conversations = new Map();
-  }
-  getMainKeyboard() { return { keyboard: [[{ text: '🏠 Meus Imóveis' }, { text: '👥 Meus Leads' }],[{ text: '📅 Agendamentos' }, { text: '📊 Dashboard' }],[{ text: '❓ Ajuda' }, { text: '⚙️ Configurações' }]], resize_keyboard: true }; }
-  getBackKeyboard() { return { keyboard: [[{ text: '🔙 Menu Principal' }]], resize_keyboard: true }; }
-   async sendMessage(chatId, text, options) { if (!TELEGRAM_BOT_TOKEN) { logger.error('Telegram token missing!'); return { ok: false }; } try { let r = await fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4096), reply_markup: options?.reply_markup }) }); const result = await r.json(); this.analytics.messagesSent++; logger.info('Telegram sendMessage result', { chatId, ok: result.ok, error: result.description }); return result; } catch (e) { logger.error('Telegram sendMessage error', { error: e.message }); return { ok: false }; } }
-  async sendWelcomeMessage(chatId, userName) { return this.sendMessage(chatId, '🤖 Bem-vindo!\n\nOlá ' + userName + '!\n\nRecursos:\n🏠 Meus Imóveis\n👥 Meus Leads\n📅 Agendamentos\n📊 Dashboard', { reply_markup: this.getMainKeyboard() }); }
-  async sendHelpMessage(chatId) { return this.sendMessage(chatId, '❓ Ajuda\n\n/start - Iniciar\n/help - Esta ajuda\n/imoveis - Imóveis\n/leads - Leads\n/agenda - Agenda\n/dashboard - Resumo\n/stats - Estatísticas\n/limpar - Limpar', { reply_markup: this.getMainKeyboard() }); }
-  addToConversation(chatId, role, content) { if (!this.conversations.has(chatId)) this.conversations.set(chatId, []); const h = this.conversations.get(chatId); h.push({ role, content, timestamp: Date.now() }); if (h.length > 20) h.shift(); this.conversations.set(chatId, h); }
-  getConversationHistory(chatId) { return this.conversations.get(chatId) || []; }
-  clearConversation(chatId) { this.conversations.delete(chatId); }
-  getAnalytics() { return { ...this.analytics, uptime: Date.now() - this.analytics.startTime, activeConversations: this.conversations.size }; }
-  trackAnalytics(cmd) { this.analytics.messagesReceived++; if (cmd) this.analytics.commandsUsed = this.analytics.commandsUsed || {}; if (cmd) this.analytics.commandsUsed[cmd] = (this.analytics.commandsUsed[cmd] || 0) + 1; }
-}
-
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ level, message, timestamp, ...meta }) => {
-          const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
-          return `${timestamp} [${level}]: ${message} ${metaStr}`;
-        })
-      )
-    })
-  ]
-});
-
-let DataEngine;
-let dataEngineInstance;
-
-try {
-  const { CloudflareD1Client } = require('./d1_client.cjs');
-  const de = require('./data_engine.cjs');
-  
-  const db = new CloudflareD1Client(
-    process.env.CLOUDFLARE_ACCOUNT_ID,
-    process.env.CLOUDFLARE_D1_DATABASE_ID,
-    process.env.CLOUDFLARE_API_TOKEN
-  );
-
-  dataEngineInstance = new de.DataEngine(db);
-  DataEngine = dataEngineInstance;
-  logger.info('DataEngine initialized with Cloudflare D1');
-} catch (e) {
-  logger.warn('DataEngine not available', { error: e.message });
-  DataEngine = null;
-}
-
-const PORT = process.env.PORT || 10000;
-const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-
-const app = express();
-app.set('trust proxy', 1);
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',');
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
-
-app.use(express.json({ limit: '10mb' }));
-
-const apiLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
-  message: { error: 'Muitas requisições. Tente novamente mais tarde.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res, next, options) => {
-    logger.warn('Rate limit exceeded', { ip: req.ip, path: req.path });
-    res.status(options.statusCode).json(options.message);
-  }
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
-  handler: (req, res, next, options) => {
-    logger.warn('Auth rate limit exceeded', { ip: req.ip });
-    res.status(options.statusCode).json(options.message);
-  }
-});
-
-app.use('/api/', apiLimiter);
-
-app.use(express.static(path.join(__dirname, '../dist')));
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 logger.info('Server starting', { 
   port: PORT, 
@@ -755,7 +652,7 @@ async function handleStats(chatId) {
 
 async function handleSettings(chatId) {
   const user = telegramUsers.get(chatId);
-  const linked = user?.creci ? `✅ Vinculado (${user.login})` : '❌ Não vinculado';
+  const linked = user?.login ? `✅ Vinculado (${user.login})` : '❌ Não vinculado';
   const lang = userTranslations.get(chatId) || 'pt';
   const langNames = { pt: 'Português', en: 'English', es: 'Español' };
 
@@ -847,18 +744,18 @@ app.post('/api/auth/register',
         return res.status(400).json({ error: 'Dados inválidos', details: errors.array() });
       }
 
-      const { creci, password, name, email, phone, telegramId } = req.body;
-      const safeLogin = sanitizeInput(creci);
+      const { login, password, name, email, phone, telegramId } = req.body;
+      const safeLogin = sanitizeInput(login);
 
       if (users.has(safeLogin)) {
-        logger.warn('Registration failed - CRECI exists', { creci: safeLogin });
-        return res.status(409).json({ error: 'CRECI já cadastrado' });
+        logger.warn('Registration failed - login exists', { login: safeLogin });
+        return res.status(409).json({ error: 'login já cadastrado' });
       }
 
       const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
       
       const user = {
-        creci: safeLogin,
+        login: safeLogin,
         password: hashedPassword,
         name: sanitizeInput(name),
         email: sanitizeInput(email),
@@ -869,8 +766,8 @@ app.post('/api/auth/register',
 
       users.set(safeLogin, user);
       
-      logger.info('User registered', { creci: safeLogin });
-      res.status(201).json({ success: true, creci: safeLogin });
+      logger.info('User registered', { login: safeLogin });
+      res.status(201).json({ success: true, login: safeLogin });
     } catch (e) {
       logger.error('Registration error', { error: e.message });
       res.status(500).json({ error: 'Erro interno' });
@@ -886,32 +783,32 @@ app.post('/api/auth/login',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ error: 'CRECI e senha são obrigatórios' });
+        return res.status(400).json({ error: 'login e senha são obrigatórios' });
       }
 
       const { login, password } = req.body;
-      const safeLogin = sanitizeInput(creci);
+      const safeLogin = sanitizeInput(login);
       const user = users.get(safeLogin);
 
       if (!user) {
-        logger.warn('Login failed - user not found', { creci: safeLogin });
+        logger.warn('Login failed - user not found', { login: safeLogin });
         return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
       const isValid = await bcrypt.compare(password, user.password);
       
       if (!isValid) {
-        logger.warn('Login failed - wrong password', { creci: safeLogin });
+        logger.warn('Login failed - wrong password', { login: safeLogin });
         return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
       const token = Buffer.from(`${safeLogin}:${Date.now()}`).toString('base64');
       
-      logger.info('Login successful', { creci: safeLogin });
+      logger.info('Login successful', { login: safeLogin });
       res.json({ 
         success: true, 
         token,
-        user: { creci: safeLogin, name: user.name, email: user.email, phone: user.phone, telegramId: user.telegramId }
+        user: { login: safeLogin, name: user.name, email: user.email, phone: user.phone, telegramId: user.telegramId }
       });
     } catch (e) {
       logger.error('Login error', { error: e.message });
@@ -957,7 +854,7 @@ app.post('/api/profile/:login/telegram-id',
       }
       user.telegramId = sanitizeInput(req.body.telegramId);
       users.set(req.params.login, user);
-      logger.info('Telegram ID updated', { creci: req.params.login });
+      logger.info('Telegram ID updated', { login: req.params.login });
       res.json({ success: true, telegramId: user.telegramId });
     } catch (e) {
       logger.error('Telegram ID update error', { error: e.message });
@@ -1063,9 +960,9 @@ app.get('/api/partner/properties', async (req, res) => {
   if (!DataEngine) return res.json({ success: true, count: 0, properties: [] });
   try {
     let properties = await DataEngine.getProperties();
-    const creci = req.query?.creci;
-    if (creci && creci.trim()) {
-      const target = creci.trim().toLowerCase();
+    const login = req.query?.login;
+    if (login && login.trim()) {
+      const target = login.trim().toLowerCase();
       properties = properties.filter(p => {
         const bc = (p.brokerLogin || '').toString().trim().toLowerCase();
         const b_c = (p.broker_login || '').toString().trim().toLowerCase();
@@ -1151,16 +1048,16 @@ app.get('/api/hermes/status', (req, res) => {
 
 app.get('/api/partner/register', async (req, res) => {
   try {
-    const creci = req.query.creci;
-    if (!creci) return res.status(400).json({ error: 'CRECI obrigatório' });
+    const login = req.query.login;
+    if (!login) return res.status(400).json({ error: 'login obrigatório' });
 
     // Try Database first, fall back to in-memory Map
     let broker = null;
     if (DataEngine) {
-      broker = await DataEngine.getBroker(creci);
+      broker = await DataEngine.getBroker(login);
     }
     if (!broker) {
-      broker = users.get(creci) || null;
+      broker = users.get(login) || null;
     }
 
     res.json({ success: true, broker });
@@ -1173,7 +1070,7 @@ app.get('/api/partner/register', async (req, res) => {
 app.post('/api/partner/register', async (req, res) => {
   try {
     const broker = req.body;
-    if (!broker.login) return res.status(400).json({ error: 'CRECI obrigatório' });
+    if (!broker.login) return res.status(400).json({ error: 'login obrigatório' });
 
     // Persist to Database (primary) and in-memory Map (fallback)
     if (DataEngine) {
@@ -1181,7 +1078,7 @@ app.post('/api/partner/register', async (req, res) => {
     }
     users.set(broker.login, { ...broker, updatedAt: Date.now() });
 
-    logger.info('Broker profile saved', { creci: broker.login, hasPhoto: !!broker.photo });
+    logger.info('Broker profile saved', { login: broker.login, hasPhoto: !!broker.photo });
     res.json({ success: true });
   } catch (e) {
     logger.error('Save broker error', { error: e.message });
@@ -1223,3 +1120,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
