@@ -164,7 +164,7 @@ class DataEngine {
                bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
                livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
                brokerName, brokerCreci, broker_creci) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
          args: [
            property.id, property.title, property.type, property.price,
            property.address || property.location || '', property.city || '', property.neighborhood || '',
