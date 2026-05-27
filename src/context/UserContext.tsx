@@ -16,7 +16,7 @@ const API_URL = getApiUrl();
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
-    creci: '',
+    login: '',
     photo: '',
     email: '',
     phone: ''
@@ -43,13 +43,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       try {
         // // console.log removido;
-        const response = await fetch(`${API_URL}/api/partner/register?creci=${encodeURIComponent(profile.creci)}`);
+        const response = await fetch(`${API_URL}/api/partner/register?login=${encodeURIComponent(profile.login)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.broker) {
             // console.log("[UserContext] Perfil encontrado na nuvem:", data.broker);
             const cloudProfile = {
-              creci: data.broker.creci,
+              login: data.broker.login,
               name: data.broker.name || '',
               email: data.broker.email || '',
               phone: data.broker.phone || '',
@@ -77,7 +77,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const syncToCloud = async (userData: UserProfile) => {
     const apiUrl = getApiUrl();
-    if (!apiUrl || !userData.creci || userData.name === 'Buscando perfil...') return;
+    if (!apiUrl || !userData.login || userData.name === 'Buscando perfil...') return;
     
     try {
       await fetch(`${apiUrl}/api/partner/register`, {
@@ -108,7 +108,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('iamobil_properties');
     setProfile({
       name: '',
-      creci: '',
+      login: '',
       photo: '',
       email: '',
       phone: ''

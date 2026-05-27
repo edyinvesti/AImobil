@@ -19,7 +19,7 @@ import { Property } from "./types";
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const { profile, updateProfile, logout } = useUser();
-  const { properties, saveProperty, deleteProperty, forceSync, loading, syncStatus } = useProperties(profile.creci);
+  const { properties, saveProperty, deleteProperty, forceSync, loading, syncStatus } = useProperties(profile.login);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
   
