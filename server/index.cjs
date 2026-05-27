@@ -1,26 +1,30 @@
-// A ROTA DE PROPERTIES
+// --- TOPO: TODOS OS REQUIRES ---
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { CloudflareD1Client } = require('./CloudflareD1Client.cjs');
+const { DataEngine } = require('./data_engine.cjs');
+// ... outros requires que você tiver ...
+
+const app = express();
+
+// --- INSTÂNCIA DO CLIENTE E ENGINE ---
+const db = new CloudflareD1Client(
+  process.env.CLOUDFLARE_ACCOUNT_ID,
+  process.env.CLOUDFLARE_D1_DATABASE_ID,
+  process.env.CLOUDFLARE_API_TOKEN
+);
+const dataEngineInstance = new DataEngine(db);
+
+// --- ROTAS ---
 app.post('/api/partner/properties', upload.single('image'), async (req, res) => {
-  if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
-  try {
-    const property = req.body;
-    if (req.file) {
-      property.thumbnail = `/uploads/${req.file.filename}`;
-    }
-    if (!property.id) property.id = `prop_${Date.now()}`;
-    await DataEngine.addProperty(property);
-    logger.info('Property created with image', { propertyId: property.id });
-    res.status(201).json({ success: true, propertyId: property.id, imageUrl: property.thumbnail });
-  } catch (e) {
-    logger.error('Partner property creation error', { error: e.message });
-    res.status(500).json({ error: 'Erro ao salvar imóvel' });
-  }
+  // Use dataEngineInstance aqui
+  await dataEngineInstance.addProperty(req.body);
+  // ... resto da lógica ...
 });
 
-// ... (Restante do seu código original aqui) ...
-
-// DEFINIÇÃO DA PORTA E INICIALIZAÇÃO DO SERVIDOR (APENAS UMA VEZ)
+// --- FINAL: PORTA ---
 const PORT = process.env.PORT || 10000;
-
 app.listen(PORT, '0.0.0.0', () => {
-  logger.info(`Servidor IAmobil rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
