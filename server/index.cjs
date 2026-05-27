@@ -877,7 +877,7 @@ app.post('/api/auth/register',
 
 app.post('/api/auth/login',
   authLimiter,
-  body(['creci', 'login']).optional().trim(),
+  body('login').notEmpty().trim(),
   body('password').notEmpty(),
   async (req, res) => {
     try {
