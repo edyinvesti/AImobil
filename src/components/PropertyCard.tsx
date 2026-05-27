@@ -52,7 +52,7 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
       {/* Glossy Image Container */}
       <div className="relative h-56 overflow-hidden bg-zinc-950">
         <img 
-          src={resolveImageUrl(getFallbackImage(property.title, thumbnail))}
+          src={resolveImageUrl(getFallbackImage(property.title || ``, thumbnail || ``))}
           alt={property.title}
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
           onError={(e) => { 
