@@ -274,9 +274,17 @@ export function useProperties(baseCreci?: string) {
           
           if (response.ok) {
             const data = await response.json();
-            setProperties(prev => prev.map(p => 
-              p.id === property.id ? { ...p, remoteId: data.propertyId, remoteStatus: 'pending' as const } : p
-            ));
+            setProperties(prev => {
+              // Update with remoteId so card shows 'Hub' instead of 'Syncing'
+              const updated = prev.map(p =>
+                p.id === property.id
+                  ? { ...p, id: data.propertyId, remoteId: data.propertyId, remoteStatus: 'approved' as const }
+                  : p
+              );
+              // Persist immediately so reload doesn't lose the remoteId
+              try { localStorage.setItem('iamobil_properties', JSON.stringify(updated)); } catch {}
+              return updated;
+            });
             setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
           } else {
             setSyncStatus({ syncing: false, lastSync: null, error: 'Erro ao salvar na nuvem' });
