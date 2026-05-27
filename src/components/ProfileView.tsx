@@ -18,8 +18,8 @@ export function ProfileView() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.creci) {
-        alert("O campo CRECI é obrigatório para acessar sua conta.");
+    if (!formData.Login) {
+        alert("O campo Login é obrigatório para acessar sua conta.");
         return;
     }
     
@@ -102,7 +102,7 @@ export function ProfileView() {
               </label>
             </div>
 
-            {/* Name & CRECI */}
+            {/* Name & Login */}
             <div className="text-center">
               <h2 className="text-lg font-black text-white uppercase tracking-tighter leading-tight">
                 {formData.name || 'Seu Nome'}
@@ -110,7 +110,7 @@ export function ProfileView() {
               <div className="flex items-center justify-center gap-1.5 mt-2 px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20 w-fit mx-auto">
                 <ShieldCheck size={11} className="text-orange-500" />
                 <span className="text-[10px] font-black text-orange-500 tracking-widest uppercase">
-                  {formData.creci || 'CRECI'}
+                  {formData.Login || 'Login'}
                 </span>
               </div>
             </div>
@@ -157,12 +157,12 @@ export function ProfileView() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">
-                  CRECI
+                  Login
                 </label>
                 <input
                   className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-700"
-                  value={formData.creci}
-                  onChange={e => setFormData(prev => ({ ...prev, creci: e.target.value }))}
+                  value={formData.Login}
+                  onChange={e => setFormData(prev => ({ ...prev, Login: e.target.value }))}
                   placeholder="Ex: 987456-F"
                 />
               </div>

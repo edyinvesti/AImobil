@@ -55,7 +55,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
       <div className="p-4 lg:p-8 w-full">
         <div className="h-16 w-48 bg-white/5 rounded-xl mb-10 animate-pulse" />
         <div className="flex flex-wrap gap-4 mb-10">
-          {[1, 2, 3].map(i => <div key={i} className="flex-1 min-w-[200px] h-24 bg-white/5 rounded-2xl animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="flex-1 min-w-0 w-full h-24 bg-white/5 rounded-2xl animate-pulse" />)}
         </div>
         <div className="flex flex-wrap gap-6">
           {[1, 2, 3, 4].map(i => <div key={i} className="w-[300px] shrink-0"><SkeletonCard /></div>)}
@@ -138,19 +138,19 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
       </div>
 
       <div className="flex flex-wrap gap-4 mb-10">
-        <div className="flex-1 min-w-[200px] bg-zinc-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 group hover:border-orange-500/30 transition-all">
+        <div className="flex-1 min-w-0 w-full bg-zinc-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 group hover:border-orange-500/30 transition-all">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1 flex items-center gap-2">
             <Filter size={10} className="text-orange-500" /> Resultados
           </p>
           <h2 className="text-3xl font-black text-white">{filteredProperties.length}</h2>
         </div>
-        <div className="flex-1 min-w-[200px] bg-zinc-900 p-6 rounded-2xl border border-white/10">
+        <div className="flex-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1">Volume</p>
           <h2 className="text-3xl font-black text-orange-500">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(totalValue)}
           </h2>
         </div>
-        <div className="flex-1 min-w-[200px] bg-zinc-900 p-6 rounded-2xl border border-white/10">
+        <div className="flex-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1">Análise</p>
           <h2 className="text-3xl font-black text-blue-400">{pendingProps}</h2>
         </div>
