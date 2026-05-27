@@ -8,8 +8,29 @@ const winston = require('winston');
 const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
 
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.printf(({ level, message, timestamp, ...meta }) => {
+          const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+          return `${timestamp} [${level}]: ${message} ${metaStr}`;
+        })
+      )
+    })
+  ]
+});
+
 // TelegramService inline
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 logger.info('Server starting', { 
   port: PORT, 
