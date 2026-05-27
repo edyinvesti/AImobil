@@ -10,10 +10,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  const { creci, password, name, email, phone } = req.body;
+  const { login, password, name, email, phone } = req.body;
 
-  if (!creci || creci.length < 3 || creci.length > 20) {
-    return res.status(400).json({ error: 'CRECI inválido (3-20 caracteres)' });
+  if (!login || login.length < 3 || login.length > 20) {
+    return res.status(400).json({ error: 'login inválido (3-20 caracteres)' });
   }
   if (!password || password.length < 6 || password.length > 100) {
     return res.status(400).json({ error: 'Senha inválida (mínimo 6 caracteres)' });
@@ -26,8 +26,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const user = await createUser(creci, password, name, email, phone);
-    return res.status(201).json({ success: true, user: { creci: user.creci, name: user.name, email: user.email } });
+    const user = await createUser(login, password, name, email, phone);
+    return res.status(201).json({ success: true, user: { login: user.login, name: user.name, email: user.email } });
   } catch (e) {
     if (e.message.includes('já cadastrado')) {
       return res.status(409).json({ error: e.message });

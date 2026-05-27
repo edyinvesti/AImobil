@@ -14,7 +14,7 @@ function getDb() {
 
 export async function getProperties() {
    const db = getDb();
-   const rs = await db.execute("SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, created_at, broker_creci, brokerCreci, images FROM properties ORDER BY created_at DESC LIMIT 20");
+   const rs = await db.execute("SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, created_at, broker_login, brokerlogin, images FROM properties ORDER BY created_at DESC LIMIT 20");
    return rs.rows.map(row => {
      let images = [];
      let thumbnail = null;
@@ -96,7 +96,7 @@ export async function addProperty(property) {
   const db = getDb();
   const id = property.id || `prop_${Date.now()}`;
   await db.execute({
-    sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, created_at, broker_creci)
+    sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, created_at, broker_login)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id, property.title, property.type,
@@ -109,7 +109,7 @@ export async function addProperty(property) {
       property.status || 'aprovado',
       JSON.stringify(property.images || []),
       Date.now(),
-      property.brokerCreci || property.broker_creci || ''
+      property.brokerlogin || property.broker_login || ''
     ]
   });
   return id;
@@ -171,43 +171,43 @@ function simpleHash(str) {
   return 'hash_' + Math.abs(hash).toString(36);
 }
 
-export async function getBroker(creci) {
+export async function getBroker(login) {
   const db = getDb();
-  const rs = await db.execute({ sql: 'SELECT * FROM brokers WHERE creci = ?', args: [creci] });
+  const rs = await db.execute({ sql: 'SELECT * FROM brokers WHERE login = ?', args: [login] });
   return rs.rows[0] || null;
 }
 
 export async function upsertBroker(broker) {
   const db = getDb();
   await db.execute({
-    sql: `INSERT INTO brokers (creci, name, email, phone, photo, lastActive)
+    sql: `INSERT INTO brokers (login, name, email, phone, photo, lastActive)
           VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(creci) DO UPDATE SET
+          ON CONFLICT(login) DO UPDATE SET
             name=COALESCE(NULLIF(?,''), name),
             email=COALESCE(NULLIF(?,''), email),
             phone=COALESCE(NULLIF(?,''), phone),
             photo=COALESCE(NULLIF(?,''), photo),
             lastActive=excluded.lastActive`,
     args: [
-      broker.creci, broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', new Date().toISOString(),
+      broker.login, broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', new Date().toISOString(),
       broker.name || '', broker.email || '', broker.phone || '', broker.photo || ''
     ]
   });
   return broker;
 }
 
-export async function createUser(creci, password, name, email, phone) {
-  if (usersCache.has(creci)) {
-    throw new Error('CRECI já cadastrado');
+export async function createUser(login, password, name, email, phone) {
+  if (usersCache.has(login)) {
+    throw new Error('login já cadastrado');
   }
   const hash = simpleHash(password);
-  usersCache.set(creci, { creci, password: hash, name, email, phone, createdAt: Date.now() });
-  return { creci, name, email, phone };
+  usersCache.set(login, { login, password: hash, name, email, phone, createdAt: Date.now() });
+  return { login, name, email, phone };
 }
 
-export async function validateUser(creci, password) {
-  const user = usersCache.get(creci);
+export async function validateUser(login, password) {
+  const user = usersCache.get(login);
   if (!user) return null;
   const hash = simpleHash(password);
-  return user.password === hash ? { creci: user.creci, name: user.name, email: user.email, phone: user.phone } : null;
+  return user.password === hash ? { login: user.login, name: user.name, email: user.email, phone: user.phone } : null;
 }

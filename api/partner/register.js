@@ -11,18 +11,18 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { creci } = req.query;
-      console.log('[Register] GET creci:', creci);
-      if (!creci) return res.status(400).json({ error: 'CRECI obrigatório' });
+      const { login } = req.query;
+      console.log('[Register] GET login:', login);
+      if (!login) return res.status(400).json({ error: 'login obrigatório' });
       
-      const broker = await getBroker(creci);
+      const broker = await getBroker(login);
       return res.status(200).json({ success: true, broker });
     }
 
     if (req.method === 'POST') {
       const brokerData = req.body;
       console.log('[Register] POST data:', JSON.stringify(brokerData));
-      if (!brokerData || !brokerData.creci) return res.status(400).json({ error: 'CRECI obrigatório no corpo' });
+      if (!brokerData || !brokerData.login) return res.status(400).json({ error: 'login obrigatório no corpo' });
       
       await upsertBroker(brokerData);
       return res.status(200).json({ success: true, message: 'Perfil atualizado' });

@@ -8,13 +8,13 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const creci = req.query?.creci;
+      const login = req.query?.login;
       let properties = await getProperties();
       
-      if (creci && creci.trim()) {
-        const targetCreci = creci.trim().toLowerCase();
+      if (login && login.trim()) {
+        const targetlogin = login.trim().toLowerCase();
         properties = properties.filter(p => 
-          p.brokerCreci && p.brokerCreci.trim().toLowerCase() === targetCreci
+          p.brokerlogin && p.brokerlogin.trim().toLowerCase() === targetlogin
         );
       }
       
