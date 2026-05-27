@@ -16,31 +16,31 @@ export function Radar() {
   ];
 
   return (
-    <div className="p-4 lg:p-8 w-full">
-      <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
+    <div className="overflow-hidden" className="overflow-hidden" className="p-4 lg:p-8 w-full">
+      <header className="mb-10 flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-col md:flex flex-wrap flex flex-wrap-wrap-row md:items-center justify-between gap-6">
+        <div className="overflow-hidden" className="overflow-hidden">
           <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Oponente Radar</h1>
           <p className="text-gray-500 text-xs mt-1 font-bold uppercase tracking-widest">
              Inteligência de Mercado Proativa & Dash de Tendências
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 text-[9px] font-black uppercase tracking-widest text-emerald-500">
+        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 text-[9px] font-black uppercase tracking-widest text-emerald-500">
            <Zap size={10} fill="currentColor" /> Atualizado em tempo real
         </div>
       </header>
 
       {/* Quick Stats */}
-      <div className="flex flex-wrap gap-4 mb-10">
+      <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-4 mb-10">
         {stats.map((s, i) => (
           <motion.div 
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="flex-1 min-w-[240px] bg-zinc-900/40 border border-white/5 p-6 rounded-3xl backdrop-blur-xl relative overflow-hidden"
+            className="flex flex-wrap flex flex-wrap-wrap-1 min-w-full bg-zinc-900/40 border border-white/5 p-6 rounded-3xl backdrop-blur-xl relative overflow-hidden"
           >
-            <div className="absolute -right-2 -bottom-2 opacity-5 scale-150 rotate-12">
+            <div className="overflow-hidden" className="overflow-hidden" className="absolute -right-2 -bottom-2 opacity-5 scale-150 rotate-12">
                <s.icon size={100} />
             </div>
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 font-mono">{s.label}</p>
@@ -49,9 +49,9 @@ export function Radar() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-2 mb-4">
+      <div className="overflow-hidden" className="overflow-hidden" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="overflow-hidden" className="overflow-hidden" className="lg:col-span-2 space-y-4">
+          <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 mb-4">
              <Waves size={16} className="text-blue-500" />
              <h2 className="text-sm font-black uppercase tracking-widest text-white">Fluxo de Insights</h2>
           </div>
@@ -64,8 +64,8 @@ export function Radar() {
               transition={{ delay: 0.3 + (i * 0.1) }}
               className="bg-white/5 border border-white/5 p-6 rounded-3xl hover:bg-white/[0.07] transition-all group"
             >
-              <div className="flex items-start justify-between">
-                <div>
+              <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-start justify-between">
+                <div className="overflow-hidden" className="overflow-hidden">
                   <span className="text-[8px] font-black uppercase tracking-widest text-orange-500/70 bg-orange-500/10 px-2 py-0.5 rounded-full mb-3 inline-block">
                     {insight.tag}
                   </span>
@@ -82,9 +82,9 @@ export function Radar() {
           ))}
         </div>
 
-        <div className="space-y-6">
-           <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-8 rounded-[40px] text-white relative overflow-hidden shadow-2xl shadow-orange-500/20">
-              <div className="absolute top-0 right-0 -mr-10 -mt-10 opacity-20 rotate-45">
+        <div className="overflow-hidden" className="overflow-hidden" className="space-y-6">
+           <div className="overflow-hidden" className="overflow-hidden" className="bg-gradient-to-br from-orange-600 to-orange-800 p-8 rounded-[40px] text-white relative overflow-hidden shadow-2xl shadow-orange-500/20">
+              <div className="overflow-hidden" className="overflow-hidden" className="absolute top-0 right-0 -mr-10 -mt-10 opacity-20 rotate-45">
                  <RadarIcon size={200} />
               </div>
               <h3 className="text-xl font-black uppercase tracking-tighter mb-4 relative z-10">Scan de<br/>Oportunidade</h3>
@@ -96,17 +96,17 @@ export function Radar() {
               </button>
            </div>
 
-           <div className="bg-white/5 border border-white/5 p-6 rounded-3xl">
+           <div className="overflow-hidden" className="overflow-hidden" className="bg-white/5 border border-white/5 p-6 rounded-3xl">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-6">Volume de Transações (GO)</h3>
-              <div className="flex items-end gap-2 h-20">
+              <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-end gap-2 h-20">
                  {[40, 70, 45, 90, 65, 80, 55].map((h, i) => (
                    <motion.div 
                     key={i}
                     initial={{ height: 0 }}
                     animate={{ height: `${h}%` }}
-                    className="flex-1 bg-white/10 rounded-t-sm group relative"
+                    className="flex flex-wrap flex flex-wrap-wrap-1 bg-white/10 rounded-t-sm group relative"
                    >
-                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white text-black text-[8px] font-black px-1 rounded uppercase">
+                     <div className="overflow-hidden" className="overflow-hidden" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white text-black text-[8px] font-black px-1 rounded uppercase">
                         {h}k
                      </div>
                    </motion.div>
