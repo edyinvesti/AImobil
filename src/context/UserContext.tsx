@@ -39,7 +39,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchCloudProfile = async () => {
-      if (!API_URL || !profile.creci) return;
+      if (!API_URL) return;
 
       try {
         // // console.log removido;
@@ -73,7 +73,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchCloudProfile();
-  }, [profile.creci, profile.name, profile.phone]);
+  }, []);
 
   const syncToCloud = async (userData: UserProfile) => {
     const apiUrl = getApiUrl();

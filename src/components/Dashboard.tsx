@@ -52,42 +52,42 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
 
   if (loading) {
     return (
-      <div className="overflow-hidden" className="overflow-hidden" className="p-4 lg:p-8 w-full">
-        <div className="overflow-hidden" className="overflow-hidden" className="h-16 w-48 bg-white/5 rounded-xl mb-10 animate-pulse" />
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-4 mb-10">
-          {[1, 2, 3].map(i => <div className="overflow-hidden" className="overflow-hidden" key={i} className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full h-24 bg-white/5 rounded-2xl animate-pulse" />)}
+      <div $1 className="p-4 lg:p-8 w-full">
+        <div $1 className="h-16 w-48 bg-white/5 rounded-xl mb-10 animate-pulse" />
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-4 mb-10">
+          {[1, 2, 3].map(i => <div $1 key={i} className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full h-24 bg-white/5 rounded-2xl animate-pulse" />)}
         </div>
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-6">
-          {[1, 2, 3, 4].map(i => <div className="overflow-hidden" className="overflow-hidden" key={i} className="w-full shrink-0"><SkeletonCard /></div>)}
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-6">
+          {[1, 2, 3, 4].map(i => <div $1 key={i} className="w-full shrink-0"><SkeletonCard /></div>)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden" className="overflow-hidden" className="p-4 lg:p-8 w-full">
+    <div $1 className="p-4 lg:p-8 w-full">
       <header className="mb-10 flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-col md:flex flex-wrap flex flex-wrap-wrap-row md:items-center justify-between gap-6">
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-4">
-          <div className="overflow-hidden" className="overflow-hidden">
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-4">
+          <div $1>
             <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Sua Carteira</h1>
             <p className="text-gray-500 text-xs mt-1 font-bold uppercase tracking-widest">
               Total: <span className="text-orange-500">{properties.length}</span> ativos em gestão
             </p>
           </div>
           
-          <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 mt-1">
+          <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 mt-1">
             {syncStatus?.syncing ? (
-              <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+              <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                 <RefreshCw size={14} className="text-blue-400 animate-spin" />
                 <span className="text-[10px] font-bold text-blue-400 uppercase">Sincronizando</span>
               </div>
             ) : syncStatus?.error ? (
-              <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <AlertCircle size={14} className="text-red-400" />
                 <span className="text-[10px] font-bold text-red-400 uppercase">{syncStatus.error}</span>
               </div>
             ) : syncStatus?.lastSync ? (
-              <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+              <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                 <CheckCircle2 size={14} className="text-emerald-400" />
                 <span className="text-[10px] font-bold text-emerald-400 uppercase">Sincronizado {formatLastSync(syncStatus.lastSync)}</span>
               </div>
@@ -103,8 +103,8 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
           </div>
         </div>
         
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap items-center gap-3">
-            <div className="overflow-hidden" className="overflow-hidden" className="relative group flex flex-wrap flex flex-wrap-wrap-1 md:w-80">
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap items-center gap-3">
+            <div $1 className="relative group flex flex-wrap flex flex-wrap-wrap-1 md:w-80">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-orange-500 transition-colors" />
                 <input 
                     type="text"
@@ -120,7 +120,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
         </div>
       </header>
 
-      <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap gap-2 overflow-x-auto pb-6 scrollbar-hide">
+      <div $1 className="flex flex-wrap flex flex-wrap-wrap gap-2 overflow-x-auto pb-6 scrollbar-hide">
         {CATEGORIES.map(cat => (
             <button
                 key={cat.id}
@@ -137,20 +137,20 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
         ))}
       </div>
 
-      <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-4 mb-10">
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 group hover:border-orange-500/30 transition-all">
+      <div $1 className="flex flex-wrap flex flex-wrap-wrap flex flex-wrap flex flex-wrap-wrap-wrap gap-4 mb-10">
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900/50 backdrop-blur-md p-6 rounded-2xl border border-white/10 group hover:border-orange-500/30 transition-all">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1 flex flex-wrap flex flex-wrap-wrap items-center gap-2">
             <Filter size={10} className="text-orange-500" /> Resultados
           </p>
           <h2 className="text-3xl font-black text-white">{filteredProperties.length}</h2>
         </div>
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1">Volume</p>
           <h2 className="text-3xl font-black text-orange-500">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(totalValue)}
           </h2>
         </div>
-        <div className="overflow-hidden" className="overflow-hidden" className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
+        <div $1 className="flex flex-wrap flex flex-wrap-wrap-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1">Análise</p>
           <h2 className="text-3xl font-black text-blue-400">{pendingProps}</h2>
         </div>
