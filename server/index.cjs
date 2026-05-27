@@ -330,53 +330,49 @@ async function setupTelegramWebhook() {
       logger.error('Failed to configure Telegram webhook', { error: e.message });
     }
   } else {
-    logger.info('No webhook URL configured, starting polling mode');
+    try {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteWebhook`, { method: 'POST' });
+    } catch (e) {}
+    logger.info('No webhook URL configured (deleted stale), starting polling mode');
     startPolling();
   }
 }
 
 let pollingOffset = 0;
-let pollingInterval = null;
 let pollingActive = true;
 
 async function startPolling() {
-  const poll = async () => {
-    if (!pollingActive) return;
-    
-    try {
-      const response = await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${pollingOffset}&timeout=10`,
-        { method: 'GET' }
-      );
-      
-      if (!response.ok) {
-        await new Promise(r => setTimeout(r, 5000));
-        return;
-      }
-      
-      const data = await response.json();
-if (!data.ok || !data.result?.length) {
-        pollingActive = true;
-        return;
-      }
-      
-      for (const update of data.result) {
-        pollingOffset = update.update_id + 1;
-        
-        if (update.message) {
-          await handleTelegramMessage(update.message);
-        }
-      }
-      
-      pollingActive = true;
-    } catch (e) {
-      logger.error('Polling error', { error: e.message });
-      await new Promise(r => setTimeout(r, 5000));
-    }
-  };
+  if (!pollingActive) return;
   
-  pollingInterval = setInterval(poll, 2000);
-  poll();
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${pollingOffset}&timeout=10`,
+      { method: 'GET' }
+    );
+    
+    if (!response.ok) {
+      setTimeout(startPolling, 5000);
+      return;
+    }
+    
+    const data = await response.json();
+    if (!data.ok || !data.result?.length) {
+      setTimeout(startPolling, 1000);
+      return;
+    }
+    
+    for (const update of data.result) {
+      pollingOffset = update.update_id + 1;
+      
+      if (update.message) {
+        await handleTelegramMessage(update.message);
+      }
+    }
+    setTimeout(startPolling, 1000);
+  } catch (e) {
+    logger.error('Polling error', { error: e.message });
+    setTimeout(startPolling, 5000);
+  }
 }
 
 async function handleTelegramMessage(message) {

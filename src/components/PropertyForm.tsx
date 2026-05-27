@@ -42,13 +42,13 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         amenities: initialData?.amenities || [] as string[],
     });
     const [displayPrice, setDisplayPrice] = useState(
-        initialData?.price 
-            ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(initialData.price) 
+        initialData?.price
+            ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(initialData.price)
             : ''
     );
     const [displayArea, setDisplayArea] = useState(
-        initialData?.size 
-            ? new Intl.NumberFormat('pt-BR').format(initialData.size) 
+        initialData?.size
+            ? new Intl.NumberFormat('pt-BR').format(initialData.size)
             : ''
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
@@ -65,8 +65,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                 if (!response.ok) throw new Error('Failed to fetch');
                 const data = await response.json();
                 setStates(data.map((s: any) => ({ sigla: s.sigla, nome: s.nome })));
-            } catch (err) { 
-                console.error("Erro IBGE Estados:", err); 
+            } catch (err) {
+                console.error("Erro IBGE Estados:", err);
                 setStates([{ sigla: 'GO', nome: 'Goiás' }, { sigla: 'SP', nome: 'São Paulo' }]);
             } finally {
                 setStatesLoading(false);
@@ -84,8 +84,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                     if (!response.ok) throw new Error('Failed to fetch');
                     const data = await response.json();
                     setCities(data.map((c: any) => c.nome));
-                } catch (err) { 
-                    console.error("Erro IBGE Cidades:", err); 
+                } catch (err) {
+                    console.error("Erro IBGE Cidades:", err);
                     setCities([]);
                 } finally {
                     setCitiesLoading(false);
@@ -103,9 +103,9 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                 alert('Máximo de 10 imagens por imóvel.');
                 return;
             }
-            
+
             const filesToProcess = Array.from(files).slice(0, remainingSlots);
-            
+
             for (const file of filesToProcess) {
                 try {
                     const compressed = await compressImage(file);
@@ -124,7 +124,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
             setDisplayPrice('');
             return;
         }
-        
+
         const numberValue = Number(value) / 100;
         setFormData({ ...formData, price: numberValue });
         setDisplayPrice(new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(numberValue));
@@ -137,7 +137,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
             setDisplayArea('');
             return;
         }
-        
+
         const numberValue = Number(value);
         setFormData({ ...formData, size: numberValue });
         setDisplayArea(new Intl.NumberFormat('pt-BR').format(numberValue));
@@ -146,12 +146,12 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
     const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 8) value = value.slice(0, 8);
-        
+
         let masked = value;
         if (value.length > 5) {
             masked = `${value.slice(0, 5)}-${value.slice(5)}`;
         }
-        
+
         setFormData(prev => ({ ...prev, zipCode: masked }));
     };
 
@@ -192,7 +192,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        
+
         try {
             const id = initialData?.id || generateId();
             onSave({
@@ -207,6 +207,19 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
             alert("Ocorreu um erro ao salvar o imóvel. Verifique os dados e tente novamente.");
         }
     };
+
+    const handleAmenityToggle = (amenity: string) => {
+        setFormData(prev => {
+            const alreadySelected = prev.amenities.includes(amenity);
+            if (alreadySelected) {
+                return { ...prev, amenities: prev.amenities.filter(a => a !== amenity) };
+            } else {
+                return { ...prev, amenities: [...prev.amenities, amenity] };
+            }
+        });
+    };
+
+    const isRural = formData.type === 'Fazenda' || formData.type === 'Chácara';
 
     return (
         <div className="w-full max-w-6xl mx-auto p-4 lg:p-8">
@@ -234,7 +247,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
 
                 {/* Grid Superior: Fotos e Dados Principais */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    
+
                     {/* Fotos */}
                     <div className="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-6 h-full">
                         <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em] flex items-center gap-2">
@@ -287,11 +300,11 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                                     value={formData.type}
                                     onChange={e => {
                                         const newType = e.target.value as PropertyType;
-                                        const isRural = newType === 'Fazenda' || newType === 'Chácara';
-                                        setFormData({ 
-                                            ...formData, 
+                                        const ruralMode = newType === 'Fazenda' || newType === 'Chácara';
+                                        setFormData({
+                                            ...formData,
                                             type: newType,
-                                            sizeUnit: isRural ? 'Hectares' : 'm²' as AreaUnit
+                                            sizeUnit: ruralMode ? 'Hectares' : 'm²' as AreaUnit
                                         });
                                     }}
                                 >
@@ -316,34 +329,34 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                             </div>
                         </div>
 
-                            <div className="relative">
-                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-orange-500 font-black text-xs uppercase">R$</span>
-                                <input
-                                    required
-                                    type="text"
-                                    inputMode="numeric"
-                                    className="w-full bg-black/60 border border-orange-500/10 rounded-2xl pl-14 pr-5 py-5 text-white text-2xl font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all"
-                                    value={displayPrice}
-                                    onChange={handlePriceChange}
-                                    placeholder="0,00"
-                                />
-                            </div>
-                            {(formData.type === 'Fazenda' || formData.type === 'Chácara') && formData.size > 0 && (
-                                <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest pl-1 mt-2">
-                                    Valor Médio: R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(formData.price / formData.size)} por {formData.sizeUnit}
-                                </p>
-                            )}
+                        <div className="relative">
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-orange-500 font-black text-xs uppercase">R$</span>
+                            <input
+                                required
+                                type="text"
+                                inputMode="numeric"
+                                className="w-full bg-black/60 border border-orange-500/10 rounded-2xl pl-14 pr-5 py-5 text-white text-2xl font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+                                value={displayPrice}
+                                onChange={handlePriceChange}
+                                placeholder="0,00"
+                            />
+                        </div>
+                        {isRural && formData.size > 0 && (
+                            <p className="text-[9px] text-emerald-500/70 font-black uppercase tracking-widest pl-1 mt-2">
+                                Valor Médio: R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(formData.price / formData.size)} por {formData.sizeUnit}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 {/* Grid Inferior: Endereço e Detalhes Técnicos */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    
+
                     {/* Localização e Descrição */}
                     <div className="space-y-8">
                         <div className="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-5">
                             <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">Localização Profissional</p>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1">CEP</label>
@@ -355,6 +368,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                                         maxLength={9}
                                         placeholder="00000-000"
                                     />
+                                    {cepError && <p className="text-red-500 text-[10px] pl-1 font-bold">{cepError}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1">Número</label>
@@ -408,26 +422,6 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                                                 <option value="Setor Sul" />
                                                 <option value="JK" />
                                                 <option value="Ibirapuera" />
-                                                <option value="Adriana Parque" />
-                                                <option value="Alexandria" />
-                                                <option value="Alvorada" />
-                                                <option value="Santa Isabel" />
-                                                <option value="Santana" />
-                                                <option value="Recanto do Sol" />
-                                            </>
-                                        )}
-                                        {formData.city === 'Catalão' && (
-                                            <>
-                                                <option value="Centro" />
-                                                <option value="Santa Cruz" />
-                                                <option value="Vila Margarida" />
-                                                <option value="Jardim Paraíso" />
-                                                <option value="Ipanema" />
-                                                <option value="Castelo Branco" />
-                                                <option value="Setor Universitário" />
-                                                <option value="Parque das Nações" />
-                                                <option value="Pontal Norte" />
-                                                <option value="Vila Cruzeiro" />
                                             </>
                                         )}
                                     </datalist>
@@ -480,7 +474,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                     <div className="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-8">
                         <div>
                             <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">Especificações Técnicas</p>
-                            {(formData.type === 'Fazenda' || formData.type === 'Chácara') && (
+                            {isRural && (
                                 <div className="mt-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
                                     <p className="text-[9px] font-black uppercase text-emerald-400 tracking-wider">
                                         🌾 Modo Rural Ativo — Medidas em {formData.sizeUnit}
@@ -490,7 +484,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                             )}
                         </div>
 
-                        {/* Área Total - full width */}
+                        {/* Área Total */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 flex items-center gap-1">
                                 <Square size={10} /> Área Total
@@ -522,98 +516,124 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                                     * Alqueire Goiano = 4,84 Hectares (48.400 m²)
                                 </p>
                             )}
-                            {(formData.type === 'Fazenda' || formData.type === 'Chácara') && formData.size > 0 && formData.price > 0 && (
-                                <p className="text-[9px] text-emerald-500/80 font-black uppercase tracking-widest pl-1">
-                                    ≈ R$ {new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(formData.price / formData.size)} por {formData.sizeUnit}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Grid de specs: Quartos/Sedes + Suítes + Banheiros + Salas/Currais + Cozinhas/Represas */}
+                        {/* Grid de Contadores Numéricos */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1 flex items-center gap-1">
-                                    <Bed size={9} /> {(formData.type === 'Fazenda' || formData.type === 'Chácara') ? 'Sedes / Casas' : 'Quartos'}
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">
+                                    {isRural ? 'Sedes / Casas' : 'Quartos'}
                                 </label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.bedrooms || ''}
-                                    onChange={e => setFormData({ ...formData, bedrooms: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.bedrooms}
+                                    onChange={e => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1">Suítes</label>
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">Suítes</label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.suites || ''}
-                                    onChange={e => setFormData({ ...formData, suites: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.suites}
+                                    onChange={e => setFormData({ ...formData, suites: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1">Banheiros</label>
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">Banheiros</label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.bathrooms || ''}
-                                    onChange={e => setFormData({ ...formData, bathrooms: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.bathrooms}
+                                    onChange={e => setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1">
-                                    {(formData.type === 'Fazenda' || formData.type === 'Chácara') ? 'Currais' : 'Salas'}
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">
+                                    {isRural ? 'Currais / Galpões' : 'Salas'}
                                 </label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.livingRooms || ''}
-                                    onChange={e => setFormData({ ...formData, livingRooms: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.livingRooms}
+                                    onChange={e => setFormData({ ...formData, livingRooms: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1">
-                                    {(formData.type === 'Fazenda' || formData.type === 'Chácara') ? 'Represas' : 'Cozinhas'}
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">
+                                    {isRural ? 'Represas / Tanques' : 'Cozinhas'}
                                 </label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.kitchens || ''}
-                                    onChange={e => setFormData({ ...formData, kitchens: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.kitchens}
+                                    onChange={e => setFormData({ ...formData, kitchens: parseInt(e.target.value) || 0 })}
                                 />
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase text-gray-600 tracking-widest pl-1 flex items-center gap-1">
-                                    <Car size={9} /> {(formData.type === 'Fazenda' || formData.type === 'Chácara') ? 'Galpões' : 'Garagem'}
-                                </label>
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1 block truncate">Vagas</label>
                                 <input
-                                    type="number" min="0"
-                                    className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-3 text-white text-sm font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all text-center"
-                                    value={formData.parkingSpaces || ''}
-                                    onChange={e => setFormData({ ...formData, parkingSpaces: Math.max(0, Number(e.target.value)) })}
-                                    placeholder="0"
+                                    type="number"
+                                    min="0"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
+                                    value={formData.parkingSpaces}
+                                    onChange={e => setFormData({ ...formData, parkingSpaces: parseInt(e.target.value) || 0 })}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Comodidades */}
+                        <div className="space-y-3 pt-2">
+                            <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1">Características & Lazer</p>
+                            <div className="flex flex-wrap gap-2">
+                                {AMENITIES_OPTIONS.map(amenity => {
+                                    const selected = formData.amenities.includes(amenity);
+                                    return (
+                                        <button
+                                            key={amenity}
+                                            type="button"
+                                            onClick={() => handleAmenityToggle(amenity)}
+                                            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${selected ? 'bg-orange-500/10 border-orange-500 text-orange-400' : 'bg-black/20 border-white/5 text-gray-400 hover:border-white/10 hover:text-white'}`}
+                                        >
+                                            {selected && <CheckCircle2 size={12} className="text-orange-500" />}
+                                            {amenity}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Botão de Salvar - Agora centralizado e proeminente */}
-                <div className="pt-8 flex justify-center">
+                {/* Footer Botões */}
+                <div className="flex items-center justify-end gap-4 pt-4 border-top border-white/5">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-6 py-4 bg-zinc-900 border border-white/10 rounded-2xl text-sm font-black text-gray-400 uppercase tracking-widest hover:text-white hover:bg-zinc-800 transition-all"
+                    >
+                        Cancelar
+                    </button>
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="w-full max-w-md h-20 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-800 disabled:scale-95 rounded-[30px] font-black text-sm uppercase tracking-[0.4em] text-white shadow-2xl shadow-orange-500/40 transition-all active:scale-[0.98] flex items-center justify-center gap-4 group"
+                        className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-orange-500/10 disabled:opacity-50 flex items-center gap-2"
                     >
-                        <CheckCircle2 size={24} className={`${isSaving ? 'animate-spin' : 'group-hover:scale-110'} transition-transform`} />
-                        {isSaving ? 'Publicando...' : 'Finalizar e Publicar Ativo'}
+                        {isSaving ? 'Salvando...' : 'Salvar Imóvel'}
                     </button>
                 </div>
+
             </form>
         </div>
     );

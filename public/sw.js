@@ -24,15 +24,24 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// 🚀 APENAS UM EVENTO FETCH UNIFICADO AQUI
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // 1. TRAVA CRÍTICA: Se não for GET (ex: POST, PUT, DELETE), deixa passar direto para o servidor sem cache!
+  if (request.method !== 'GET') {
+    return; // Não chama o event.respondWith(), fazendo a requisição seguir o fluxo normal da internet
+  }
+
   const url = new URL(request.url);
 
+  // 2. Fluxo para APIs (Network First)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request));
     return;
   }
 
+  // 3. Fluxo para arquivos estáticos (Cache First)
   if (
     request.destination === 'style' ||
     request.destination === 'script' ||
@@ -43,6 +52,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 4. Fluxo padrão para páginas e rotas (Network First)
   event.respondWith(networkFirst(request));
 });
 

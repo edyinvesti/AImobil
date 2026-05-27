@@ -48,7 +48,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick, o
        <div className="relative h-56 overflow-hidden">
          {thumbnail ? (
            <img 
-             src={resolveImageUrl(thumbnail)}
+             src={resolveImageUrl(getFallbackImage(property.title, thumbnail))}
              alt={property.title}
              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -145,3 +145,4 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick, o
     </div>
   );
 };
+
