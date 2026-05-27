@@ -39,3 +39,7 @@ app.post('/api/partner/properties', upload.single('image'), async (req, res) => 
 });
 
 // ... (AQUI VOCÊ COLA O RESTO DO SEU CÓDIGO ORIGINAL QUE VEM DEPOIS DA ROTA DE PROPERTIES) ...
+// Garante que o servidor fique ativo ouvindo as requisições
+app.listen(PORT, '0.0.0.0', () => {
+  logger.info(`Servidor IAmobil rodando na porta ${PORT}`);
+});
