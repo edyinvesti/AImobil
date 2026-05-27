@@ -143,10 +143,11 @@ export function ProfileView() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex items-center gap-2.5 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg shadow-orange-500/20 active:scale-95 disabled:opacity-50"
-              >
-                {saved
-                  ? <><CheckCircle2 size={16} /> Salvo!</>
+          <button
+            type='submit'
+            className='w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors'
+          >
+            Salvar Alterações
           </button>
         </form>
       </div>
