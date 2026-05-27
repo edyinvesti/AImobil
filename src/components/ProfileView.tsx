@@ -17,8 +17,8 @@ export function ProfileView() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.Login) {
-      alert("O campo Login é obrigatório.");
+    if (!formData.login) {
+      alert("O campo login é obrigatório.");
       return;
     }
     setIsSaving(true);
@@ -87,8 +87,8 @@ export function ProfileView() {
                 <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-500">Login</label>
-                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.Login || ''} onChange={e => setFormData({ ...formData, Login: e.target.value })} />
+                <label className="text-[10px] font-black uppercase text-gray-500">login</label>
+                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">E-mail</label>
