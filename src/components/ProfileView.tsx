@@ -147,12 +147,9 @@ export function ProfileView() {
               >
                 {saved
                   ? <><CheckCircle2 size={16} /> Salvo!</>
-                  : isSaving
-                    ? <><Save size={16} className="animate-spin" /> Salvando...</>
-                    : <><Save size={16} /> Salvar Alterações</>
-                }
-              </button>
-          </form>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
