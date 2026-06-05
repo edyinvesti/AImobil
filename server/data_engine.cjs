@@ -4,24 +4,23 @@ const { CloudflareD1Client } = require('./d1_client.cjs');
 let client;
 
 async function initializeClientWithFallback() {
-  if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_DATABASE_ID && process.env.CLOUDFLARE_API_TOKEN) {
+  const tursoUrl = process.env.TURSO_DATABASE_URL || 'libsql://iamobil-edyinvesti.aws-us-west-2.turso.io';
+  const tursoToken = process.env.TURSO_AUTH_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
+
+  if (tursoToken) {
     try {
-      console.log('Attempting to connect to remote Cloudflare D1 database...');
-      client = new CloudflareD1Client(
-        process.env.CLOUDFLARE_ACCOUNT_ID,
-        process.env.CLOUDFLARE_D1_DATABASE_ID,
-        process.env.CLOUDFLARE_API_TOKEN
-      );
+      console.log('Attempting to connect to remote TURSO database...');
+      client = new CloudflareD1Client(tursoUrl, tursoToken);
       await initializeTables();
-      console.log('Cloudflare D1 client created successfully');
+      console.log('Turso client created successfully');
       return true;
     } catch (e) {
-      console.error('Remote Cloudflare D1 connection failed:', e.message);
+      console.error('Remote TURSO connection failed:', e.message);
       client = null;
       return false;
     }
   } else {
-    console.error('Missing Cloudflare D1 credentials in environment variables.');
+    console.error('Missing TURSO credentials in environment variables.');
     client = null;
     return false;
   }

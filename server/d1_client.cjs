@@ -1,10 +1,8 @@
-// Use native fetch
-class CloudflareD1Client {
-  constructor(accountId, databaseId, apiToken) {
-    this.accountId = accountId;
-    this.databaseId = databaseId;
+class TursoClient {
+  constructor(dbUrl, apiToken) {
+    // Garantir formato HTTP para a API de Pipeline do Turso
+    this.url = dbUrl.replace('libsql://', 'https://') + '/v2/pipeline';
     this.apiToken = apiToken;
-    this.url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
   }
 
   async execute(queryOrString) {
@@ -17,28 +15,70 @@ class CloudflareD1Client {
       args = queryOrString.args || [];
     }
 
+    const payload = {
+      requests: [
+        {
+          type: 'execute',
+          stmt: {
+            sql: sql
+          }
+        },
+        { type: 'close' }
+      ]
+    };
+
+    if (args && args.length > 0) {
+        let i = 0;
+        payload.requests[0].stmt.sql = sql.replace(/\?/g, () => {
+            const val = args[i++];
+            if (val === null || val === undefined) return 'NULL';
+            if (typeof val === 'number') return val;
+            return "'" + String(val).replace(/'/g, "''") + "'";
+        });
+    }
+
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        sql: sql,
-        params: args
-      })
+      body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.errors?.[0]?.message || 'D1 Query failed');
+    const bodyText = await response.text();
+    let result;
+    try {
+        result = JSON.parse(bodyText);
+    } catch(e) {
+        throw new Error('Falha ao processar resposta do Turso: ' + bodyText.substring(0,100));
     }
 
-    const d1Result = result.result[0];
-    return {
-      rows: d1Result.results || [],
-      columns: d1Result.meta?.columns || []
-    };
+    if (!response.ok) {
+      throw new Error((result.message || 'Erro na Query Htpp do Turso') + ' - ' + bodyText);
+    }
+
+    try {
+        const queryRes = result.results[0].response.result;
+        
+        const columns = queryRes.cols.map(c => c.name);
+        const rows = queryRes.rows.map(rowArr => {
+            const obj = {};
+            rowArr.forEach((cell, idx) => {
+                obj[columns[idx]] = cell.value;
+            });
+            return obj;
+        });
+
+        return {
+            success: true,
+            rows: rows,
+            columns: columns
+        };
+    } catch (e) {
+        console.error('Falha ao formatar as colunas Turso:', e);
+        return { success: false, rows: [] };
+    }
   }
 
   async batch(queries) {
@@ -51,4 +91,4 @@ class CloudflareD1Client {
   }
 }
 
-module.exports = { CloudflareD1Client };
+module.exports = { CloudflareD1Client: TursoClient };
