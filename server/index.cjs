@@ -43,7 +43,7 @@ logger.info('Server starting', {
 });
 
 const hermes = new HermesGateway();
-const telegramService = new TelegramService();
+// const telegramService = new TelegramService();
 const telegramUsers = new Map();
 const rateLimitTracker = new Map();
 const userTranslations = new Map();
@@ -693,8 +693,7 @@ async function handleSettings(chatId) {
     reply_markup: telegramService.getBackKeyboard()
   });
 }
-
-setTimeout(setupTelegramWebhook, 2000);
+// setTimeout(setupTelegramWebhook, 2000);
 
 const users = new Map();
 
