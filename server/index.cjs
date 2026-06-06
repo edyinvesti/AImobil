@@ -9,6 +9,7 @@ const winston = require('winston');
 const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
 const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
+const { validateUser } = require(path.join(__dirname, '../api/_lib/db.js'));
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -764,8 +765,6 @@ async function handleSettings(chatId) {
 }
 // setTimeout(setupTelegramWebhook, 2000);
 
-const users = new Map();
-
 function sanitizeInput(str) {
   if (typeof str !== 'string') return str;
   return str.replace(/<[^>]*>/g, '').trim().slice(0, 1000);
@@ -880,23 +879,17 @@ app.post('/api/auth/login',
 
       const { login, password } = req.body;
       const safeLogin = sanitizeInput(login);
-      const user = users.get(safeLogin);
+      
+      const user = await validateUser(safeLogin, password);
 
       if (!user) {
-        logger.warn('Login failed - user not found', { login: safeLogin });
+        logger.warn('Login failed - user not found or wrong password', { login: safeLogin });
         return res.status(401).json({ error: 'Login ou senha incorretos' });
       }
 
-      const isValid = await bcrypt.compare(password, user.password);
+      const token = Buffer.from(`${user.login}:${Date.now() + 24 * 60 * 60 * 1000}`).toString('base64');
       
-      if (!isValid) {
-        logger.warn('Login failed - wrong password', { login: safeLogin });
-        return res.status(401).json({ error: 'Login ou senha incorretos' });
-      }
-
-      const token = Buffer.from(`${safeLogin}:${Date.now()}`).toString('base64');
-      
-      logger.info('Login successful', { login: safeLogin });
+      logger.info('Login successful', { login: user.login });
       res.json({ 
         success: true, 
         token,
