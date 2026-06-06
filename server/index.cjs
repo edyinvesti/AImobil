@@ -867,7 +867,7 @@ app.post('/api/auth/register',
 );
 
 app.post('/api/auth/login',
-  authLimiter,
+  // authLimiter, // Temporarily disabled for testing
   body('login').notEmpty().trim(),
   body('password').notEmpty(),
   async (req, res) => {
