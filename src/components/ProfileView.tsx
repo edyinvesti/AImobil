@@ -1,12 +1,14 @@
 import React from 'react';
 import { useUser } from '../context/UserContext';
-import { User, ShieldCheck, Mail, Phone, Camera, Save, Send } from 'lucide-react';
+import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search } from 'lucide-react';
+import { getApiUrl } from '../utils';
 
 export function ProfileView() {
   const { profile, updateProfile } = useUser();
   const [formData, setFormData] = React.useState(profile);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
     setFormData({
@@ -14,6 +16,40 @@ export function ProfileView() {
       name: profile.name === 'Buscando perfil...' ? '' : profile.name
     });
   }, [profile]);
+
+  const handleFetchProfile = async () => {
+    if (!formData.login) {
+      alert("Digite o login primeiro.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/partner/register?login=${encodeURIComponent(formData.login)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.broker) {
+          setFormData({
+            login: data.broker.login,
+            name: data.broker.name || '',
+            email: data.broker.email || '',
+            phone: data.broker.phone || '',
+            photo: data.broker.photo || ''
+          });
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2000);
+        } else {
+          alert("Corretor não encontrado no banco de dados.");
+        }
+      } else {
+        alert("Erro ao buscar perfil.");
+      }
+    } catch (err: any) {
+      alert("Erro ao buscar perfil: " + (err.message || "Tente novamente"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +123,13 @@ export function ProfileView() {
                 <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-gray-500">login</label>
-                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} />
+                <label className="text-[10px] font-black uppercase text-gray-500">login (CRECI)</label>
+                <div className="flex gap-2">
+                  <input className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} />
+                  <button type="button" onClick={handleFetchProfile} disabled={isLoading} className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white p-3.5 rounded-2xl transition-colors">
+                    <Search size={18} />
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">E-mail</label>

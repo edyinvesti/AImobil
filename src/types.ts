@@ -44,7 +44,7 @@ export interface Property {
 
 export interface UserProfile {
   name: string;
-  creci: string;
+  login: string;
   photo: string;
   email: string;
   phone: string;
