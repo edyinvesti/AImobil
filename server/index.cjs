@@ -54,6 +54,9 @@ const authLimiter = rateLimit({
   message: 'Muitas tentativas de login. Tente novamente mais tarde.'
 });
 
+// Parse JSON body
+app.use(express.json());
+
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, '../dist')));
 
