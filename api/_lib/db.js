@@ -1,13 +1,14 @@
 import { createClient } from '@libsql/client';
+import bcrypt from 'bcryptjs';
 
 let client = null;
 
 function getDb() {
   if (client) return client;
-  const url = process.env.DATABASE_URL?.trim();
-  const authToken = process.env.LIBSQL_AUTH_TOKEN?.trim();
-  if (!url) throw new Error('DATABASE_URL não configurada');
-  if (!authToken) throw new Error('LIBSQL_AUTH_TOKEN não configurado');
+const url = process.env.TURSO_DATABASE_URL?.trim();
+const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+if (!url) throw new Error('TURSO_DATABASE_URL não configurada');
+if (!authToken) throw new Error('TURSO_AUTH_TOKEN não configurada');
   client = createClient({ url, authToken });
   return client;
 }
@@ -159,18 +160,6 @@ export async function addAppointment(appointment) {
   return appointment;
 }
 
-const usersCache = new Map();
-
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return 'hash_' + Math.abs(hash).toString(36);
-}
-
 export async function getBroker(login) {
   const db = getDb();
   const rs = await db.execute({ sql: 'SELECT * FROM brokers WHERE login = ?', args: [login] });
@@ -179,6 +168,7 @@ export async function getBroker(login) {
 
 export async function upsertBroker(broker) {
   const db = getDb();
+  const now = new Date().toISOString();
   await db.execute({
     sql: `INSERT INTO brokers (login, name, email, phone, photo, lastActive)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -187,27 +177,35 @@ export async function upsertBroker(broker) {
             email=COALESCE(NULLIF(?,''), email),
             phone=COALESCE(NULLIF(?,''), phone),
             photo=COALESCE(NULLIF(?,''), photo),
-            lastActive=excluded.lastActive`,
+            lastActive=?`,
     args: [
-      broker.login, broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', new Date().toISOString(),
-      broker.name || '', broker.email || '', broker.phone || '', broker.photo || ''
+      broker.login, broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', now,
+      broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', now
     ]
   });
   return broker;
 }
 
 export async function createUser(login, password, name, email, phone) {
-  if (usersCache.has(login)) {
+  const db = getDb();
+  // Check if user already exists
+  const existing = await db.execute({ sql: 'SELECT login FROM users WHERE login = ?', args: [login] });
+  if (existing.rows.length > 0) {
     throw new Error('login já cadastrado');
   }
-  const hash = simpleHash(password);
-  usersCache.set(login, { login, password: hash, name, email, phone, createdAt: Date.now() });
+  const hash = await bcrypt.hash(password, 10);
+  await db.execute({
+    sql: `INSERT INTO users (login, password, name, email, phone) VALUES (?, ?, ?, ?, ?)`,
+    args: [login, hash, name, email, phone || '']
+  });
   return { login, name, email, phone };
 }
 
 export async function validateUser(login, password) {
-  const user = usersCache.get(login);
+  const db = getDb();
+  const rs = await db.execute({ sql: 'SELECT * FROM users WHERE login = ?', args: [login] });
+  const user = rs.rows[0];
   if (!user) return null;
-  const hash = simpleHash(password);
-  return user.password === hash ? { login: user.login, name: user.name, email: user.email, phone: user.phone } : null;
+  const isValid = await bcrypt.compare(password, user.password);
+  return isValid ? { login: user.login, name: user.name, email: user.email, phone: user.phone } : null;
 }

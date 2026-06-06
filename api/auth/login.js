@@ -1,9 +1,14 @@
 import { validateUser } from '../_lib/db.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'];
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method !== 'POST') {
@@ -21,7 +26,8 @@ export default async function handler(req, res) {
     if (!user) {
       return res.status(401).json({ error: 'login ou senha incorretos' });
     }
-    const token = Buffer.from(`${user.login}:${Date.now()}`).toString('base64');
+    // Simple token with expiration (24 hours)
+    const token = Buffer.from(`${user.login}:${Date.now() + 24 * 60 * 60 * 1000}`).toString('base64');
     return res.json({ success: true, token, user: { login: user.login, name: user.name, email: user.email, phone: user.phone } });
   } catch (e) {
     return res.status(500).json({ error: 'Erro ao fazer login' });

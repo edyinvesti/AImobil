@@ -1,29 +1,29 @@
 const path = require('path');
-const { CloudflareD1Client } = require('./d1_client.cjs');
+const { createClient } = require('@libsql/client');
 
 let client;
 
 async function initializeClientWithFallback() {
-  const tursoUrl = process.env.TURSO_DATABASE_URL || 'libsql://iamobil-edyinvesti.aws-us-west-2.turso.io';
-  const tursoToken = process.env.TURSO_AUTH_TOKEN || process.env.CLOUDFLARE_API_TOKEN;
+  const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
 
-  if (tursoToken) {
+  if (tursoUrl && tursoToken) {
     try {
-      console.log('Attempting to connect to remote TURSO database...');
-      client = new CloudflareD1Client(tursoUrl, tursoToken);
+      console.log('Connecting to TURSO database...');
+      client = createClient({ url: tursoUrl, authToken: tursoToken });
       await initializeTables();
-      console.log('Turso client created successfully');
+      console.log('TURSO client created successfully');
       return true;
     } catch (e) {
-      console.error('Remote TURSO connection failed:', e.message);
+      console.error('TURSO connection failed:', e.message);
       client = null;
       return false;
     }
-  } else {
-    console.error('Missing TURSO credentials in environment variables.');
-    client = null;
-    return false;
   }
+
+  console.error('Missing TURSO credentials in environment variables.');
+  client = null;
+  return false;
 }
 
 initializeClientWithFallback().then(success => {
@@ -106,6 +106,14 @@ async function initializeTables() {
         phone TEXT,
         photo TEXT,
         lastActive TEXT,
+        created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      )`,
+      `CREATE TABLE IF NOT EXISTS users (
+        login TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
       )`
     ], "write");
@@ -323,6 +331,7 @@ class DataEngine {
   async saveBroker(broker) {
     if (!client) return null;
     try {
+      const now = new Date().toISOString();
       await client.execute({
         sql: `INSERT INTO brokers (creci, name, email, phone, photo, lastActive)
               VALUES (?, ?, ?, ?, ?, ?)
@@ -331,11 +340,11 @@ class DataEngine {
                 email=COALESCE(NULLIF(?,''), email),
                 phone=COALESCE(NULLIF(?,''), phone),
                 photo=COALESCE(NULLIF(?,''), photo),
-                lastActive=excluded.lastActive`,
+                lastActive=?`,
         args: [
           broker.creci, broker.name || '', broker.email || '', broker.phone || '',
-          broker.photo || '', new Date().toISOString(),
-          broker.name || '', broker.email || '', broker.phone || '', broker.photo || ''
+          broker.photo || '', now,
+          broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', now
         ]
       });
       return { success: true };

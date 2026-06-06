@@ -1,4 +1,4 @@
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 10002;
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const winston = require('winston');
 const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
+const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -43,7 +44,75 @@ logger.info('Server starting', {
 });
 
 const hermes = new HermesGateway();
-// const telegramService = new TelegramService();
+const app = express();
+const BCRYPT_ROUNDS = 10;
+const dataEngine = new DataEngine();
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Muitas tentativas de login. Tente novamente mais tarde.'
+});
+
+// Serve static files from dist folder
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// TelegramService stub - minimal implementation
+const telegramService = {
+  sendMessage: async (chatId, text, options = {}) => {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4096), ...options })
+        }
+      );
+      return await response.json();
+    } catch (e) {
+      logger.error('TelegramService sendMessage error', { error: e.message });
+      return { ok: false };
+    }
+  },
+  sendPhoto: async (chatId, photo, caption, options = {}) => {
+    if (!TELEGRAM_BOT_TOKEN) return { ok: false };
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, photo, caption: String(caption).slice(0, 1024), ...options })
+        }
+      );
+      return await response.json();
+    } catch (e) {
+      logger.error('TelegramService sendPhoto error', { error: e.message });
+      return { ok: false };
+    }
+  },
+  clearConversation: (chatId) => {
+    // Stub - conversation history not implemented
+  },
+  addToConversation: (chatId, role, content) => {
+    // Stub - conversation history not implemented
+  },
+  getConversationHistory: (chatId) => [],
+  sendWelcomeMessage: async (chatId, username) => {
+    return telegramService.sendMessage(chatId, `Bem-vindo ao IAmobil Gestor, ${username}!`);
+  },
+  sendHelpMessage: async (chatId) => {
+    return telegramService.sendMessage(chatId, 'Comandos disponíveis:\n/start - Iniciar\n/imoveis - Ver imóveis\n/leads - Ver leads\n/agenda - Ver agendamentos\n/dashboard - Dashboard');
+  },
+  getMainKeyboard: () => ({ keyboard: [['🏠 Meus Imóveis', '👥 Meus Leads'], ['📅 Agendamentos', '📊 Dashboard']], resize_keyboard: true }),
+  getBackKeyboard: () => ({ keyboard: [['🔙 Menu Principal']], resize_keyboard: true }),
+  trackAnalytics: (command) => {
+    // Stub - analytics not implemented
+  },
+  getAnalytics: () => ({ messagesReceived: 0, messagesSent: 0, activeConversations: 0, uptime: process.uptime() })
+};
+
 const telegramUsers = new Map();
 const rateLimitTracker = new Map();
 const userTranslations = new Map();
@@ -433,7 +502,7 @@ async function handleTelegramMessage(message) {
 }
 
 async function handleSearch(chatId, query) {
-  if (!DataEngine) {
+  if (!dataEngine) {
     await telegramService.sendMessage(chatId, '📭 Sistema de busca indisponível.', {
       reply_markup: telegramService.getBackKeyboard()
     });
@@ -441,7 +510,7 @@ async function handleSearch(chatId, query) {
   }
 
   try {
-    const properties = await DataEngine.getProperties();
+    const properties = await dataEngine.getProperties();
     const terms = query.toLowerCase().split(' ');
     
     const results = properties.filter(p => {
@@ -475,7 +544,7 @@ async function handleSearch(chatId, query) {
 }
 
 async function handleListProperties(chatId) {
-  if (!DataEngine) {
+  if (!dataEngine) {
     await telegramService.sendMessage(chatId, '📭 Nenhum imóvel cadastrado.', {
       reply_markup: telegramService.getBackKeyboard()
     });
@@ -483,7 +552,7 @@ async function handleListProperties(chatId) {
   }
 
   try {
-    const properties = await DataEngine.getProperties();
+    const properties = await dataEngine.getProperties();
     
     if (!properties.length) {
       await telegramService.sendMessage(chatId, '📭 Nenhum imóvel cadastrado.', {
@@ -525,7 +594,7 @@ async function handleListProperties(chatId) {
 }
 
 async function handleListLeads(chatId) {
-  if (!DataEngine) {
+  if (!dataEngine) {
     await telegramService.sendMessage(chatId, '📭 Nenhum lead cadastrado.', {
       reply_markup: telegramService.getBackKeyboard()
     });
@@ -533,7 +602,7 @@ async function handleListLeads(chatId) {
   }
 
   try {
-    const leads = await DataEngine.getLeads();
+    const leads = await dataEngine.getLeads();
     
     if (!leads.length) {
       await telegramService.sendMessage(chatId, '📭 Nenhum lead encontrado.', {
@@ -568,7 +637,7 @@ async function handleListLeads(chatId) {
 }
 
 async function handleListAppointments(chatId) {
-  if (!DataEngine) {
+  if (!dataEngine) {
     await telegramService.sendMessage(chatId, '📭 Nenhum agendamento.', {
       reply_markup: telegramService.getBackKeyboard()
     });
@@ -576,7 +645,7 @@ async function handleListAppointments(chatId) {
   }
 
   try {
-    const appointments = await DataEngine.getAppointments();
+    const appointments = await dataEngine.getAppointments();
     
     if (!appointments.length) {
       await telegramService.sendMessage(chatId, '📭 Nenhum agendamento.', {
@@ -613,12 +682,12 @@ async function handleDashboard(chatId) {
   let appointmentsCount = 0;
   let hotLeads = 0;
 
-  if (DataEngine) {
+  if (dataEngine) {
     try {
       const [properties, leads, appointments] = await Promise.all([
-        DataEngine.getProperties().catch(() => []),
-        DataEngine.getLeads().catch(() => []),
-        DataEngine.getAppointments().catch(() => [])
+        dataEngine.getProperties().catch(() => []),
+        dataEngine.getLeads().catch(() => []),
+        dataEngine.getAppointments().catch(() => [])
       ]);
       propertiesCount = properties.length;
       leadsCount = leads.length;
@@ -900,12 +969,12 @@ app.get('/api/debug-db', async (req, res) => {
   try {
     const dbUrl = process.env.DATABASE_URL ? (process.env.DATABASE_URL.length > 10 ? 'configured (masked)' : 'short/invalid') : 'missing';
     const hasAuthToken = !!process.env.LIBSQL_AUTH_TOKEN;
-    const clientExists = !!DataEngine;
+    const clientExists = !!dataEngine;
     
     let dbOnline = false;
-    if (DataEngine) {
+    if (dataEngine) {
       try {
-        await DataEngine.getProperties();
+        await dataEngine.getProperties();
         dbOnline = true;
       } catch (e) {
         dbOnline = false;
@@ -924,11 +993,11 @@ app.get('/api/debug-db', async (req, res) => {
   }
 });
 
-// Rotas disponíveis mesmo sem DataEngine
+// Rotas disponíveis mesmo sem dataEngine
 app.get('/api/leads', async (req, res) => {
-  if (!DataEngine) return res.json({ success: true, count: 0, leads: [] });
+  if (!dataEngine) return res.json({ success: true, count: 0, leads: [] });
   try {
-    const leads = await DataEngine.getLeads();
+    const leads = await dataEngine.getLeads();
     res.json({ success: true, count: leads.length, leads });
   } catch (e) {
     logger.error('Leads fetch error', { error: e.message });
@@ -937,9 +1006,9 @@ app.get('/api/leads', async (req, res) => {
 });
 
 app.get('/api/properties', async (req, res) => {
-  if (!DataEngine) return res.json({ success: true, count: 0, properties: [] });
+  if (!dataEngine) return res.json({ success: true, count: 0, properties: [] });
   try {
-    const properties = await DataEngine.getProperties();
+    const properties = await dataEngine.getProperties();
     res.json({ success: true, count: properties.length, properties });
   } catch (e) {
     logger.error('Properties fetch error', { error: e.message });
@@ -948,9 +1017,9 @@ app.get('/api/properties', async (req, res) => {
 });
 
 app.get('/api/appointments', async (req, res) => {
-  if (!DataEngine) return res.json({ success: true, count: 0, appointments: [] });
+  if (!dataEngine) return res.json({ success: true, count: 0, appointments: [] });
   try {
-    const appointments = await DataEngine.getAppointments();
+    const appointments = await dataEngine.getAppointments();
     res.json({ success: true, count: appointments.length, appointments });
   } catch (e) {
     logger.error('Appointments fetch error', { error: e.message });
@@ -959,7 +1028,7 @@ app.get('/api/appointments', async (req, res) => {
 });
 
 app.post('/api/leads', async (req, res) => {
-  if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
+  if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
   try {
     const lead = {
       id: `lead_${Date.now()}`,
@@ -969,7 +1038,7 @@ app.post('/api/leads', async (req, res) => {
       source: req.body.source || 'Telegram',
       status: req.body.status || 'novo'
     };
-    await DataEngine.addLead(lead);
+    await dataEngine.addLead(lead);
     logger.info('Lead created via API', { leadId: lead.id });
     res.status(201).json({ success: true, lead });
   } catch (e) {
@@ -978,11 +1047,11 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-// Fallback para Partner API se DataEngine não disponível
+// Fallback para Partner API se dataEngine não disponível
 app.get('/api/partner/properties', async (req, res) => {
-  if (!DataEngine) return res.json({ success: true, count: 0, properties: [] });
+  if (!dataEngine) return res.json({ success: true, count: 0, properties: [] });
   try {
-    let properties = await DataEngine.getProperties();
+    let properties = await dataEngine.getProperties();
     const login = req.query?.login;
     if (login && login.trim()) {
       const target = login.trim().toLowerCase();
@@ -1000,11 +1069,11 @@ app.get('/api/partner/properties', async (req, res) => {
 });
 
 app.post('/api/partner/properties', async (req, res) => {
-  if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
+  if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
   try {
     const property = req.body;
     if (!property.id) property.id = `prop_${Date.now()}`;
-    await DataEngine.addProperty(property);
+    await dataEngine.addProperty(property);
     logger.info('Property created via Partner API', { propertyId: property.id });
     res.status(201).json({ success: true, propertyId: property.id });
   } catch (e) {
@@ -1014,11 +1083,11 @@ app.post('/api/partner/properties', async (req, res) => {
 });
 
 app.delete('/api/partner/properties', async (req, res) => {
-  if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
+  if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
-    await DataEngine.deleteProperty(id);
+    await dataEngine.deleteProperty(id);
     logger.info('Property deleted via API', { propertyId: id });
     res.json({ success: true, deleted: id });
   } catch (e) {
@@ -1028,11 +1097,11 @@ app.delete('/api/partner/properties', async (req, res) => {
 });
 
 app.get('/api/partner/property-image', async (req, res) => {
-  if (!DataEngine) return res.status(503).json({ error: 'DataEngine não disponível' });
+  if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
-    const property = await DataEngine.getPropertyById(id);
+    const property = await dataEngine.getPropertyById(id);
     if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
     res.json({ success: true, images: property.images || [] });
   } catch (e) {
@@ -1042,9 +1111,9 @@ app.get('/api/partner/property-image', async (req, res) => {
 });
 
 app.get('/api/partner/properties/status', async (req, res) => {
-  if (!DataEngine) return res.json({ success: true, statuses: {} });
+  if (!dataEngine) return res.json({ success: true, statuses: {} });
   try {
-    const properties = await DataEngine.getProperties();
+    const properties = await dataEngine.getProperties();
     const statuses = {};
     properties.forEach(p => {
       statuses[p.id] = p.status || 'approved';
@@ -1076,8 +1145,8 @@ app.get('/api/partner/register', async (req, res) => {
 
     // Try Database first, fall back to in-memory Map
     let broker = null;
-    if (DataEngine) {
-      broker = await DataEngine.getBroker(login);
+    if (dataEngine) {
+      broker = await dataEngine.getBroker(login);
     }
     if (!broker) {
       broker = users.get(login) || null;
@@ -1096,8 +1165,8 @@ app.post('/api/partner/register', async (req, res) => {
     if (!broker.login) return res.status(400).json({ error: 'login obrigatório' });
 
     // Persist to Database (primary) and in-memory Map (fallback)
-    if (DataEngine) {
-      await DataEngine.saveBroker(broker);
+    if (dataEngine) {
+      await dataEngine.saveBroker(broker);
     }
     users.set(broker.login, { ...broker, updatedAt: Date.now() });
 
