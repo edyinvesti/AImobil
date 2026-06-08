@@ -31,3 +31,13 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      # ══════════════════════════════════════════
+      # MARKETING ENGINE — Meta Ads (preencher no painel)
+      - key: META_ADS_ACCESS_TOKEN
+        sync: false
+      - key: META_ADS_AD_ACCOUNT_ID
+        sync: false
+      - key: META_FACEBOOK_PAGE_ID
+        sync: false
+      - key: INSTAGRAM_BUSINESS_ID
+        sync: false
