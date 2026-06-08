@@ -9,6 +9,7 @@ const winston = require('winston');
 const bcrypt = require('bcryptjs');
 const { HermesGateway } = require(path.join(__dirname, 'hermes-gateway-adapter.cjs'));
 const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
+const { MarketingEngine } = require(path.join(__dirname, 'marketing-engine.cjs'));
 const { validateUser } = require(path.join(__dirname, '../api/_lib/db.js'));
 
 const logger = winston.createLogger({
@@ -1185,6 +1186,64 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARKETING ENGINE ROUTES (must be before catch-all)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const marketingEngine = new MarketingEngine();
+
+app.post('/api/marketing/criar-campanha', async (req, res) => {
+  try {
+    const { propertyId, budget, campaignDays, includeOrganic } = req.body;
+    
+    if (!propertyId) {
+      return res.status(400).json({ success: false, error: 'propertyId é obrigatório' });
+    }
+
+    logger.info('Solicitação de campanha recebida', { propertyId, budget, campaignDays });
+
+    const result = await marketingEngine.criarCampanha(propertyId, {
+      budget: budget || 20,
+      campaignDays: campaignDays || 14,
+      includeOrganic: includeOrganic !== false
+    });
+
+    res.json(result);
+  } catch (e) {
+    logger.error('Erro na rota de marketing', { error: e.message });
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/marketing/status/:propertyId', async (req, res) => {
+  try {
+    const status = marketingEngine.getCampaignStatus(req.params.propertyId);
+    res.json({ success: true, status });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/marketing/status', (req, res) => {
+  try {
+    const status = marketingEngine.getStatus();
+    res.json({ success: true, ...status, propertyId: null });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/marketing/campanhas', (req, res) => {
+  try {
+    const campanhas = marketingEngine.listActiveCampaigns();
+    res.json({ success: true, count: campanhas.length, campanhas });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
@@ -1197,7 +1256,6 @@ app.use((err, req, res, next) => {
     method: req.method
   });
   
-  // Return a more descriptive error if possible
   const errorMessage = err.message || 'Erro interno do servidor';
   res.status(500).json({ 
     error: errorMessage,
@@ -1207,6 +1265,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+  logger.info(`📢 Marketing Engine: ${marketingEngine.getStatus().metaAdsConfigured ? '✅ Meta Ads configurado' : '⏸️ Meta Ads aguardando token'}`);
 });
 
 

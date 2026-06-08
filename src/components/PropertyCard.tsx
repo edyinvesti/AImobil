@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, BedDouble, Bath, Car } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Car, Megaphone } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -17,6 +17,7 @@ interface Property {
 interface PropertyCardProps {
   property: Property;
   onClick?: () => void;
+  campaignActive?: boolean;
 }
 
 const resolveImageUrl = (url?: string) => {
@@ -62,6 +63,12 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         <div className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-emerald-400 border border-emerald-500/20">
           {property.type || 'Venda'}
         </div>
+        {campaignActive && (
+          <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-600/90 to-violet-600/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1 border border-white/10 shadow-lg shadow-blue-600/20">
+            <Megaphone size={10} />
+            Marketing
+          </div>
+        )}
       </div>
 
       <div className="p-5 flex flex-col flex-grow">

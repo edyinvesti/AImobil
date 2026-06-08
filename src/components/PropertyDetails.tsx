@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
 import { resolveImageUrl, getApiUrl } from '../utils';
@@ -16,6 +16,7 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
     const [isPublishing, setIsPublishing] = React.useState(false);
     const [loadingImages, setLoadingImages] = React.useState(true);
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+    const [campaignStatus, setCampaignStatus] = React.useState<{ loading: boolean; result?: any; error?: string }>({ loading: false });
 
     React.useEffect(() => {
         let cancelled = false;
@@ -52,6 +53,21 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
     const handleWhatsAppShare = () => {
         const text = `🏠 *${property.title}*\n📍 ${property.address}\n💰 *Valor:* ${formatPrice(property.price)}\n\nConfira mais detalhes!\n\n_Enviado via IAmobil_`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleMarketingCampaign = async () => {
+        setCampaignStatus({ loading: true });
+        try {
+            const response = await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ propertyId: property.id, budget: 20, campaignDays: 14 })
+            });
+            const data = await response.json();
+            setCampaignStatus({ loading: false, result: data.success ? data : null, error: data.success ? undefined : data.error });
+        } catch (e: any) {
+            setCampaignStatus({ loading: false, error: e.message });
+        }
     };
 
     const prevImg = (e: React.MouseEvent) => {
@@ -153,6 +169,14 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
                                 <button onClick={() => window.print()} className="p-3 bg-white/5 text-gray-400 rounded-xl hover:text-white hover:bg-white/10 transition-all border border-white/5">
                                     <Printer size={16} />
                                 </button>
+                                <button
+                                    onClick={handleMarketingCampaign}
+                                    disabled={campaignStatus.loading}
+                                    className="p-3 bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                                    title="Marketing no Facebook e Instagram"
+                                >
+                                    {campaignStatus.loading ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
+                                </button>
                             </div>
                         </div>
                         <h1 className="text-2xl md:text-4xl font-black leading-tight tracking-tight break-words">{property.title}</h1>
@@ -161,6 +185,41 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
                             <span>{property.address}</span>
                         </p>
                     </header>
+
+                    {/* Status da Campanha de Marketing */}
+                    {campaignStatus.result && (
+                        <div className="bg-gradient-to-r from-blue-600/20 to-violet-600/20 border border-blue-500/20 rounded-2xl p-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Megaphone size={14} className="text-blue-400" />
+                                <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider">Campanha de Marketing</span>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-sm">
+                                {campaignStatus.result.campaign?.status === 'ACTIVE' && (
+                                    <span className="flex items-center gap-1 text-emerald-400">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                        Meta Ads: Ativo
+                                    </span>
+                                )}
+                                {campaignStatus.result.instagram?.status === 'PUBLISHED' && (
+                                    <span className="text-pink-400">Instagram: Publicado</span>
+                                )}
+                                {campaignStatus.result.copys?.generated > 0 && (
+                                    <span className="text-gray-400">{campaignStatus.result.copys.generated} copys geradas</span>
+                                )}
+                                {campaignStatus.result.creatives?.total > 0 && (
+                                    <span className="text-gray-400">{campaignStatus.result.creatives.total} criativos</span>
+                                )}
+                            </div>
+                            {campaignStatus.result.campaign?.status === 'SKIPPED' && (
+                                <p className="text-xs text-yellow-400">Meta Ads: aguardando configuração do token</p>
+                            )}
+                        </div>
+                    )}
+                    {campaignStatus.error && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+                            <p className="text-xs text-red-400">Erro: {campaignStatus.error}</p>
+                        </div>
+                    )}
 
                     {/* Estatísticas */}
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
