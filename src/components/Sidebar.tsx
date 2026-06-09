@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Home, PlusSquare, User, CreditCard, Layout, LogOut, ChevronRight } from 'lucide-react';
+import { Home, PlusSquare, User, CreditCard, Layout, BarChart3, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ export const Sidebar = ({ currentView, onViewChange, profile, onLogout }: Sideba
     { id: 'appointments', label: 'Agendamentos', icon: Layout },
     { id: 'form', label: 'Novo Imóvel', icon: PlusSquare },
     { id: 'business-card', label: 'Cartão Digital', icon: CreditCard },
+    { id: 'campanhas', label: 'Campanhas', icon: BarChart3 },
     { id: 'profile', label: 'Configurações', icon: User },
   ];
 

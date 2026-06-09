@@ -137,7 +137,11 @@ class MarketingEngine {
 
       let instagramResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
-        instagramResult = await this.publicarInstagram(property, criativos[0], copys[0], publicImageUrl);
+        const imageUrls = [publicImageUrl];
+        for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
+          imageUrls.push(`https://aimobil.onrender.com/api/properties/${property.id}/image?index=${i}`);
+        }
+        instagramResult = await this.publicarInstagram(property, copys[0], imageUrls);
       } else if (includeOrganic) {
         this.logger.warn('Instagram Business ID não configurado');
         instagramResult = { status: 'SKIPPED', reason: 'Instagram Business ID não configurado' };
@@ -163,6 +167,24 @@ class MarketingEngine {
       const campaignId = `camp_${Date.now()}`;
       campaigns.set(campaignId, { ...result, status: 'ACTIVE' });
       campaigns.set(propertyId, { campaignId, status: 'ACTIVE' });
+
+      // Salva no banco de dados
+      try {
+        await this.dataEngine.saveCampaign({
+          id: campaignId,
+          property_id: propertyId,
+          property_title: property.title || '',
+          instagram_status: instagramResult?.status || '',
+          instagram_post_id: instagramResult?.postId || '',
+          instagram_url: instagramResult?.url || '',
+          campaign_status: campaignResult?.status || '',
+          campaign_id: campaignResult?.id || '',
+          has_carousel: instagramResult?.carousel || false,
+          created_at: Date.now()
+        });
+      } catch (dbErr) {
+        this.logger.warn('Erro ao salvar campanha no banco', { error: dbErr.message });
+      }
 
       this.logger.info('Campanha criada com sucesso', { campaignId });
       return result;
@@ -432,14 +454,14 @@ class MarketingEngine {
     }
   }
 
-  async publicarInstagram(property, criativo, copy, imageUrl) {
+  async publicarInstagram(property, copy, imageUrls) {
     try {
       if (!INSTAGRAM_BUSINESS_ID) {
         return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID não configurado' };
       }
 
-      if (!imageUrl) {
-        return { status: 'SKIPPED', reason: 'Nenhuma URL de imagem disponível. Configure IMGUR_CLIENT_ID no .env ou certifique-se que o Meta Ads está ativo para gerar URL pública.' };
+      if (!imageUrls || imageUrls.length === 0) {
+        return { status: 'SKIPPED', reason: 'Nenhuma URL de imagem disponível.' };
       }
 
       const legenda =
@@ -447,58 +469,121 @@ class MarketingEngine {
         `${copy?.primaryText || property.description || ''}\n\n` +
         `💰 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n\n` +
         `📍 ${property.neighborhood || ''}, ${property.city || ''}\n\n` +
-        `📞 Fale com o corretor!\n\n` +
         `. . . . .\n\n` +
         `#iamobil #imoveis #${property.city ? property.city.toLowerCase().replace(/\s/g, '') : 'imovel'} ` +
         `#${property.type ? property.type.toLowerCase() : 'imovel'} ` +
         `#corretordeimoveis #${property.neighborhood ? property.neighborhood.toLowerCase().replace(/\s/g, '') : 'imovel'}`;
 
-      this.logger.info('Publicando no Instagram', { imageUrl: imageUrl.substring(0, 60) + '...' });
+      this.logger.info('Publicando no Instagram', { totalImages: imageUrls.length });
 
-      const creationResponse = await fetch(
+      if (imageUrls.length === 1) {
+        // Post único
+        const creationResponse = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: imageUrls[0], caption: legenda, access_token: INSTAGRAM_TOKEN })
+          }
+        );
+
+        const creationData = await creationResponse.json();
+        if (creationData.error) {
+          this.logger.warn('Erro ao criar media no Instagram', { error: creationData.error });
+          return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
+        }
+
+        await new Promise(r => setTimeout(r, 3000));
+
+        const publishResponse = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ creation_id: creationData.id, access_token: INSTAGRAM_TOKEN })
+          }
+        );
+
+        const publishData = await publishResponse.json();
+        this.logger.info('Post Instagram publicado', { mediaId: creationData.id });
+
+        return {
+          status: 'PUBLISHED',
+          postId: creationData.id,
+          url: `https://instagram.com/p/${publishData.id || creationData.id}`,
+          caption: legenda.substring(0, 100),
+          carousel: false
+        };
+      }
+
+      // CARROSSEL: múltiplas imagens
+      const childrenIds = [];
+      for (let i = 0; i < imageUrls.length; i++) {
+        const childRes = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: imageUrls[i],
+              is_carousel_item: true,
+              access_token: INSTAGRAM_TOKEN
+            })
+          }
+        );
+        const childData = await childRes.json();
+        if (childData.error) {
+          this.logger.warn('Erro ao criar item do carrossel', { error: childData.error, index: i });
+          return { status: 'DRAFT', error: `Item ${i}: ${childData.error.message}`, apiResponse: childData };
+        }
+        childrenIds.push(childData.id);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // Cria container do carrossel
+      const carouselRes = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            image_url: imageUrl,
+            media_type: 'CAROUSEL',
+            children: childrenIds.join(','),
             caption: legenda,
             access_token: INSTAGRAM_TOKEN
           })
         }
       );
 
-      const creationData = await creationResponse.json();
-
-      if (creationData.error) {
-        this.logger.warn('Erro ao criar media no Instagram', { error: creationData.error });
-        return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
+      const carouselData = await carouselRes.json();
+      if (carouselData.error) {
+        this.logger.warn('Erro ao criar carrossel', { error: carouselData.error });
+        return { status: 'DRAFT', error: carouselData.error.message, apiResponse: carouselData };
       }
 
-      // Aguarda processamento da mídia
       await new Promise(r => setTimeout(r, 3000));
 
-      const publishResponse = await fetch(
+      // Publica
+      const publishRes = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            creation_id: creationData.id,
-            access_token: INSTAGRAM_TOKEN
-          })
+          body: JSON.stringify({ creation_id: carouselData.id, access_token: INSTAGRAM_TOKEN })
         }
       );
 
-      const publishData = await publishResponse.json();
+      const publishData = await publishRes.json();
 
-      this.logger.info('Post Instagram publicado', { mediaId: creationData.id });
+      this.logger.info('Carrossel Instagram publicado', { mediaId: carouselData.id, images: imageUrls.length });
 
       return {
         status: 'PUBLISHED',
-        postId: creationData.id,
-        url: `https://instagram.com/p/${publishData.id || creationData.id}`,
-        caption: legenda.substring(0, 100)
+        postId: carouselData.id,
+        url: `https://instagram.com/p/${publishData.id || carouselData.id}`,
+        caption: legenda.substring(0, 100),
+        carousel: true,
+        imagesCount: imageUrls.length
       };
 
     } catch (error) {
@@ -519,6 +604,10 @@ class MarketingEngine {
       }
     });
     return active;
+  }
+
+  async listAllCampaigns() {
+    return await this.dataEngine.getCampaigns();
   }
 
   getStatus() {

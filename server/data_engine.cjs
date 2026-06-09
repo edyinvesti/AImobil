@@ -115,6 +115,18 @@ async function initializeTables() {
         email TEXT NOT NULL,
         phone TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      )`,
+      `CREATE TABLE IF NOT EXISTS campaigns (
+        id TEXT PRIMARY KEY,
+        property_id TEXT,
+        property_title TEXT,
+        instagram_status TEXT,
+        instagram_post_id TEXT,
+        instagram_url TEXT,
+        campaign_status TEXT,
+        campaign_id TEXT,
+        has_carousel INTEGER DEFAULT 0,
+        created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
       )`
     ], "write");
   } catch (e) {
@@ -362,6 +374,40 @@ class DataEngine {
       return rs.rows;
     } catch (e) {
       console.error('getAllBrokers error:', e.message);
+      return [];
+    }
+  }
+
+  async saveCampaign(campaign) {
+    if (!client) return null;
+    try {
+      await client.execute({
+        sql: `INSERT OR REPLACE INTO campaigns (id, property_id, property_title, instagram_status, instagram_post_id, instagram_url, campaign_status, campaign_id, has_carousel, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          campaign.id, campaign.property_id, campaign.property_title || '',
+          campaign.instagram_status || '', campaign.instagram_post_id || '',
+          campaign.instagram_url || '', campaign.campaign_status || '',
+          campaign.campaign_id || '', campaign.has_carousel ? 1 : 0,
+          campaign.created_at || Date.now()
+        ]
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('saveCampaign error:', e.message);
+      return null;
+    }
+  }
+
+  async getCampaigns() {
+    if (!client) return [];
+    try {
+      const rs = await client.execute('SELECT * FROM campaigns ORDER BY created_at DESC');
+      return rs.rows.map(r => ({
+        ...r,
+        has_carousel: !!r.has_carousel
+      }));
+    } catch (e) {
+      console.error('getCampaigns error:', e.message);
       return [];
     }
   }

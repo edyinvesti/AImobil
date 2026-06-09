@@ -9,6 +9,7 @@ import { BottomBar } from "./components/BottomBar";
 import { BusinessCard } from "./components/BusinessCard";
 import { ProfileView } from "./components/ProfileView";
 import { Appointments } from "./components/Appointments";
+import { Campaigns } from "./components/Campaigns";
 import { ConfirmationModal } from "./components/ConfirmationModal";
 import { Bell } from "lucide-react";
 import { useProperties } from "./hooks/useProperties";
@@ -143,6 +144,11 @@ export default function App() {
                 </motion.div>
               } />
 
+              <Route path="/campanhas" element={
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <Campaigns />
+                </motion.div>
+              } />
 
             </Routes>
           </AnimatePresence>

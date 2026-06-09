@@ -1245,7 +1245,17 @@ app.get('/api/marketing/campanhas', (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Serve a primeira imagem de um imóvel como resposta HTTP (para Instagram/Facebook)
+// Lista todas as campanhas (do banco de dados)
+app.get('/api/marketing/campanhas/todas', async (req, res) => {
+  try {
+    const campanhas = await marketingEngine.listAllCampaigns();
+    res.json({ success: true, count: campanhas.length, campanhas });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Serve imagem de um imóvel por índice (para Instagram/Facebook)
 app.get('/api/properties/:id/image', async (req, res) => {
   try {
     if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
@@ -1253,7 +1263,10 @@ app.get('/api/properties/:id/image', async (req, res) => {
     if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
     if (!property.images || property.images.length === 0) return res.status(404).json({ error: 'Imóvel sem fotos' });
 
-    const raw = Buffer.isBuffer(property.images[0]) ? property.images[0].toString() : String(property.images[0]);
+    const index = parseInt(req.query.index) || 0;
+    if (index < 0 || index >= property.images.length) return res.status(404).json({ error: 'Índice inválido' });
+
+    const raw = Buffer.isBuffer(property.images[index]) ? property.images[index].toString() : String(property.images[index]);
     const base64 = raw.replace(/^data:image\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
 

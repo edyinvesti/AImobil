@@ -1,5 +1,5 @@
 
-import { Home, Plus, User, Search, CreditCard, Layout } from 'lucide-react';
+import { Home, Plus, User, BarChart3, CreditCard, Layout } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface BottomBarProps {
@@ -12,6 +12,7 @@ export const BottomBar = ({ currentView, onViewChange }: BottomBarProps) => {
     { id: 'dashboard', label: 'Início', icon: Home },
     { id: 'appointments', label: 'Agenda', icon: Layout },
     { id: 'form', label: 'Add', icon: Plus, primary: true },
+    { id: 'campanhas', label: 'Camp', icon: BarChart3 },
     { id: 'business-card', label: 'Cartão', icon: CreditCard },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
