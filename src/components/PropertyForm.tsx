@@ -293,9 +293,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     <button
                                         type="button"
                                         onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-500 transition-opacity"
+                                        className="absolute top-1 right-1 w-7 h-7 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all shadow-lg"
+                                        title="Remover foto"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={12} />
                                     </button>
                                 </div>
                             ))}
