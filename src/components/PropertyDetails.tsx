@@ -182,7 +182,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:from-blue-500 hover:to-violet-500 transition-all"
                                 >
-                                    <svg size={14} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                                     Compartilhar
                                 </button>
                                 <button onClick={() => window.print()} className="p-3 bg-white/5 text-gray-400 rounded-xl hover:text-white hover:bg-white/10 transition-all border border-white/5">
