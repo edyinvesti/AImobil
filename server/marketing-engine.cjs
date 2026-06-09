@@ -610,6 +610,21 @@ class MarketingEngine {
     return await this.dataEngine.getCampaigns();
   }
 
+  async getCampaignStats() {
+    try {
+      const rows = await this.dataEngine.getCampaigns();
+      return {
+        total: rows.length,
+        published: rows.filter(r => r.instagram_status === 'PUBLISHED').length,
+        failed: rows.filter(r => r.instagram_status !== 'PUBLISHED' && r.instagram_status !== '').length,
+        carousel: rows.filter(r => r.has_carousel).length
+      };
+    } catch (e) {
+      this.logger?.error?.('Erro ao obter stats de campanhas', { error: e.message });
+      return { total: 0, published: 0, failed: 0, carousel: 0 };
+    }
+  }
+
   getStatus() {
     return {
       metaAdsConfigured: !!META_ADS_TOKEN && !!META_ACCOUNT_ID,

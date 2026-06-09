@@ -1255,6 +1255,28 @@ app.get('/api/campaigns/list', async (req, res) => {
   }
 });
 
+// Estatísticas de campanhas
+app.get('/api/campaigns/stats', async (req, res) => {
+  try {
+    const stats = await marketingEngine.getCampaignStats();
+    res.json({ success: true, stats });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Deleta uma campanha
+app.delete('/api/campaigns/:id', async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ success: false, error: 'dataEngine não disponível' });
+    const ok = await dataEngine.deleteCampaign(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Campanha não encontrada' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Serve imagem de um imóvel por índice (para Instagram/Facebook)
 app.get('/api/properties/:id/image', async (req, res) => {
   try {

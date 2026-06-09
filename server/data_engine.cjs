@@ -411,6 +411,17 @@ class DataEngine {
       return [];
     }
   }
+
+  async deleteCampaign(id) {
+    if (!client) return false;
+    try {
+      await client.execute('DELETE FROM campaigns WHERE id = ?', [id]);
+      return true;
+    } catch (e) {
+      console.error('deleteCampaign error:', e.message);
+      return false;
+    }
+  }
 }
 
 module.exports = { DataEngine };
