@@ -204,23 +204,25 @@ class MarketingEngine {
   async gerarCopy(property) {
     const copys = [];
 
+    const limit = (s, n) => s ? s.substring(0, n) : '';
+
     const templates = [
       {
-        headline: `${property.type} incrível em ${property.city || 'localização privilegiada'}`,
-        primaryText: `${property.bedrooms} dormitórios, ${property.bathrooms} banheiros, ${property.size}${property.sizeUnit || 'm²'}. ${property.neighborhood ? `Localizado no ${property.neighborhood}.` : ''} Agende sua visita!`,
-        description: `A partir de R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        headline: limit(`${property.type} em ${property.city || 'localização'}`, 25),
+        primaryText: limit(`${property.bedrooms} dorm, ${property.bathrooms} ban, ${property.size}${property.sizeUnit || 'm²'}. ${property.neighborhood ? `Bairro ${property.neighborhood}.` : ''} Agende sua visita!`, 125),
+        description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
         cta: 'Agende sua visita'
       },
       {
-        headline: `O lar perfeito espera por você`,
-        primaryText: `${property.title} — ${property.type} com ${property.bedrooms} quartos em ${property.city || 'região nobre'}. ${property.description ? property.description.substring(0, 80) : ''}`,
+        headline: limit(`O lar perfeito espera`, 25),
+        primaryText: limit(`${property.title} — ${property.type} em ${property.city || 'região nobre'}. ${property.description ? property.description.substring(0, 60) : ''}`, 125),
         description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
         cta: 'Fale com o corretor'
       },
       {
-        headline: `Não perca esta oportunidade`,
-        primaryText: `${property.type} à venda em ${property.city || 'excelente localização'}. ${property.suites} suítes, vaga para ${property.parkingSpaces} carros.`,
-        description: `Só R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        headline: limit(`Não perca! ${property.type}`, 25),
+        primaryText: limit(`${property.type} à venda em ${property.city || 'excelente localização'}. ${property.suites} suítes, ${property.parkingSpaces} vagas.`, 125),
+        description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
         cta: 'Saiba mais'
       }
     ];
@@ -239,7 +241,7 @@ class MarketingEngine {
           Descrição: ${property.description || ''}
 
           Regras:
-          - Headline máxima 40 caracteres
+          - Headline máxima 25 caracteres (limite do Facebook)
           - Tom persuasivo e profissional
           - Português brasileiro
           - Incluir localização
@@ -266,7 +268,7 @@ class MarketingEngine {
 
           geminiHeadlines.forEach((headline, i) => {
             if (templates[i]) {
-              templates[i].headline = headline.replace(/^\d+[\.\-\)]\s*/, '');
+              templates[i].headline = limit(headline.replace(/^\d+[\.\-\)]\s*/, ''), 25);
             }
           });
         }
