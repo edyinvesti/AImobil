@@ -231,9 +231,10 @@ class DataEngine {
       });
       if (rs.rows.length === 0) return null;
       const row = rs.rows[0];
+      const imagesRaw = row.images ? JSON.parse(Buffer.isBuffer(row.images) ? row.images.toString() : row.images) : [];
       return {
         ...row,
-        images: row.images ? JSON.parse(row.images) : [],
+        images: Array.isArray(imagesRaw) ? imagesRaw.map(i => Buffer.isBuffer(i) ? i.toString() : i) : [],
         address: row.location || '',
         size: row.area || 0,
         parkingSpaces: row.parkingSpaces || 0,

@@ -1253,7 +1253,7 @@ app.get('/api/properties/:id/image', async (req, res) => {
     if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
     if (!property.images || property.images.length === 0) return res.status(404).json({ error: 'Imóvel sem fotos' });
 
-    const raw = String(property.images[0]);
+    const raw = Buffer.isBuffer(property.images[0]) ? property.images[0].toString() : String(property.images[0]);
     const base64 = raw.replace(/^data:image\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
 
