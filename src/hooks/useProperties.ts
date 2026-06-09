@@ -84,7 +84,7 @@ export function useProperties(baseCreci?: string) {
         if (savedProfile) {
           try {
             const profileData = JSON.parse(savedProfile);
-            creci = profileData.creci;
+            creci = profileData.login || profileData.creci;
             name = profileData.name;
           } catch(e) {
             console.error("Erro ao ler perfil do localStorage:", e);
@@ -107,7 +107,7 @@ export function useProperties(baseCreci?: string) {
       const API_BASE = getApiUrl();
       
        try {
-         const url = `${API_BASE}/api/partner/properties?creci=${encodeURIComponent(creci)}`;
+         const url = `${API_BASE}/api/partner/properties?login=${encodeURIComponent(creci)}`;
          // console.log('[useProperties] Fetching:', url);
          const res = await fetch(url, {
            signal: abortControllerRef.current.signal

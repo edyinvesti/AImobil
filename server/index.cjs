@@ -1049,12 +1049,12 @@ app.get('/api/partner/properties', async (req, res) => {
   if (!dataEngine) return res.json({ success: true, count: 0, properties: [] });
   try {
     let properties = await dataEngine.getProperties();
-    const login = req.query?.login;
+    const login = req.query?.login || req.query?.creci;
     if (login && login.trim()) {
       const target = login.trim().toLowerCase();
       properties = properties.filter(p => {
-        const bc = (p.brokerLogin || '').toString().trim().toLowerCase();
-        const b_c = (p.broker_login || '').toString().trim().toLowerCase();
+        const bc = (p.brokerLogin || p.brokerCreci || '').toString().trim().toLowerCase();
+        const b_c = (p.broker_login || p.broker_creci || '').toString().trim().toLowerCase();
         return bc === target || b_c === target;
       });
     }

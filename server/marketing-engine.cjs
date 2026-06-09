@@ -505,12 +505,27 @@ class MarketingEngine {
         );
 
         const publishData = await publishResponse.json();
-        this.logger.info('Post Instagram publicado', { mediaId: creationData.id });
+        const mediaId = publishData.id || creationData.id;
+        this.logger.info('Post Instagram publicado', { mediaId });
+
+        // Busca shortcode para gerar URL correta
+        let shortcode = null;
+        try {
+          const mediaRes = await fetch(
+            `${FACEBOOK_GRAPH_URL}/${mediaId}?fields=shortcode&access_token=${INSTAGRAM_TOKEN}`
+          );
+          const mediaData = await mediaRes.json();
+          shortcode = mediaData.shortcode || null;
+        } catch (e) {
+          this.logger.warn('Erro ao buscar shortcode', { error: e.message });
+        }
 
         return {
           status: 'PUBLISHED',
-          postId: creationData.id,
-          url: `https://instagram.com/p/${publishData.id || creationData.id}`,
+          postId: mediaId,
+          url: shortcode
+            ? `https://instagram.com/p/${shortcode}`
+            : `https://instagram.com/p/${mediaId}`,
           caption: legenda.substring(0, 100),
           carousel: false
         };
@@ -574,13 +589,28 @@ class MarketingEngine {
       );
 
       const publishData = await publishRes.json();
+      const mediaId = publishData.id || carouselData.id;
 
-      this.logger.info('Carrossel Instagram publicado', { mediaId: carouselData.id, images: imageUrls.length });
+      // Busca shortcode para gerar URL correta
+      let shortcode = null;
+      try {
+        const mediaRes = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${mediaId}?fields=shortcode&access_token=${INSTAGRAM_TOKEN}`
+        );
+        const mediaData = await mediaRes.json();
+        shortcode = mediaData.shortcode || null;
+      } catch (e) {
+        this.logger.warn('Erro ao buscar shortcode do carrossel', { error: e.message });
+      }
+
+      this.logger.info('Carrossel Instagram publicado', { mediaId, images: imageUrls.length, shortcode });
 
       return {
         status: 'PUBLISHED',
-        postId: carouselData.id,
-        url: `https://instagram.com/p/${publishData.id || carouselData.id}`,
+        postId: mediaId,
+        url: shortcode
+          ? `https://instagram.com/p/${shortcode}`
+          : `https://instagram.com/p/${mediaId}`,
         caption: legenda.substring(0, 100),
         carousel: true,
         imagesCount: imageUrls.length
