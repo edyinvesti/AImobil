@@ -255,56 +255,54 @@ export function useProperties(baseCreci?: string) {
     
     setSyncStatus(prev => ({ ...prev, syncing: true }));
     
-    (async () => {
-        const API_BASE = getApiUrl();
-        if (!API_BASE) {
-          setSyncStatus({ syncing: false, lastSync: null, error: 'API não configurada' });
-          return;
-        }
-        
-        try {
-          const response = await fetch(`${API_BASE}/api/partner/properties`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...property,
-              brokerName: profile.name,
-              brokerCreci: profile.login
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setProperties(prev => {
-              // Update with remoteId so card shows 'Hub' instead of 'Syncing'
-              const updated = prev.map(p =>
-                p.id === property.id
-                  ? { ...p, id: data.propertyId, remoteId: data.propertyId, remoteStatus: 'approved' as const }
-                  : p
-              );
-              // Persist immediately so reload doesn't lose the remoteId
-              try { localStorage.setItem('iamobil_properties', JSON.stringify(updated)); } catch {}
-              return updated;
-            });
-            setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
-          } else {
-            setSyncStatus({ syncing: false, lastSync: null, error: 'Erro ao salvar na nuvem' });
-          }
-        } catch (e: unknown) {
-          console.error("Erro na integração:", e);
-          setSyncStatus({ syncing: false, lastSync: null, error: 'Erro de conexão' });
-          syncQueue.enqueue({
-            type: 'create',
-            endpoint: '/api/partner/properties',
-            method: 'POST',
-            body: {
-              ...property,
-              brokerName: profile.name,
+    const API_BASE = getApiUrl();
+    if (!API_BASE) {
+      setSyncStatus({ syncing: false, lastSync: null, error: 'API não configurada' });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/partner/properties`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...property,
+          brokerName: profile.name,
+          brokerCreci: profile.login
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProperties(prev => {
+          // Update with remoteId so card shows 'Hub' instead of 'Syncing'
+          const updated = prev.map(p =>
+            p.id === property.id
+              ? { ...p, id: data.propertyId, remoteId: data.propertyId, remoteStatus: 'approved' as const }
+              : p
+          );
+          // Persist immediately so reload doesn't lose the remoteId
+          try { localStorage.setItem('iamobil_properties', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+        setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
+      } else {
+        setSyncStatus({ syncing: false, lastSync: null, error: 'Erro ao salvar na nuvem' });
+      }
+    } catch (e: unknown) {
+      console.error("Erro na integração:", e);
+      setSyncStatus({ syncing: false, lastSync: null, error: 'Erro de conexão' });
+      syncQueue.enqueue({
+        type: 'create',
+        endpoint: '/api/partner/properties',
+        method: 'POST',
+        body: {
+          ...property,
+          brokerName: profile.name,
               brokerCreci: profile.login
             }
           });
         }
-    })();
   }, []);
 
   const deleteProperty = useCallback((id: string) => {

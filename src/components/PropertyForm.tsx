@@ -195,7 +195,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const triggerMarketingCampaign = async (propertyId: string, option: MarketingOption) => {
         if (option === 'none') return;
         try {
-            await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
+            const res = await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -206,12 +206,21 @@ const [states, setStates] = useState<IBGEState[]>([]);
                     includeAds: option === 'instagram_ads',
                 }),
             });
+            const data = await res.json();
+            if (data.instagram?.status === 'PUBLISHED') {
+                alert(`✅ Publicado no Instagram!\n\nVeja em: ${data.instagram.url}`);
+            } else if (data.success) {
+                alert(`✅ Campanha criada! Instagram: ${data.instagram?.status || 'SKIPPED'}`);
+            } else {
+                alert(`⚠️ Erro: ${data.error || 'Falha ao publicar'}`);
+            }
         } catch (error) {
             console.error("Erro ao criar campanha automática:", error);
+            alert("❌ Erro de conexão ao publicar no Instagram");
         }
     };
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
 
@@ -223,8 +232,8 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 images,
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
-            onSave(property);
-            triggerMarketingCampaign(property.id, formData.marketingOption);
+            await onSave(property);
+            await triggerMarketingCampaign(property.id, formData.marketingOption);
         } catch (error) {
             console.error("Erro ao salvar:", error);
             setIsSaving(false);
