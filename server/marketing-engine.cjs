@@ -243,6 +243,7 @@ class MarketingEngine {
         daily_budget: Math.round(budget * 100),
         billing_event: 'IMPRESSIONS',
         optimization_goal: 'LINK_CLICKS',
+        bid_strategy: 'LOWEST_COST_WITHOUT_CAP',
         targeting: {
           geo_locations: geoLocations,
           age_min: 22,
