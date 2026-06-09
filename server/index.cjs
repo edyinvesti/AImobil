@@ -1255,6 +1255,10 @@ app.get('/excluir-dados', (req, res) => {
   res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Exclusão de Dados - IAmobil</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}h1{color:#2563eb}</style></head><body><h1>Exclusão de Dados</h1><p>Para solicitar a exclusão dos seus dados do IAmobil, envie um e-mail para <strong>edycarlosdias@hotmail.com</strong> com o assunto "Exclusão de Dados" informando seu nome e e-mail cadastrado.</p><p>Processaremos sua solicitação em até 30 dias.</p></body></html>`);
 });
 
+app.get('/termos', (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termos de Serviço - IAmobil</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6}h1{color:#2563eb}</style></head><body><h1>Termos de Serviço</h1><p>Ao utilizar o IAmobil, você concorda com os seguintes termos: o IAmobil é uma plataforma que conecta corretores de imóveis a potenciais compradores. Não nos responsabilizamos por negociações realizadas entre as partes. Os dados fornecidos serão usados exclusivamente para o funcionamento da plataforma.</p><p>O usuário concorda em não utilizar a plataforma para fins ilícitos. Reservamo-nos o direito de modificar estes termos a qualquer momento, com aviso prévio.</p><p>Contato: edycarlosdias@hotmail.com</p><p>Última atualização: Junho 2026</p></body></html>`);
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 
 app.get('*', (req, res) => {
