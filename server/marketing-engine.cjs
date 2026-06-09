@@ -354,48 +354,50 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
-      // Criar criativo com imagem
-      const creativeSpec = {
+      // Criar criativo — tentativa 1: com image_hash
+      let creativeId = null;
+      const creativeBase = {
         name: `Criativo - ${property.type} - Feed`,
         object_story_spec: {
           page_id: pageId,
           link_data: {
-            link: `https://iamobil-frontend.pages.dev/?src=fb`,
-            message: copys[0]?.primaryText || property.description || '',
-            name: copys[0]?.headline || property.title,
-            description: copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+            link: `https://iamobil-frontend.pages.dev/`,
+            message: (copys[0]?.primaryText || property.description || '').substring(0, 125),
+            name: (copys[0]?.headline || property.title).substring(0, 25),
+            description: (copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`).substring(0, 30),
             call_to_action: { type: 'LEARN_MORE' }
           }
         },
         access_token: META_ADS_TOKEN
       };
 
-      if (imageHash) {
-        creativeSpec.object_story_spec.link_data.image_hash = imageHash;
+      for (const tryWithImage of [true, false]) {
+        const spec = {
+          ...creativeBase,
+          object_story_spec: { ...creativeBase.object_story_spec },
+        };
+        spec.object_story_spec.link_data = { ...creativeBase.object_story_spec.link_data };
+
+        if (tryWithImage && imageHash) {
+          spec.object_story_spec.link_data.image_hash = imageHash;
+        }
+
+        const res = await fetch(
+          `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) }
+        );
+        const data = await res.json();
+
+        if (!data.error) {
+          creativeId = data.id;
+          this.logger.info(`Criativo criado (tryWithImage=${tryWithImage})`, { creativeId });
+          break;
+        }
+        this.logger.warn(`Criativo falhou (tryWithImage=${tryWithImage})`, { error: data.error, full: JSON.stringify(data) });
       }
 
-      const creativeResponse = await fetch(
-        `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(creativeSpec) }
-      );
-
-      const creativeData = await creativeResponse.json();
-
-      if (creativeData.error) {
-        this.logger.warn('Erro ao criar criativo (1a tentativa)', { error: creativeData.error, full: JSON.stringify(creativeData) });
-        // Tenta sem image_hash como fallback
-        const fallbackCreative = { ...creativeSpec };
-        delete fallbackCreative.object_story_spec.link_data.image_hash;
-        const fallbackRes = await fetch(
-          `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fallbackCreative) }
-        );
-        const fallbackData = await fallbackRes.json();
-        if (fallbackData.error) {
-          this.logger.warn('Erro ao criar criativo (fallback)', { error: fallbackData.error, full: JSON.stringify(fallbackData) });
-          return { status: 'PARTIAL', campaignId, adsetId, error: `Erro ao criar criativo: ${fallbackData.error.message}`, apiResponse: fallbackData };
-        }
-        creativeData.id = fallbackData.id;
+      if (!creativeId) {
+        return { status: 'PARTIAL', campaignId, adsetId, error: 'Erro ao criar criativo: verifique os logs' };
       }
 
       const adResponse = await fetch(
@@ -406,7 +408,7 @@ class MarketingEngine {
           body: JSON.stringify({
             name: `Anúncio - ${property.type} - ${property.city || ''}`,
             adset_id: adsetId,
-            creative: { creative_id: creativeData.id },
+            creative: { creative_id: creativeId },
             status: 'ACTIVE',
             access_token: META_ADS_TOKEN
           })
@@ -425,7 +427,7 @@ class MarketingEngine {
         duration: days,
         adsetId,
         adId: adData.id,
-        creativeId: creativeData.id,
+        creativeId,
         hasImage: !!imageHash,
         targeting: `${property.neighborhood || property.city || 'Raio 10km'}`
       };
