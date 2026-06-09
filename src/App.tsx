@@ -17,6 +17,7 @@ import { useUser } from "./context/UserContext";
 import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
+import { useNotifications } from "./hooks/useNotifications";
 
 function gerarThumbnail(imgBase64: string): Promise<string> {
   return new Promise((resolve) => {
@@ -37,7 +38,20 @@ function gerarThumbnail(imgBase64: string): Promise<string> {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useNotifications();
   const { profile, updateProfile, logout } = useUser();
+
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
   const { properties, saveProperty, deleteProperty, forceSync, loading, syncStatus } = useProperties(profile.login);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
@@ -121,6 +135,11 @@ export default function App() {
           </div>
         </header>
 
+        {!isOnline && (
+          <div className="bg-orange-500/90 backdrop-blur-sm text-center text-[10px] font-bold text-black py-1.5 px-4 tracking-wide uppercase sticky top-0 z-40">
+            Você está offline — os dados podem estar desatualizados
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto custom-scrollbar pb-32 lg:pb-12">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
@@ -169,6 +188,10 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                   <Campaigns />
                 </motion.div>
+              } />
+
+              <Route path="/imovel/:id" element={
+                <div className="p-4 text-center text-gray-500 text-sm">Redirecionando...</div>
               } />
 
             </Routes>

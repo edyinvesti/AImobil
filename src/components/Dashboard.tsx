@@ -1,7 +1,8 @@
 
 import { useState } from "react";
-import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, AlertCircle, Download } from "lucide-react";
 import { Property } from "../types";
+import { getApiUrl } from "../utils";
 import { PropertyCard } from "./PropertyCard";
 import { SkeletonCard } from "./SkeletonCard";
 import { EmptyPortfolio } from "./EmptyPortfolio";
@@ -95,9 +96,16 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
             ) : null}
             
             <button 
+              onClick={() => window.open(getApiUrl() + '/api/properties/export', '_blank')}
+              title="Exportar carteira"
+              className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-emerald-500 hover:border-emerald-500/30 transition-all"
+            >
+              <Download size={18} />
+            </button>
+            <button 
               onClick={onSync}
               title="Sincronizar com a Nuvem"
-             className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-orange-500 hover:border-orange-500/30 transition-all group"
+              className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-orange-500 hover:border-orange-500/30 transition-all group"
             >
               <SlidersHorizontal size={18} className="group-active:rotate-180 transition-transform duration-500" />
             </button>

@@ -68,6 +68,25 @@ export function useProperties(baseCreci?: string) {
               // Validate and normalize local properties
               localProps = rawProps.map(normalizeProperty).filter((p): p is Property => !!p);
               setProperties(localProps);
+    // Try to recover from IndexedDB if localStorage was empty
+    if (localProps.length === 0) {
+      try {
+        const dbReq = indexedDB.open('iamobil', 1);
+        dbReq.onsuccess = () => {
+          const db = dbReq.result;
+          if (!db.objectStoreNames.contains('properties')) { db.close(); return; }
+          const tx = db.transaction('properties', 'readonly');
+          const store = tx.objectStore('properties');
+          const getAll = store.getAll();
+          getAll.onsuccess = () => {
+            if (getAll.result?.length > 0) {
+              setProperties(getAll.result.map(normalizeProperty));
+            }
+            db.close();
+          };
+        };
+      } catch(e) {}
+    }
             } catch (e) {
               console.error("Erro ao carregar os dados do localStorage:", e);
               // Continue with empty array if localStorage is corrupted
@@ -177,22 +196,60 @@ export function useProperties(baseCreci?: string) {
                console.warn("Falha ao salvar no localStorage (possivelmente quota excedida):", storageError);
                // Continue anyway - we have the data in state
              }
-             setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
-           }
-   
-           if (localOnly.length > 0 && name && isMountedRef.current) {
-             for (const prop of localOnly) {
-               try {
-                 await fetch(`${API_BASE}/api/partner/properties`, {
-                   method: "POST",
-                   headers: { "Content-Type": "application/json" },
-                   body: JSON.stringify({ ...prop, brokerName: name, brokerCreci: creci })
-                 });
-               } catch (e) {
-                 console.error("Erro ao sincronizar propriedade local:", e);
-                 // Continue with other properties
-               }
-             }
+              setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
+            // Save to IndexedDB for offline access
+            try {
+              const dbReq = indexedDB.open('iamobil', 1);
+              dbReq.onupgradeneeded = () => {
+                const db = dbReq.result;
+                if (!db.objectStoreNames.contains('properties')) {
+                  db.createObjectStore('properties', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('profile')) {
+                  db.createObjectStore('profile', { keyPath: 'id' });
+                }
+              };
+              dbReq.onsuccess = () => {
+                const db = dbReq.result;
+                const tx = db.transaction('properties', 'readwrite');
+                const store = tx.objectStore('properties');
+                merged.forEach(p => store.put(p));
+                tx.oncomplete = () => db.close();
+              };
+              dbReq.onerror = () => {};
+            } catch(e) { /* IndexedDB not available */ }
+            }
+    
+            if (localOnly.length > 0 && name && isMountedRef.current) {
+              for (const prop of localOnly) {
+                try {
+                  let imgProp = { ...prop };
+                  if (imgProp.images?.length > 0) {
+                    const uploadedUrls = await Promise.all(imgProp.images.map(async (img) => {
+                      if (img.startsWith('data:')) {
+                        try {
+                          const r = await fetch(`${API_BASE}/api/properties/upload-image`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image: img })
+                          });
+                          const d = await r.json();
+                          return d.url || img;
+                        } catch { return img; }
+                      }
+                      return img;
+                    }));
+                    imgProp.images = uploadedUrls;
+                  }
+                  await fetch(`${API_BASE}/api/partner/properties`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...imgProp, brokerName: name, brokerCreci: creci })
+                  });
+                } catch (e) {
+                  console.error("Erro ao sincronizar propriedade local:", e);
+                }
+              }
            }
          } else {
            let errorMessage = 'Erro na API: ' + res.status;
@@ -262,11 +319,42 @@ export function useProperties(baseCreci?: string) {
     }
     
     try {
+      let prop = { ...property };
+      if (prop.images?.length > 0) {
+        const uploaded = await Promise.all(prop.images.map(async (img) => {
+          if (img.startsWith('data:')) {
+            try {
+              const res = await fetch(`${API_BASE}/api/properties/upload-image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: img })
+              });
+              const data = await res.json();
+              return data.url || img;
+            } catch {
+              return img;
+            }
+          }
+          return img;
+        }));
+        prop = { ...prop, images: uploaded };
+        if (prop.thumbnail?.startsWith('data:')) {
+          try {
+            const res = await fetch(`${API_BASE}/api/properties/upload-image`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: prop.thumbnail })
+            });
+            const data = await res.json();
+            prop.thumbnail = data.url || prop.thumbnail;
+          } catch {}
+        }
+      }
       const response = await fetch(`${API_BASE}/api/partner/properties`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...property,
+          ...prop,
           brokerName: profile.name,
           brokerCreci: profile.login
         })

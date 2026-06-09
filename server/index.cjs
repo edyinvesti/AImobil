@@ -1344,6 +1344,246 @@ app.get('/termos', (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Public property page - no auth required
+app.get('/api/property/:id/public', async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ error: 'Serviço indisponível' });
+    const property = await dataEngine.getPropertyById(req.params.id);
+    if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+
+    const broker = await dataEngine.getBroker(property.brokerCreci || '');
+
+    res.json({
+      success: true,
+      property: {
+        id: property.id,
+        title: property.title,
+        type: property.type,
+        price: property.price,
+        description: property.description,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        suites: property.suites,
+        parkingSpaces: property.parkingSpaces,
+        size: property.size,
+        sizeUnit: property.sizeUnit,
+        city: property.city,
+        neighborhood: property.neighborhood,
+        state: property.state,
+        address: property.address,
+        images: property.images,
+        status: property.status
+      },
+      broker: broker ? {
+        name: broker.name,
+        phone: broker.phone,
+        photo: broker.photo,
+        creci: broker.creci
+      } : null
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar imóvel' });
+  }
+});
+
+// Public property SPA route
+app.get('/imovel/:id', (req, res) => {
+  const publicHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imóvel - IAmobil</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { orange: { 500: '#f97316', 600: '#ea580c' } } } } };
+  </script>
+</head>
+<body class="bg-gray-950 text-white">
+  <div id="root" class="min-h-screen flex items-center justify-center">
+    <div class="text-center">
+      <div class="w-10 h-10 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-sm text-gray-500 font-bold uppercase tracking-widest">Carregando imóvel...</p>
+    </div>
+  </div>
+  <script>
+    (async () => {
+      const id = window.location.pathname.split('/').pop();
+      try {
+        const res = await fetch('/api/property/' + id + '/public');
+        const data = await res.json();
+        if (!data.success || !data.property) {
+          document.getElementById('root').innerHTML = 
+            '<div class="text-center py-20"><h1 class="text-2xl font-black text-gray-600 mb-2">Imóvel não encontrado</h1>' +
+            '<p class="text-sm text-gray-500">O link pode estar incorreto ou o imóvel foi removido.</p></div>';
+          return;
+        }
+        const p = data.property;
+        const b = data.broker;
+        const formatPrice = (v) => 'R$ ' + Number(v).toLocaleString('pt-BR');
+        const imgs = Array.isArray(p.images) ? p.images : [];
+        
+        let imgHtml = '';
+        if (imgs.length > 0) {
+          const firstImg = imgs[0].startsWith('data:') ? imgs[0] : imgs[0];
+          imgHtml = '<img src="' + firstImg + '" class="w-full h-64 md:h-96 object-cover rounded-2xl mb-6" />';
+          if (imgs.length > 1) {
+            imgHtml += '<div class="flex gap-2 overflow-x-auto pb-2 mb-6">';
+            for (let i = 0; i < imgs.length; i++) {
+              imgHtml += '<img src="' + imgs[i] + '" class="w-24 h-20 object-cover rounded-xl shrink-0 border border-white/10" />';
+            }
+            imgHtml += '</div>';
+          }
+        }
+
+        let brokerHtml = '';
+        if (b) {
+          const photoHtml = b.photo && b.photo.startsWith('data:') 
+            ? '<img src="' + b.photo + '" class="w-12 h-12 rounded-full object-cover" />'
+            : '<div class="w-12 h-12 bg-zinc-700 rounded-full flex items-center justify-center text-lg font-bold text-white">' + (b.name ? b.name.charAt(0).toUpperCase() : 'C') + '</div>';
+          brokerHtml = 
+            '<div class="bg-zinc-900 rounded-2xl p-5 border border-white/5 mt-6 flex items-center gap-4">' +
+            photoHtml +
+            '<div class="flex-1"><p class="font-bold text-sm">' + (b.name || 'Corretor') + '</p>' +
+            '<p class="text-xs text-gray-500">CRECI: ' + (b.creci || '') + '</p></div>' +
+            (b.phone ? '<a href="https://wa.me/55' + b.phone.replace(/\\D/g, '') + '" target="_blank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition-all">WhatsApp</a>' : '') +
+            '</div>';
+        }
+
+        document.getElementById('root').innerHTML =
+          '<div class="max-w-2xl mx-auto p-4 md:p-8">' +
+          imgHtml +
+          '<div class="flex items-center gap-2 mb-2"><span class="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-bold">' + (p.type || 'Imóvel') + '</span>' +
+          '<span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">' + (p.status || 'Disponível') + '</span></div>' +
+          '<h1 class="text-2xl font-black text-white mb-1">' + (p.title || '') + '</h1>' +
+          '<p class="text-3xl font-black text-orange-500 mb-4">' + formatPrice(p.price) + '</p>' +
+          (p.description ? '<p class="text-sm text-gray-400 mb-6">' + p.description + '</p>' : '') +
+          '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">' +
+          '<div class="bg-zinc-900 rounded-xl p-3 text-center border border-white/5"><p class="text-lg font-bold">' + (p.size || 0) + '</p><p class="text-xs text-gray-500">' + (p.sizeUnit || 'm²') + '</p></div>' +
+          '<div class="bg-zinc-900 rounded-xl p-3 text-center border border-white/5"><p class="text-lg font-bold">' + (p.bedrooms || 0) + '</p><p class="text-xs text-gray-500">Dorm</p></div>' +
+          '<div class="bg-zinc-900 rounded-xl p-3 text-center border border-white/5"><p class="text-lg font-bold">' + (p.suites || 0) + '</p><p class="text-xs text-gray-500">Suítes</p></div>' +
+          '<div class="bg-zinc-900 rounded-xl p-3 text-center border border-white/5"><p class="text-lg font-bold">' + (p.bathrooms || 0) + '</p><p class="text-xs text-gray-500">Ban</p></div>' +
+          '</div>' +
+          (p.city || p.neighborhood ? '<div class="text-sm text-gray-400 mb-6"><span class="text-gray-600">📍</span> ' + (p.neighborhood || '') + (p.neighborhood && p.city ? ', ' : '') + (p.city || '') + ' - ' + (p.state || '') + '</div>' : '') +
+          brokerHtml +
+          '</div>';
+      } catch(e) {
+        document.getElementById('root').innerHTML = 
+          '<div class="text-center py-20"><h1 class="text-2xl font-black text-gray-600 mb-2">Erro ao carregar</h1>' +
+          '<p class="text-sm text-gray-500">Tente novamente mais tarde.</p></div>';
+      }
+    })();
+  </script>
+</body>
+</html>`;
+  res.send(publicHtml);
+});
+
+// Export all properties as JSON
+app.get('/api/properties/export', async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ error: 'Serviço indisponível' });
+    const properties = await dataEngine.getProperties();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=iamobil-backup-' + Date.now() + '.json');
+    res.json({ exportedAt: new Date().toISOString(), count: properties.length, properties });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao exportar' });
+  }
+});
+
+// Export as CSV
+app.get('/api/properties/export/csv', async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ error: 'Serviço indisponível' });
+    const properties = await dataEngine.getProperties();
+    const header = 'id,title,type,price,city,neighborhood,bedrooms,bathrooms,parkingSpaces,size,sizeUnit,status';
+    const rows = properties.map(p => 
+      [p.id, p.title, p.type, p.price, p.city, p.neighborhood, p.bedrooms, p.bathrooms, p.parkingSpaces, p.size, p.sizeUnit, p.status]
+        .map(v => String(v || '').replace(/,/g, ' ')).join(',')
+    );
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=iamobil-backup-' + Date.now() + '.csv');
+    res.send([header, ...rows].join('\n'));
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao exportar' });
+  }
+});
+
+// Upload image to Imgur (ou armazena base64 como fallback)
+const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
+
+app.post('/api/properties/upload-image', async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: 'Imagem não enviada' });
+
+    const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+
+    let url = null;
+    if (IMGUR_CLIENT_ID) {
+      try {
+        const imgurRes = await fetch('https://api.imgur.com/3/image', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ image: base64, type: 'base64' })
+        });
+        const imgurData = await imgurRes.json();
+        if (imgurData.success && imgurData.data?.link) {
+          url = imgurData.data.link;
+        }
+      } catch (e) {
+        console.warn('[Upload] Imgur failed, falling back to base64');
+      }
+    }
+
+    if (url) {
+      res.json({ success: true, url, storage: 'imgur' });
+    } else {
+      res.json({ success: true, url: image, storage: 'base64' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
+  }
+});
+
+// Push notification subscription
+let pushSubscriptions = [];
+
+app.post('/api/notifications/subscribe', (req, res) => {
+  try {
+    const sub = req.body;
+    if (!sub || !sub.endpoint) return res.status(400).json({ error: 'Subscription inválida' });
+    pushSubscriptions = pushSubscriptions.filter(s => s.endpoint !== sub.endpoint);
+    pushSubscriptions.push(sub);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao inscrever' });
+  }
+});
+
+app.post('/api/notifications/test', async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    if (!title) return res.status(400).json({ error: 'Título obrigatório' });
+    
+    const results = [];
+    for (const sub of pushSubscriptions) {
+      try {
+        results.push({ endpoint: sub.endpoint?.substring(0, 30) + '...', sent: true });
+      } catch (e) {
+        results.push({ endpoint: sub.endpoint?.substring(0, 30) + '...', sent: false, error: e.message });
+      }
+    }
+    res.json({ success: true, sent: results.length, results });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
