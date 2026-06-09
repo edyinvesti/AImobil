@@ -9,6 +9,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
 const API_URL = process.env.VITE_API_URL || 'http://localhost:10000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://iamobil-frontend.pages.dev';
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 const campaigns = new Map();
@@ -30,15 +31,16 @@ class MarketingEngine {
   async uploadToFacebookAdimages(base64Data) {
     const bytes = stripBase64Prefix(base64Data);
 
+    const params = new URLSearchParams();
+    params.append('bytes', bytes);
+    params.append('access_token', META_ADS_TOKEN);
+
     const res = await fetch(
       `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adimages`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bytes,
-          access_token: META_ADS_TOKEN
-        })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
       }
     );
 
@@ -364,7 +366,7 @@ class MarketingEngine {
           object_story_spec: {
             page_id: pageId,
             link_data: {
-              link: `${API_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
+              link: `${FRONTEND_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
               message: copys[0]?.primaryText || property.description || '',
               name: copys[0]?.headline || property.title,
               description: copys[0]?.description || '',
@@ -378,17 +380,17 @@ class MarketingEngine {
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
         const data = await res.json();
         if (!data.error) { creativeId = data.id; }
-        else { this.logger.warn('Creative c/ imagem falhou', { error: data.error }); }
+        else { this.logger.warn('Creative c/ imagem falhou', { error: data.error, full: JSON.stringify(data) }); }
       }
 
-      // Fallback sem image_hash (formato original que funcionava)
+      // Fallback sem image_hash
       if (!creativeId) {
         const spec = {
           name: `Criativo - ${property.type} - Feed`,
           object_story_spec: {
             page_id: pageId,
             link_data: {
-              link: `${API_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
+              link: `${FRONTEND_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
               message: copys[0]?.primaryText || property.description || '',
               name: copys[0]?.headline || property.title,
               description: copys[0]?.description || '',

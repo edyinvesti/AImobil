@@ -10,6 +10,8 @@ services:
         value: production
       - key: VITE_API_URL
         value: "https://aimobil.onrender.com"
+      - key: FRONTEND_URL
+        value: "https://iamobil-frontend.pages.dev"
       - key: PORT
         value: 10000
       - key: ALLOWED_ORIGINS
