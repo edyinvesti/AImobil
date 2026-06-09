@@ -2,7 +2,7 @@ const path = require('path');
 const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
 
 const META_ADS_TOKEN = process.env.META_ADS_ACCESS_TOKEN;
-const META_ACCOUNT_ID = process.env.META_ADS_AD_ACCOUNT_ID;
+const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act_/, '');
 const INSTAGRAM_BUSINESS_ID = process.env.INSTAGRAM_BUSINESS_ID;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
