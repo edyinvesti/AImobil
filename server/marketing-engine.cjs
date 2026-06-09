@@ -356,7 +356,7 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
-      // Criar criativo — igual ao formato original que funcionava
+      // Criar criativo — testa sem image_hash (igual ao original que funcionava)
       let creativeId = null;
 
       const spec = {
@@ -368,24 +368,19 @@ class MarketingEngine {
             message: 'Confira este imóvel incrível!',
             name: 'Apartamento incrível',
             description: 'Ótima oportunidade',
-            call_to_action: { type: 'LEARN_MORE' },
-            image_hash: imageHash
+            call_to_action: { type: 'LEARN_MORE' }
           }
         },
         access_token: META_ADS_TOKEN
       };
-
-      if (!imageHash) {
-        delete spec.object_story_spec.link_data.image_hash;
-      }
 
       const res = await fetch(`${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
       const data = await res.json();
       if (!data.error) { creativeId = data.id; }
       else {
-        this.logger.warn('Creative falhou', { error: data.error, full: JSON.stringify(data), spec: JSON.stringify(spec).substring(0, 300) });
-        return { status: 'PARTIAL', campaignId, adsetId, error: `Erro: ${data.error.message}`, fbResponse: data.error };
+        this.logger.warn('Creative falhou', { error: data.error, full: JSON.stringify(data), spec: JSON.stringify(spec).substring(0, 400) });
+        return { status: 'PARTIAL', campaignId, adsetId, error: `Erro: ${data.error.message}`, fbResponse: data.error, specEnviado: JSON.stringify(spec).substring(0, 500) };
       }
 
       if (!creativeId) {
