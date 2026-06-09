@@ -214,18 +214,18 @@ class DataEngine {
       const rs = await client.execute(
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
-        'streetNumber, complement, description, brokerName, brokerCreci, broker_creci, created_at ' +
+        'streetNumber, complement, description, brokerName, brokerCreci, broker_creci, created_at, ' +
+        "json_extract(images, '$[0]') as thumbnail " +
         'FROM properties ORDER BY created_at DESC'
       );
       return rs.rows.map(row => ({
         ...row,
-        images: [],       // Don't load images in list - fetch on demand
-        thumbnail: null,  // Will be loaded when the property is opened
+        images: [],       // Don't load full images in list - fetch on demand
+        thumbnail: row.thumbnail || null,
         address: row.location || '',
         size: row.area || 0,
         offerType: null,
         parkingSpaces: row.parkingSpaces || 0,
-        sizeUnit: row.sizeUnit || 'm²',
         brokerCreci: row.brokerCreci || row.broker_creci || '',
       }));
     } catch (e) {
