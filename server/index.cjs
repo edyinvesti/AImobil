@@ -1245,6 +1245,30 @@ app.get('/api/marketing/campanhas', (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Serve a primeira imagem de um imóvel como resposta HTTP (para Instagram/Facebook)
+app.get('/api/properties/:id/image', async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+    const property = await dataEngine.getPropertyById(req.params.id);
+    if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+    if (!property.images || property.images.length === 0) return res.status(404).json({ error: 'Imóvel sem fotos' });
+
+    const base64 = property.images[0].replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+    const format = base64.charAt(0) === 'i' ? 'png' : 'jpeg';
+
+    res.writeHead(200, {
+      'Content-Type': `image/${format}`,
+      'Content-Length': buffer.length,
+      'Cache-Control': 'public, max-age=86400'
+    });
+    res.end(buffer);
+  } catch (e) {
+    logger.error('Image serve error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao servir imagem' });
+  }
+});
+
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
 app.get('/privacidade', (req, res) => {

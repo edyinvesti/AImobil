@@ -118,10 +118,11 @@ class MarketingEngine {
         }
       }
 
-      // Tenta Imgur como fallback para Instagram
+      // Gera URL pública da imagem via endpoint próprio
       let publicImageUrl = fbImage?.url || null;
       if (!publicImageUrl && property.images[0]) {
-        publicImageUrl = await this.uploadToImgur(property.images[0]);
+        const baseUrl = API_URL || `https://aimobil.onrender.com`;
+        publicImageUrl = `${baseUrl}/api/properties/${property.id}/image`;
       }
 
       let campaignResult = null;
