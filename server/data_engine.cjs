@@ -217,13 +217,14 @@ class DataEngine {
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
         'streetNumber, complement, description, brokerName, brokerCreci, broker_creci, created_at, ' +
-        'thumbnail ' +
+        'thumbnail, ' +
+        "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
       );
       return rs.rows.map(row => ({
         ...row,
-        images: [],       // Don't load full images in list - fetch on demand
-        thumbnail: row.thumbnail || null,
+        images: [],
+        thumbnail: row.thumbnail || row.img_fallback || null,
         address: row.location || '',
         size: row.area || 0,
         offerType: null,
