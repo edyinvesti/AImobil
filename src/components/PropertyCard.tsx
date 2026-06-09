@@ -1,5 +1,5 @@
 
-import { MapPin, BedDouble, Bath, Car, Megaphone } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2 } from 'lucide-react';
 import { Property } from '../types';
 
 interface PropertyCardProps {
@@ -33,7 +33,7 @@ const getFallbackImage = (title: string, currentUrl: string) => {
   return urlStr;
 };
 
-export function PropertyCard({ property, onClick, campaignActive }: PropertyCardProps) {
+export function PropertyCard({ property, onClick, onDelete, campaignActive }: PropertyCardProps) {
   const thumbnail = property.thumbnail || '';
   
   return (
@@ -58,6 +58,16 @@ export function PropertyCard({ property, onClick, campaignActive }: PropertyCard
             <Megaphone size={10} />
             Marketing
           </div>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
+            className="absolute bottom-3 right-3 w-8 h-8 bg-red-500/80 hover:bg-red-500 rounded-xl flex items-center justify-center text-white transition-all shadow-lg"
+            title="Excluir imóvel"
+          >
+            <Trash2 size={14} />
+          </button>
         )}
       </div>
 
