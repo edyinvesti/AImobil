@@ -228,17 +228,13 @@ class MarketingEngine {
 
       const pageId = process.env.META_FACEBOOK_PAGE_ID;
 
-      const geoLocations = {};
+      const geoLocations = { countries: ['BR'] };
       if (property.latitude && property.longitude) {
         geoLocations.custom_locations = [
           { latitude: property.latitude, longitude: property.longitude, radius: 10, distance_unit: 'km' }
         ];
         geoLocations.location_types = ['home', 'recent'];
-      } else if (property.city) {
-        geoLocations.regions = [{ key: 'BR' }];
-        geoLocations.cities = [{ key: property.city }];
-      } else {
-        geoLocations.countries = ['BR'];
+        delete geoLocations.countries;
       }
 
       const adsetBody = {
