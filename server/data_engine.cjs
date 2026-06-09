@@ -36,9 +36,10 @@ async function initializeTables() {
   if (!client) return;
   
   try {
-    await client.execute({ sql: `ALTER TABLE properties ADD COLUMN created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)`, args: [] }).catch(() => {});
+      await client.execute({ sql: `ALTER TABLE properties ADD COLUMN created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)`, args: [] }).catch(() => {});
     await client.execute({ sql: `ALTER TABLE leads ADD COLUMN created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)`, args: [] }).catch(() => {});
     await client.execute({ sql: `ALTER TABLE appointments ADD COLUMN created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)`, args: [] }).catch(() => {});
+    await client.execute({ sql: `ALTER TABLE properties ADD COLUMN thumbnail TEXT`, args: [] }).catch(() => {});
     
     await client.batch([
       `CREATE TABLE IF NOT EXISTS leads (
@@ -179,25 +180,26 @@ class DataEngine {
     if (!client) return null;
     try {
        return await client.execute({
-         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
-               bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
-               livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
-               brokerName, brokerCreci, broker_creci) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-         args: [
-           property.id, property.title, property.type, property.price,
-           property.address || property.location || '', property.city || '', property.neighborhood || '',
-           property.bedrooms || 0, property.bathrooms || 0,
-           property.parkingSpaces || property.parking_spaces || 0,
-           property.size || property.area || 0,
-           property.sizeUnit || property.size_unit || 'm²',
-           property.status || 'disponivel', JSON.stringify(property.images || []),
-           property.suites || 0, property.livingRooms || 0, property.kitchens || 0,
-           property.zipCode || '', property.state || '', property.streetNumber || '',
-           property.complement || '', property.description || '',
-           property.brokerName || '', property.brokerCreci || '', property.broker_creci || ''
-         ]
-       });
+          sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
+                bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
+                livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
+                brokerName, brokerCreci, broker_creci, thumbnail) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            property.id, property.title, property.type, property.price,
+            property.address || property.location || '', property.city || '', property.neighborhood || '',
+            property.bedrooms || 0, property.bathrooms || 0,
+            property.parkingSpaces || property.parking_spaces || 0,
+            property.size || property.area || 0,
+            property.sizeUnit || property.size_unit || 'm²',
+            property.status || 'disponivel', JSON.stringify(property.images || []),
+            property.suites || 0, property.livingRooms || 0, property.kitchens || 0,
+            property.zipCode || '', property.state || '', property.streetNumber || '',
+            property.complement || '', property.description || '',
+            property.brokerName || '', property.brokerCreci || '', property.broker_creci || '',
+            property.thumbnail || ''
+          ]
+        });
     } catch (e) {
       console.error('addProperty error:', e.message);
       return null;
@@ -215,7 +217,7 @@ class DataEngine {
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
         'streetNumber, complement, description, brokerName, brokerCreci, broker_creci, created_at, ' +
-        "json_extract(images, '$[0]') as thumbnail " +
+        'thumbnail ' +
         'FROM properties ORDER BY created_at DESC'
       );
       return rs.rows.map(row => ({

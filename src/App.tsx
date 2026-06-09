@@ -18,6 +18,23 @@ import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 
+function gerarThumbnail(imgBase64: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > 200) { h = (h * 200) / w; w = 200; }
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx?.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.2));
+    };
+    img.onerror = () => resolve(imgBase64);
+    img.src = imgBase64;
+  });
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const { profile, updateProfile, logout } = useUser();
@@ -37,7 +54,11 @@ export default function App() {
   const currentView = location.pathname.split('/')[1] || 'dashboard';
 
   const handleSaveProperty = async (property: Property) => {
-    await saveProperty(property, profile);
+    const p = { ...property };
+    if (p.images?.length && !p.thumbnail) {
+      p.thumbnail = await gerarThumbnail(p.images[0]);
+    }
+    await saveProperty(p, profile);
     navigate('/');
   };
 
