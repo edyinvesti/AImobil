@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { Calendar, User, Phone, CheckCircle2, Clock, MessageSquare, Briefcase, ArrowRight, RefreshCw } from 'lucide-react';
 import { useLeads } from '../hooks/useLeads';
@@ -28,7 +28,7 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 };
 
-export const Appointments: React.FC = () => {
+export const Appointments = () => {
   const { leads, loading, refresh } = useLeads();
 
   if (loading && leads.length === 0) {

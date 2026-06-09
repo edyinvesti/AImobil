@@ -7,6 +7,7 @@ export type PropertyType = 'Casa' | 'Apartamento' | 'Terreno' | 'Comercial' | 'R
 export type OfferType = 'Venda' | 'Aluguel';
 export type AreaUnit = 'm²' | 'Hectares' | 'Alqueires';
 export type PropertyStatus = 'Disponível' | 'Vendido' | 'Reservado';
+export type MarketingOption = 'none' | 'instagram_only' | 'instagram_ads';
 
 export interface Property {
   id: string;
@@ -40,6 +41,7 @@ export interface Property {
   createdAt: number;
   remoteId?: string;
   remoteStatus?: 'pending' | 'approved' | 'rejected' | 'unknown';
+  marketingOption?: MarketingOption;
 }
 
 export interface UserProfile {

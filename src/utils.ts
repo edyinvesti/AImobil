@@ -12,7 +12,7 @@ export function getApiUrl(): string {
     if (import.meta.env.PROD) {
       return 'https://aimobil.onrender.com'; // Production fallback
     }
-    return 'http://localhost:10000'; // Development fallback
+    return 'http://localhost:10002'; // Development fallback
   }
 
   // Defensive check for common misconfigurations (like pasting a terminal command)
@@ -28,7 +28,10 @@ export function getApiUrl(): string {
   return API_URL.replace(/\/$/, ''); // Remove trailing slash if present
 }
 
-export function compressImage(file: File, maxWidth = 800, quality = 0.6): Promise<string> {
+export function compressImage(file: File, maxWidth = 800, quality = 0.6, depth = 0): Promise<string> {
+  if (depth > 5) {
+    return compressImageFallback(file, maxWidth);
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -55,10 +58,38 @@ export function compressImage(file: File, maxWidth = 800, quality = 0.6): Promis
         
         const sizeKB = compressed.length / 1024;
         if (sizeKB > 500) {
-          return compressImage(file, maxWidth * 0.7, quality - 0.1).then(resolve).catch(reject);
+          return compressImage(file, maxWidth * 0.7, quality - 0.1, depth + 1).then(resolve).catch(reject);
         }
         
         resolve(compressed);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImageFallback(file: File, maxWidth: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Could not get canvas context')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.3));
       };
       img.onerror = () => reject(new Error('Failed to load image'));
       img.src = e.target?.result as string;

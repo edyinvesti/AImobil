@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Skeleton } from './common/Skeleton';
 
 export function SkeletonCard() {

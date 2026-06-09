@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Home, Plus, User, Search, CreditCard, Layout } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -7,7 +7,7 @@ interface BottomBarProps {
   onViewChange: (view: any) => void;
 }
 
-export const BottomBar: React.FC<BottomBarProps> = ({ currentView, onViewChange }) => {
+export const BottomBar = ({ currentView, onViewChange }: BottomBarProps) => {
   const tabs = [
     { id: 'dashboard', label: 'Início', icon: Home },
     { id: 'appointments', label: 'Agenda', icon: Layout },

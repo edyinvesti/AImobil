@@ -17,7 +17,7 @@ export interface Lead {
 
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{ total_leads?: number; avg_score?: number; total_potential?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

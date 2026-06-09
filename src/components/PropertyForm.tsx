@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit } from '../types';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption } from '../types';
 import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car } from 'lucide-react';
-import { compressImage } from '../utils';
+import { compressImage, getApiUrl } from '../utils';
 
 interface PropertyFormProps {
     onSave: (property: Property) => void;
@@ -15,7 +15,7 @@ const AMENITIES_OPTIONS = [
     'Elevador', 'Jardim', 'Pet Friendly', 'Sistema de Alarme'
 ];
 
-export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, initialData }) => {
+export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProps) => {
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
@@ -40,6 +40,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         parkingSpaces: initialData?.parkingSpaces || 0,
         description: initialData?.description || '',
         amenities: initialData?.amenities || [] as string[],
+        marketingOption: initialData?.marketingOption || 'none' as MarketingOption,
     });
     const [displayPrice, setDisplayPrice] = useState(
         initialData?.price
@@ -52,19 +53,21 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
             : ''
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
-    const [states, setStates] = useState<{ sigla: string, nome: string }[]>([]);
+    interface IBGEState { sigla: string; nome: string; }
+interface IBGECity { nome: string; }
+const [states, setStates] = useState<IBGEState[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     const [statesLoading, setStatesLoading] = useState(true);
     const [citiesLoading, setCitiesLoading] = useState(false);
     const [cepError, setCepError] = useState<string | null>(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchStates = async () => {
             try {
                 const response = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome');
                 if (!response.ok) throw new Error('Failed to fetch');
                 const data = await response.json();
-                setStates(data.map((s: any) => ({ sigla: s.sigla, nome: s.nome })));
+                setStates(data.map((s: IBGEState) => ({ sigla: s.sigla, nome: s.nome })));
             } catch (err) {
                 console.error("Erro IBGE Estados:", err);
                 setStates([{ sigla: 'GO', nome: 'Goiás' }, { sigla: 'SP', nome: 'São Paulo' }]);
@@ -75,7 +78,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         fetchStates();
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (formData.state && formData.state.length === 2) {
             const fetchCities = async () => {
                 setCitiesLoading(true);
@@ -83,7 +86,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                     const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${formData.state}/municipios?orderBy=nome`);
                     if (!response.ok) throw new Error('Failed to fetch');
                     const data = await response.json();
-                    setCities(data.map((c: any) => c.nome));
+                    setCities(data.map((c: IBGECity) => c.nome));
                 } catch (err) {
                     console.error("Erro IBGE Cidades:", err);
                     setCities([]);
@@ -95,7 +98,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         }
     }, [formData.state]);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
             const remainingSlots = 10 - images.length;
@@ -117,7 +120,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         }
     };
 
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, '');
         if (!value) {
             setFormData({ ...formData, price: 0 });
@@ -130,7 +133,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         setDisplayPrice(new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(numberValue));
     };
 
-    const handleAreaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAreaChange = (e: ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, '');
         if (!value) {
             setFormData({ ...formData, size: 0 });
@@ -143,7 +146,7 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         setDisplayArea(new Intl.NumberFormat('pt-BR').format(numberValue));
     };
 
-    const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCEPChange = (e: ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 8) value = value.slice(0, 8);
 
@@ -189,18 +192,39 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const triggerMarketingCampaign = async (propertyId: string, option: MarketingOption) => {
+        if (option === 'none') return;
+        try {
+            await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    propertyId,
+                    budget: 20,
+                    campaignDays: 14,
+                    includeOrganic: true,
+                    includeAds: option === 'instagram_ads',
+                }),
+            });
+        } catch (error) {
+            console.error("Erro ao criar campanha automática:", error);
+        }
+    };
+
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
 
         try {
             const id = initialData?.id || generateId();
-            onSave({
+            const property = {
                 ...formData,
                 id,
                 images,
                 createdAt: initialData?.createdAt || Date.now(),
-            } as Property);
+            } as Property;
+            onSave(property);
+            triggerMarketingCampaign(property.id, formData.marketingOption);
         } catch (error) {
             console.error("Erro ao salvar:", error);
             setIsSaving(false);
@@ -613,6 +637,42 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSave, onCancel, in
                                 })}
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Marketing Automático */}
+                <div className="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-5">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">Marketing Automático</span>
+                        <span className="px-2 py-0.5 bg-gradient-to-r from-blue-600/20 to-violet-600/20 border border-blue-500/20 rounded-full text-[7px] font-black uppercase text-blue-400 tracking-wider">Novo</span>
+                    </div>
+                    <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
+                        Escolha a ação automática ao salvar o imóvel:
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        {[
+                            { value: 'none', label: 'Não publicar automaticamente', desc: 'Apenas salva o imóvel na carteira' },
+                            { value: 'instagram_only', label: 'Só Instagram (orgânico)', desc: 'Publica fotos no feed do Instagram' },
+                            { value: 'instagram_ads', label: 'Instagram + Meta Ads (pago)', desc: 'Publica no Instagram + campanha de R$ 20/dia por 14 dias' },
+                        ].map(option => (
+                            <label
+                                key={option.value}
+                                className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${formData.marketingOption === option.value ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="marketingOption"
+                                    value={option.value}
+                                    checked={formData.marketingOption === option.value}
+                                    onChange={e => setFormData({ ...formData, marketingOption: e.target.value as MarketingOption })}
+                                    className="mt-1 accent-orange-500"
+                                />
+                                <div>
+                                    <span className="text-sm font-bold text-white">{option.label}</span>
+                                    <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">{option.desc}</p>
+                                </div>
+                            </label>
+                        ))}
                     </div>
                 </div>
 

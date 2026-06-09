@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Phone, Mail, MapPin, Globe, Share2, Download, Zap, ShieldCheck, QrCode } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
@@ -7,7 +7,7 @@ interface BusinessCardProps {
     profile: UserProfile;
 }
 
-export const BusinessCard: React.FC<BusinessCardProps> = ({ profile }) => {
+export const BusinessCard = ({ profile }: BusinessCardProps) => {
     const handleConnect = () => {
         const text = `Olá ${profile.name}, vim através do seu Cartão Digital IAmobil e gostaria de conversar!`;
         const phone = profile.phone?.replace(/\D/g, '') || '';
@@ -22,7 +22,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ profile }) => {
     const handleShare = async () => {
         const shareData = {
           title: profile.name || 'Meu Cartão Digital',
-          text: `🤝 *${profile.name || 'Seu Consultor'}*\n🏢 Corretor Parceiro IAmobil\n📜 Login: ${profile.Login || '---'}\n\nConecte-se comigo para os melhores ativos imobiliários!`,
+          text: `🤝 *${profile.name || 'Seu Consultor'}*\n🏢 Corretor Parceiro IAmobil\n📜 Login: ${profile.login || '---'}\n\nConecte-se comigo para os melhores ativos imobiliários!`,
           url: window.location.href
         };
 
@@ -75,7 +75,7 @@ export const BusinessCard: React.FC<BusinessCardProps> = ({ profile }) => {
                         <h1 className="text-4xl font-black text-white tracking-tight">{profile.name || 'Seu Nome'}</h1>
                         <div className="flex items-center gap-3">
                             <span className="px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full text-[10px] font-black uppercase text-orange-500 tracking-widest">Corretor de Elite</span>
-                            <span className="text-gray-600 font-bold text-[10px] uppercase tracking-widest leading-none">Login {profile.Login || '---'}</span>
+                            <span className="text-gray-600 font-bold text-[10px] uppercase tracking-widest leading-none">Login {profile.login || '---'}</span>
                         </div>
                     </div>
 

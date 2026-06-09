@@ -1,16 +1,16 @@
-import React from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useUser } from '../context/UserContext';
 import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search } from 'lucide-react';
 import { getApiUrl } from '../utils';
 
 export function ProfileView() {
   const { profile, updateProfile } = useUser();
-  const [formData, setFormData] = React.useState(profile);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [formData, setFormData] = useState(profile);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setFormData({
       ...profile,
       name: profile.name === 'Buscando perfil...' ? '' : profile.name
@@ -44,14 +44,14 @@ export function ProfileView() {
       } else {
         alert("Erro ao buscar perfil.");
       }
-    } catch (err: any) {
-      alert("Erro ao buscar perfil: " + (err.message || "Tente novamente"));
+    } catch (err: unknown) {
+      alert("Erro ao buscar perfil: " + (err instanceof Error ? err.message : "Tente novamente"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.login) {
       alert("O campo login é obrigatório.");
@@ -62,14 +62,14 @@ export function ProfileView() {
       await updateProfile(formData);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err: any) {
-      alert("Erro ao salvar: " + (err.message || "Tente novamente"));
+    } catch (err: unknown) {
+      alert("Erro ao salvar: " + (err instanceof Error ? err.message : "Tente novamente"));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -80,7 +80,7 @@ export function ProfileView() {
     }
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
     let formatted = value;

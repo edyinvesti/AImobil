@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { SplashScreen } from "./components/SplashScreen";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { PropertyForm } from "./components/PropertyForm";
 import { PropertyDetails } from "./components/PropertyDetails";
@@ -13,6 +13,7 @@ import { ConfirmationModal } from "./components/ConfirmationModal";
 import { Bell } from "lucide-react";
 import { useProperties } from "./hooks/useProperties";
 import { useUser } from "./context/UserContext";
+import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 
@@ -68,10 +69,26 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-             <button className="p-1.5 text-gray-400 hover:text-white transition-colors relative">
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-orange-500 rounded-full border-2 border-[#030303]" />
-             </button>
+              <button
+                 onClick={() => {
+                    const pending = syncQueue.pendingCount;
+                    if (pending > 0) {
+                      alert(`📤 ${pending} operaç${pending === 1 ? 'ão' : 'ões'} pendente${pending === 1 ? '' : 's'} de sincronização`);
+                    } else if (syncStatus?.lastSync) {
+                      alert(`✅ Sincronizado. Última sync: ${new Date(syncStatus.lastSync).toLocaleString('pt-BR')}`);
+                    } else {
+                      alert('ℹ️ Nenhuma operação pendente.');
+                    }
+                 }}
+                 className="p-1.5 text-gray-400 hover:text-white transition-colors relative"
+              >
+                 <Bell size={18} />
+                 {syncQueue.pendingCount > 0 && (
+                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-[8px] font-black text-white border-2 border-[#030303]">
+                     {syncQueue.pendingCount}
+                   </span>
+                 )}
+              </button>
              <div className="w-[1px] h-3 bg-white/10" />
              <div className="flex items-center gap-3">
                 <div className="hidden sm:flex flex-col items-end gap-0.5">
@@ -157,6 +174,7 @@ export default function App() {
             property={selectedProperty}
             profile={profile}
             onClose={() => setSelectedProperty(null)}
+            onPublish={async (p) => { await saveProperty(p, profile); }}
           />
         )}
       </AnimatePresence>

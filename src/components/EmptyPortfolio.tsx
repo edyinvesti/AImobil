@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Plus, Home, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 

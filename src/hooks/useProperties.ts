@@ -208,14 +208,15 @@ export function useProperties(baseCreci?: string) {
              setSyncStatus({ syncing: false, lastSync: null, error: errorMessage });
            }
          }
-       } catch(e: any) {
-         if (e.name !== 'AbortError') {
+       } catch(e: unknown) {
+          const err = e as Error;
+          if (err.name !== 'AbortError') {
            console.error('[useProperties] Erro na busca de dados:', e);
            if (isMountedRef.current) {
              setSyncStatus({ 
                syncing: false, 
                lastSync: null, 
-               error: e.message || 'Erro de conexão' 
+                error: err.message || 'Erro de conexão' 
              });
            }
          }
@@ -239,7 +240,7 @@ export function useProperties(baseCreci?: string) {
     }
   }, []);
 
-  const handleSaveProperty = useCallback(async (property: Property, profile: { name: string, creci: string }) => {
+  const handleSaveProperty = useCallback(async (property: Property, profile: { name: string; login: string }) => {
     setProperties(prev => {
       const exists = prev.find(p => p.id === property.id);
       let updated: Property[];
@@ -268,7 +269,7 @@ export function useProperties(baseCreci?: string) {
             body: JSON.stringify({
               ...property,
               brokerName: profile.name,
-              brokerCreci: profile.creci
+              brokerCreci: profile.login
             })
           });
           
@@ -289,7 +290,7 @@ export function useProperties(baseCreci?: string) {
           } else {
             setSyncStatus({ syncing: false, lastSync: null, error: 'Erro ao salvar na nuvem' });
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.error("Erro na integração:", e);
           setSyncStatus({ syncing: false, lastSync: null, error: 'Erro de conexão' });
           syncQueue.enqueue({
@@ -299,7 +300,7 @@ export function useProperties(baseCreci?: string) {
             body: {
               ...property,
               brokerName: profile.name,
-              brokerCreci: profile.creci
+              brokerCreci: profile.login
             }
           });
         }

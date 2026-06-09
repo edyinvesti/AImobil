@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
@@ -26,7 +26,7 @@ if ('serviceWorker' in navigator) {
 
 const root = createRoot(rootElement);
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <UserProvider>
@@ -36,5 +36,5 @@ root.render(
         </UserProvider>
       </QueryClientProvider>
     </ErrorBoundary>
-  </React.StrictMode>
+  </StrictMode>
 );

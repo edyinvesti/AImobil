@@ -63,3 +63,26 @@ html, body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* === Missing utilities referenced in components === */
+
+@utility glass-dark {
+  background: hsla(0, 0%, 0%, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsla(0, 0%, 100%, 0.05);
+}
+
+@utility custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(0, 0%, 20%) transparent;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@utility premium-gradient {
+  background: linear-gradient(135deg, hsl(25, 100%, 50%), hsl(25, 100%, 35%));
+}

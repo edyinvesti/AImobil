@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { UserProfile } from '../types';
 import { getApiUrl } from '../utils';
 import { syncQueue } from '../sync-queue';
@@ -13,7 +13,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const API_URL = getApiUrl();
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export function UserProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     login: '',

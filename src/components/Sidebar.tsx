@@ -1,15 +1,15 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Home, PlusSquare, User, CreditCard, Layout, LogOut, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {
   currentView: string;
   onViewChange: (view: any) => void;
-  profile: { name: string; Login: string; photo?: string };
+  profile: { name: string; login: string; photo?: string };
   onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, profile, onLogout }) => {
+export const Sidebar = ({ currentView, onViewChange, profile, onLogout }: SidebarProps) => {
   const menuItems = [
     { id: 'dashboard', label: 'Carteira', icon: Home },
     { id: 'appointments', label: 'Agendamentos', icon: Layout },
@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, pro
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-[11px] font-black text-white truncate">{profile.name || 'Identifique-se'}</span>
-              <span className="text-[9px] text-gray-500 font-bold tracking-tighter">{profile.Login || 'Configurar Perfil'}</span>
+              <span className="text-[9px] text-gray-500 font-bold tracking-tighter">{profile.login || 'Configurar Perfil'}</span>
             </div>
           </div>
         </div>

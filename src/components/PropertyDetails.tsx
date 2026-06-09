@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect, MouseEvent } from 'react';
 import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
@@ -8,17 +8,18 @@ interface PropertyDetailsProps {
     property: Property;
     profile: UserProfile;
     onClose: () => void;
+    onPublish?: (property: Property) => Promise<void>;
 }
 
-export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProperty, profile, onClose }) => {
-    const [property, setProperty] = React.useState(initialProperty);
-    const [zoomedImage, setZoomedImage] = React.useState<string | null>(null);
-    const [isPublishing, setIsPublishing] = React.useState(false);
-    const [loadingImages, setLoadingImages] = React.useState(true);
-    const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-    const [campaignStatus, setCampaignStatus] = React.useState<{ loading: boolean; result?: any; error?: string }>({ loading: false });
+export const PropertyDetails = ({ property: initialProperty, profile, onClose, onPublish }: PropertyDetailsProps) => {
+    const [property, setProperty] = useState(initialProperty);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [isPublishing, setIsPublishing] = useState(false);
+    const [loadingImages, setLoadingImages] = useState(true);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [campaignStatus, setCampaignStatus] = useState<{ loading: boolean; result?: any; error?: string }>({ loading: false });
 
-    React.useEffect(() => {
+    useEffect(() => {
         let cancelled = false;
         setLoadingImages(true);
 
@@ -57,24 +58,27 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
 
     const handleMarketingCampaign = async () => {
         setCampaignStatus({ loading: true });
+        const marketingOption = property.marketingOption || 'instagram_ads';
+        const includeOrganic = marketingOption !== 'none';
+        const includeAds = marketingOption === 'instagram_ads';
         try {
             const response = await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ propertyId: property.id, budget: 20, campaignDays: 14 })
+                body: JSON.stringify({ propertyId: property.id, budget: 20, campaignDays: 14, includeOrganic, includeAds })
             });
             const data = await response.json();
             setCampaignStatus({ loading: false, result: data.success ? data : null, error: data.success ? undefined : data.error });
-        } catch (e: any) {
-            setCampaignStatus({ loading: false, error: e.message });
+        } catch (e: unknown) {
+            setCampaignStatus({ loading: false, error: e instanceof Error ? e.message : 'Erro desconhecido' });
         }
     };
 
-    const prevImg = (e: React.MouseEvent) => {
+    const prevImg = (e: MouseEvent) => {
         e.stopPropagation();
         setCurrentImageIndex(i => (i - 1 + property.images.length) % property.images.length);
     };
-    const nextImg = (e: React.MouseEvent) => {
+    const nextImg = (e: MouseEvent) => {
         e.stopPropagation();
         setCurrentImageIndex(i => (i + 1) % property.images.length);
     };
@@ -258,6 +262,15 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: init
                         </div>
 
                         <button
+                            onClick={async () => {
+                                if (!onPublish) return;
+                                setIsPublishing(true);
+                                try {
+                                    await onPublish({ ...property, remoteStatus: 'approved' });
+                                    setProperty(prev => ({ ...prev, remoteStatus: 'approved' }));
+                                } catch { /* silent */ }
+                                setIsPublishing(false);
+                            }}
                             disabled={isPublishing || Boolean(property.remoteId && property.remoteStatus === 'approved')}
                             className="flex-shrink-0 px-6 py-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 print:hidden"
                         >

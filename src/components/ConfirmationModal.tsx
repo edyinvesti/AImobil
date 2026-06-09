@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { AlertCircle, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,13 +10,13 @@ interface ConfirmationModalProps {
   message: string;
 }
 
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+export const ConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
   title,
   message
-}) => {
+}: ConfirmationModalProps) => {
   return (
     <AnimatePresence>
       {isOpen && (

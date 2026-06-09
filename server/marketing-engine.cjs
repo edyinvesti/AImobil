@@ -6,11 +6,16 @@ const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act
 const INSTAGRAM_BUSINESS_ID = process.env.INSTAGRAM_BUSINESS_ID;
 const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || META_ADS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
 const API_URL = process.env.VITE_API_URL || 'http://localhost:10002';
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 const campaigns = new Map();
+
+function stripBase64Prefix(data) {
+  return data.replace(/^data:image\/\w+;base64,/, '');
+}
 
 class MarketingEngine {
   constructor() {
@@ -22,12 +27,68 @@ class MarketingEngine {
     };
   }
 
+  async uploadToFacebookAdimages(base64Data) {
+    const bytes = stripBase64Prefix(base64Data);
+
+    const res = await fetch(
+      `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adimages`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bytes,
+          access_token: META_ADS_TOKEN
+        })
+      }
+    );
+
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(`Facebook adimages error: ${data.error.message}`);
+    }
+
+    const images = Object.values(data.images);
+    if (!images.length) {
+      throw new Error('Facebook adimages retornou resposta vazia');
+    }
+
+    return { hash: images[0].hash, url: images[0].url };
+  }
+
+  async uploadToImgur(base64Data) {
+    if (!IMGUR_CLIENT_ID) return null;
+
+    const bytes = stripBase64Prefix(base64Data);
+
+    try {
+      const res = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Client-ID ${IMGUR_CLIENT_ID}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image: bytes, type: 'base64' })
+      });
+
+      const data = await res.json();
+      if (data.success && data.data?.link) {
+        return data.data.link;
+      }
+      this.logger.warn('Imgur upload failed', { error: data.data?.error });
+      return null;
+    } catch (e) {
+      this.logger.warn('Imgur upload error', { error: e.message });
+      return null;
+    }
+  }
+
   async criarCampanha(propertyId, options = {}) {
     const budget = options.budget || 20;
     const campaignDays = options.campaignDays || 14;
     const includeOrganic = options.includeOrganic !== false;
+    const includeAds = options.includeAds !== false;
 
-    this.logger.info('Iniciando campanha', { propertyId, budget, campaignDays });
+    this.logger.info('Iniciando campanha', { propertyId, budget, campaignDays, includeOrganic, includeAds });
 
     try {
       const property = await this.dataEngine.getPropertyById(propertyId);
@@ -39,14 +100,34 @@ class MarketingEngine {
         return { success: false, error: 'Imóvel não possui fotos' };
       }
 
-      this.logger.info('Dados do imóvel obtidos', { title: property.title });
+      this.logger.info('Dados do imóvel obtidos', { title: property.title, imagesCount: property.images.length });
 
-      const criativos = await this.processarFotos(property);
+      const criativos = this.processarFotos(property);
       const copys = await this.gerarCopy(property);
 
+      // Upload da primeira imagem para o Facebook (adimages)
+      let fbImage = null;
+      if (includeAds && META_ADS_TOKEN && META_ACCOUNT_ID && property.images[0]) {
+        try {
+          fbImage = await this.uploadToFacebookAdimages(property.images[0]);
+          this.logger.info('Imagem enviada ao Facebook', { hash: fbImage.hash });
+        } catch (e) {
+          this.logger.error('Falha ao enviar imagem para Facebook', { error: e.message });
+        }
+      }
+
+      // Tenta Imgur como fallback para Instagram
+      let publicImageUrl = fbImage?.url || null;
+      if (!publicImageUrl && property.images[0]) {
+        publicImageUrl = await this.uploadToImgur(property.images[0]);
+      }
+
       let campaignResult = null;
-      if (META_ADS_TOKEN && META_ACCOUNT_ID) {
-        campaignResult = await this.criarCampanhaMeta(property, criativos, copys, budget, campaignDays);
+      if (includeAds && META_ADS_TOKEN && META_ACCOUNT_ID) {
+        campaignResult = await this.criarCampanhaMeta(property, criativos, copys, budget, campaignDays, fbImage?.hash);
+      } else if (!includeAds) {
+        this.logger.info('Meta Ads desabilitado via includeAds=false');
+        campaignResult = { status: 'SKIPPED', reason: 'Anúncios pagos desabilitados pelo corretor' };
       } else {
         this.logger.warn('Meta Ads não configurado (META_ADS_ACCESS_TOKEN ausente)');
         campaignResult = { status: 'SKIPPED', reason: 'Meta Ads token não configurado' };
@@ -54,7 +135,7 @@ class MarketingEngine {
 
       let instagramResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
-        instagramResult = await this.publicarInstagram(property, criativos[0], copys[0]);
+        instagramResult = await this.publicarInstagram(property, criativos[0], copys[0], publicImageUrl);
       } else if (includeOrganic) {
         this.logger.warn('Instagram Business ID não configurado');
         instagramResult = { status: 'SKIPPED', reason: 'Instagram Business ID não configurado' };
@@ -90,7 +171,7 @@ class MarketingEngine {
     }
   }
 
-  async processarFotos(property) {
+  processarFotos(property) {
     const imagens = property.images || [];
     const criativos = [];
 
@@ -107,7 +188,6 @@ class MarketingEngine {
           dimensions: `${fmt.width}x${fmt.height}`,
           aspectRatio: fmt.format,
           imageIndex: i,
-          imageData: imagens[i].substring(0, 100) + '...[base64 truncated]',
           overlay: {
             price: property.price,
             title: property.title,
@@ -198,7 +278,7 @@ class MarketingEngine {
     return templates;
   }
 
-  async criarCampanhaMeta(property, criativos, copys, budget, days) {
+  async criarCampanhaMeta(property, criativos, copys, budget, days, imageHash) {
     try {
       const campaignName = `IAmobil - ${property.type} - ${property.city || 'Sem cidade'} - ${Date.now()}`;
 
@@ -226,7 +306,6 @@ class MarketingEngine {
       }
 
       const campaignId = campaignData.id;
-
       const pageId = process.env.META_FACEBOOK_PAGE_ID;
 
       const geoLocations = { countries: ['BR'] };
@@ -273,29 +352,48 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
+      // Criar criativo com imagem
+      const creativeSpec = {
+        name: `Criativo - ${property.type} - Feed`,
+        object_story_spec: {
+          page_id: pageId,
+          link_data: {
+            link: `${API_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
+            message: copys[0]?.primaryText || property.description || '',
+            name: copys[0]?.headline || property.title,
+            description: copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+            call_to_action: { type: 'LEARN_MORE' }
+          }
+        },
+        access_token: META_ADS_TOKEN
+      };
+
+      if (imageHash) {
+        creativeSpec.object_story_spec.link_data.image_hash = imageHash;
+      }
+
       const creativeResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: `Criativo - ${property.type} - Feed`,
-            object_story_spec: {
-              page_id: pageId,
-              link_data: {
-                link: `${API_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
-                message: copys[0]?.primaryText || property.description || '',
-                name: copys[0]?.headline || property.title,
-                description: copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
-                call_to_action: { type: 'LEARN_MORE' }
-              }
-            },
-            access_token: META_ADS_TOKEN
-          })
-        }
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(creativeSpec) }
       );
 
       const creativeData = await creativeResponse.json();
+
+      if (creativeData.error) {
+        this.logger.warn('Erro ao criar criativo, tentando sem image_hash', { error: creativeData.error });
+        // Tenta sem image_hash como fallback
+        const fallbackCreative = { ...creativeSpec };
+        delete fallbackCreative.object_story_spec.link_data.image_hash;
+        const fallbackRes = await fetch(
+          `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fallbackCreative) }
+        );
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.error) {
+          return { status: 'PARTIAL', campaignId, adsetId, error: `Erro ao criar criativo: ${fallbackData.error.message}` };
+        }
+        creativeData.id = fallbackData.id;
+      }
 
       const adResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/ads`,
@@ -314,9 +412,9 @@ class MarketingEngine {
 
       const adData = await adResponse.json();
 
-      this.logger.info('Campanha Meta Ads completa criada', { campaignId, adsetId, adId: adData.id, dailyBudget: budget, days });
+      this.logger.info('Campanha Meta Ads completa criada', { campaignId, adsetId, adId: adData.id, hasImage: !!imageHash, dailyBudget: budget, days });
 
-      return {
+      const result = {
         status: 'ACTIVE',
         id: campaignId,
         name: campaignName,
@@ -325,8 +423,16 @@ class MarketingEngine {
         adsetId,
         adId: adData.id,
         creativeId: creativeData.id,
+        hasImage: !!imageHash,
         targeting: `${property.neighborhood || property.city || 'Raio 10km'}`
       };
+
+      if (adData.error) {
+        result.status = 'PARTIAL';
+        result.error = adData.error.message;
+      }
+
+      return result;
 
     } catch (error) {
       this.logger.error('Erro ao criar campanha Meta Ads', { error: error.message });
@@ -334,10 +440,14 @@ class MarketingEngine {
     }
   }
 
-  async publicarInstagram(property, criativo, copy) {
+  async publicarInstagram(property, criativo, copy, imageUrl) {
     try {
       if (!INSTAGRAM_BUSINESS_ID) {
         return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID não configurado' };
+      }
+
+      if (!imageUrl) {
+        return { status: 'SKIPPED', reason: 'Nenhuma URL de imagem disponível. Configure IMGUR_CLIENT_ID no .env ou certifique-se que o Meta Ads está ativo para gerar URL pública.' };
       }
 
       const legenda =
@@ -351,13 +461,15 @@ class MarketingEngine {
         `#${property.type ? property.type.toLowerCase() : 'imovel'} ` +
         `#corretordeimoveis #${property.neighborhood ? property.neighborhood.toLowerCase().replace(/\s/g, '') : 'imovel'}`;
 
+      this.logger.info('Publicando no Instagram', { imageUrl: imageUrl.substring(0, 60) + '...' });
+
       const creationResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            image_url: criativo?.imageUrl || '',
+            image_url: imageUrl,
             caption: legenda,
             access_token: INSTAGRAM_TOKEN
           })
@@ -370,6 +482,9 @@ class MarketingEngine {
         this.logger.warn('Erro ao criar media no Instagram', { error: creationData.error });
         return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
       }
+
+      // Aguarda processamento da mídia
+      await new Promise(r => setTimeout(r, 3000));
 
       const publishResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
@@ -420,6 +535,7 @@ class MarketingEngine {
       facebookPageConfigured: !!process.env.META_FACEBOOK_PAGE_ID,
       instagramConfigured: !!INSTAGRAM_BUSINESS_ID && !!INSTAGRAM_TOKEN,
       geminiConfigured: !!GEMINI_API_KEY,
+      imgurConfigured: !!IMGUR_CLIENT_ID,
       activeCampaigns: this.listActiveCampaigns().length,
       totalCampaigns: campaigns.size
     };

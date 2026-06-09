@@ -1194,18 +1194,19 @@ const marketingEngine = new MarketingEngine();
 
 app.post('/api/marketing/criar-campanha', async (req, res) => {
   try {
-    const { propertyId, budget, campaignDays, includeOrganic } = req.body;
+    const { propertyId, budget, campaignDays, includeOrganic, includeAds } = req.body;
     
     if (!propertyId) {
       return res.status(400).json({ success: false, error: 'propertyId é obrigatório' });
     }
 
-    logger.info('Solicitação de campanha recebida', { propertyId, budget, campaignDays });
+    logger.info('Solicitação de campanha recebida', { propertyId, budget, campaignDays, includeOrganic, includeAds });
 
     const result = await marketingEngine.criarCampanha(propertyId, {
       budget: budget || 20,
       campaignDays: campaignDays || 14,
-      includeOrganic: includeOrganic !== false
+      includeOrganic: includeOrganic !== false,
+      includeAds: includeAds !== false
     });
 
     res.json(result);

@@ -15,9 +15,12 @@ export default defineConfig(({ mode }) => {
         allowedHosts: true,
         port: 5173,
         host: '0.0.0.0',
+        hmr: {
+          clientPort: 5173,
+        },
         proxy: {
           '/api': {
-            target: `http://${env.HOST || '127.0.0.1'}:10000`,
+            target: `http://${env.HOST || '127.0.0.1'}:${env.PORT || '10002'}`,
             changeOrigin: true,
             secure: false,
           }

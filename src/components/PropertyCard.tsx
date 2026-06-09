@@ -1,22 +1,12 @@
-import React from 'react';
-import { MapPin, BedDouble, Bath, Car, Megaphone } from 'lucide-react';
 
-interface Property {
-  id: string;
-  title: string;
-  price: number;
-  location: string;
-  beds: number;
-  baths: number;
-  parking: number;
-  size: number;
-  thumbnail?: string;
-  type?: string;
-}
+import { MapPin, BedDouble, Bath, Car, Megaphone } from 'lucide-react';
+import { Property } from '../types';
 
 interface PropertyCardProps {
   property: Property;
   onClick?: () => void;
+  onEdit?: (property: Property) => void;
+  onDelete?: (id: string) => void;
   campaignActive?: boolean;
 }
 
@@ -43,7 +33,7 @@ const getFallbackImage = (title: string, currentUrl: string) => {
   return urlStr;
 };
 
-export function PropertyCard({ property, onClick }: PropertyCardProps) {
+export function PropertyCard({ property, onClick, campaignActive }: PropertyCardProps) {
   const thumbnail = property.thumbnail || '';
   
   return (
@@ -84,32 +74,32 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
 
         <div className="flex items-center gap-1.5 text-zinc-400 text-sm mb-5">
           <MapPin size={16} className="text-zinc-500 shrink-0" />
-          <span className="line-clamp-1">{property.location}</span>
+          <span className="line-clamp-1">{property.address || property.title}</span>
         </div>
 
         <div className="grid grid-cols-4 gap-2 pt-4 border-t border-zinc-800 text-zinc-400 text-xs mt-auto">
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
-            <span className="font-semibold text-zinc-200">{property.size}m²</span>
+            <span className="font-semibold text-zinc-200">{property.size}{property.sizeUnit === 'Hectares' ? ' ha' : 'm²'}</span>
             <span className="text-[10px] text-zinc-500 uppercase">Área</span>
           </div>
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
             <div className="flex items-center gap-1 text-zinc-200">
               <BedDouble size={12} />
-              <span className="font-semibold">{property.beds}</span>
+              <span className="font-semibold">{property.bedrooms}</span>
             </div>
             <span className="text-[10px] text-zinc-500 uppercase">Dorm</span>
           </div>
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
             <div className="flex items-center gap-1 text-zinc-200">
               <Bath size={12} />
-              <span className="font-semibold">{property.baths}</span>
+              <span className="font-semibold">{property.suites}</span>
             </div>
             <span className="text-[10px] text-zinc-500 uppercase">Suítes</span>
           </div>
           <div className="flex flex-col items-center gap-1 bg-zinc-950/40 p-2 rounded-xl border border-zinc-800/50">
             <div className="flex items-center gap-1 text-zinc-200">
               <Car size={12} />
-              <span className="font-semibold">{property.parking}</span>
+              <span className="font-semibold">{property.parkingSpaces}</span>
             </div>
             <span className="text-[10px] text-zinc-500 uppercase">Vagas</span>
           </div>

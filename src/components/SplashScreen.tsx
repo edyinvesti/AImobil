@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, RefObject } from "react";
 import { useSplashScreenAudio } from "../hooks/useSplashScreenAudio";
 import { useSplashScreenWebGL } from "../hooks/useSplashScreenWebGL";
 import "./SplashScreen.css";
@@ -10,14 +10,14 @@ export function SplashScreen({ onEnter }: { onEnter: () => void }) {
   const barsRef = useRef<HTMLDivElement>(null);
 
   const { initAudio, playOpen, playKey, playEnter, playStartup } = useSplashScreenAudio();
-  useSplashScreenWebGL(canvasRef as React.RefObject<HTMLCanvasElement>, stage);
+  useSplashScreenWebGL(canvasRef as RefObject<HTMLCanvasElement>, stage);
 
   const startExp = () => {
     initAudio();
     playStartup();
     setStage('main');
     setTimeout(() => {
-      playOpen(barsRef as React.RefObject<HTMLDivElement>);
+      playOpen(barsRef as RefObject<HTMLDivElement>);
       setTypewriterStarted(true);
     }, 600);
   };
