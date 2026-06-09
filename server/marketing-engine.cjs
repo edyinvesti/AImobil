@@ -358,7 +358,7 @@ class MarketingEngine {
         object_story_spec: {
           page_id: pageId,
           link_data: {
-            link: `https://iamobil-frontend.pages.dev/?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
+            link: `https://www.google.com`,
             message: copys[0]?.primaryText || property.description || '',
             name: copys[0]?.headline || property.title,
             description: copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
