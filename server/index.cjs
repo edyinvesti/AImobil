@@ -1253,22 +1253,19 @@ app.get('/api/properties/:id/image', async (req, res) => {
     if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
     if (!property.images || property.images.length === 0) return res.status(404).json({ error: 'Imóvel sem fotos' });
 
-    const raw = property.images[0];
+    const raw = String(property.images[0]);
     const base64 = raw.replace(/^data:image\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
-    const format = raw.includes('image/png') || raw.charAt(0) === 'i' ? 'png' : 'jpeg';
 
-    if (buffer.length === 0) return res.status(500).json({ error: 'Buffer vazio após decodificar base64' });
+    if (buffer.length === 0) return res.status(500).json({ error: 'Buffer vazio' });
 
-    res.writeHead(200, {
-      'Content-Type': `image/${format}`,
-      'Content-Length': buffer.length,
-      'Cache-Control': 'public, max-age=86400'
-    });
-    res.end(buffer);
+    res.status(200);
+    res.type('png');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
   } catch (e) {
     logger.error('Image serve error', { error: e.message, stack: e.stack });
-    res.status(500).json({ error: 'Erro ao servir imagem: ' + e.message });
+    res.status(500).json({ error: 'Erro: ' + e.message });
   }
 });
 
