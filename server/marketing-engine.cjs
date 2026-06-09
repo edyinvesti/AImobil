@@ -211,7 +211,8 @@ class MarketingEngine {
             objective: 'OUTCOME_TRAFFIC',
             status: 'PAUSED',
             access_token: META_ADS_TOKEN,
-            special_ad_categories: 'HOUSING'
+            special_ad_categories: 'HOUSING',
+            is_adset_budget_sharing_enabled: false
           })
         }
       );
