@@ -1084,6 +1084,17 @@ app.delete('/api/partner/properties', async (req, res) => {
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
+    
+    // Deleta campanhas associadas do Instagram antes de remover o imóvel
+    const campanhas = await dataEngine.getCampaigns();
+    const propsCampanhas = campanhas.filter(c => c.property_id === id);
+    for (const camp of propsCampanhas) {
+      if (camp.instagram_post_id) {
+        await marketingEngine.deletarDoInstagram(camp.instagram_post_id);
+      }
+      await dataEngine.deleteCampaign(camp.id);
+    }
+    
     await dataEngine.deleteProperty(id);
     logger.info('Property deleted via API', { propertyId: id });
     res.json({ success: true, deleted: id });
