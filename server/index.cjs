@@ -1246,7 +1246,7 @@ app.get('/api/marketing/campanhas', (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Lista todas as campanhas (do banco de dados)
-app.get('/api/marketing/campanhas/todas', async (req, res) => {
+app.get('/api/campaigns/list', async (req, res) => {
   try {
     const campanhas = await marketingEngine.listAllCampaigns();
     res.json({ success: true, count: campanhas.length, campanhas });

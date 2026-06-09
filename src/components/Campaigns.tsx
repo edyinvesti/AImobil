@@ -32,7 +32,7 @@ export const Campaigns = () => {
     setLoading(true);
     try {
       const API_BASE = getApiUrl();
-      const res = await fetch(`${API_BASE}/api/marketing/campanhas/todas`);
+      const res = await fetch(`${API_BASE}/api/campaigns/list`);
       const data = await res.json();
       if (data.success) {
         setCampaigns(data.campanhas || []);
