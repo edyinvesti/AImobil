@@ -358,7 +358,7 @@ class MarketingEngine {
         object_story_spec: {
           page_id: pageId,
           link_data: {
-            link: `https://www.google.com`,
+            link: `https://iamobil-frontend.pages.dev/?src=fb`,
             message: copys[0]?.primaryText || property.description || '',
             name: copys[0]?.headline || property.title,
             description: copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
@@ -380,7 +380,7 @@ class MarketingEngine {
       const creativeData = await creativeResponse.json();
 
       if (creativeData.error) {
-        this.logger.warn('Erro ao criar criativo, tentando sem image_hash', { error: creativeData.error });
+        this.logger.warn('Erro ao criar criativo (1a tentativa)', { error: creativeData.error, full: JSON.stringify(creativeData) });
         // Tenta sem image_hash como fallback
         const fallbackCreative = { ...creativeSpec };
         delete fallbackCreative.object_story_spec.link_data.image_hash;
@@ -390,7 +390,8 @@ class MarketingEngine {
         );
         const fallbackData = await fallbackRes.json();
         if (fallbackData.error) {
-          return { status: 'PARTIAL', campaignId, adsetId, error: `Erro ao criar criativo: ${fallbackData.error.message}` };
+          this.logger.warn('Erro ao criar criativo (fallback)', { error: fallbackData.error, full: JSON.stringify(fallbackData) });
+          return { status: 'PARTIAL', campaignId, adsetId, error: `Erro ao criar criativo: ${fallbackData.error.message}`, apiResponse: fallbackData };
         }
         creativeData.id = fallbackData.id;
       }
