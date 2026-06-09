@@ -356,57 +356,36 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
-      // Criar criativo
+      // Criar criativo — igual ao formato original que funcionava
       let creativeId = null;
 
-      // Tenta com image_hash primeiro
-      if (imageHash) {
-        const spec = {
-          name: `Criativo - ${property.type} - Feed`,
-          object_story_spec: {
-            page_id: pageId,
-            link_data: {
-              link: `${FRONTEND_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
-              message: copys[0]?.primaryText || property.description || '',
-              name: copys[0]?.headline || property.title,
-              description: copys[0]?.description || '',
-              call_to_action: { type: 'LEARN_MORE' },
-              image_hash: imageHash
-            }
-          },
-          access_token: META_ADS_TOKEN
-        };
-        const res = await fetch(`${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
-        const data = await res.json();
-        if (!data.error) { creativeId = data.id; }
-        else { this.logger.warn('Creative c/ imagem falhou', { error: data.error, full: JSON.stringify(data) }); }
+      const spec = {
+        name: `Criativo - ${property.type} - Feed`,
+        object_story_spec: {
+          page_id: pageId,
+          link_data: {
+            link: `${FRONTEND_URL}`,
+            message: 'Confira este imóvel incrível!',
+            name: 'Apartamento incrível',
+            description: 'Ótima oportunidade',
+            call_to_action: { type: 'LEARN_MORE' },
+            image_hash: imageHash
+          }
+        },
+        access_token: META_ADS_TOKEN
+      };
+
+      if (!imageHash) {
+        delete spec.object_story_spec.link_data.image_hash;
       }
 
-      // Fallback sem image_hash
-      if (!creativeId) {
-        const spec = {
-          name: `Criativo - ${property.type} - Feed`,
-          object_story_spec: {
-            page_id: pageId,
-            link_data: {
-              link: `${FRONTEND_URL}/imovel/${property.id}?utm_source=facebook&utm_medium=ads&utm_campaign=${campaignId}`,
-              message: copys[0]?.primaryText || property.description || '',
-              name: copys[0]?.headline || property.title,
-              description: copys[0]?.description || '',
-              call_to_action: { type: 'LEARN_MORE' }
-            }
-          },
-          access_token: META_ADS_TOKEN
-        };
-        const res = await fetch(`${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
-        const data = await res.json();
-        if (!data.error) { creativeId = data.id; }
-        else {
-          this.logger.warn('Creative s/ imagem falhou', { error: data.error, full: JSON.stringify(data) });
-          return { status: 'PARTIAL', campaignId, adsetId, error: `Erro ao criar criativo (sem imagem): ${data.error.message}`, fbResponse: data.error };
-        }
+      const res = await fetch(`${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
+      const data = await res.json();
+      if (!data.error) { creativeId = data.id; }
+      else {
+        this.logger.warn('Creative falhou', { error: data.error, full: JSON.stringify(data), spec: JSON.stringify(spec).substring(0, 300) });
+        return { status: 'PARTIAL', campaignId, adsetId, error: `Erro: ${data.error.message}`, fbResponse: data.error };
       }
 
       if (!creativeId) {
