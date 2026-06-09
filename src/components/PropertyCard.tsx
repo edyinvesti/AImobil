@@ -12,7 +12,7 @@ interface PropertyCardProps {
 
 const resolveImageUrl = (url?: string) => {
   if (!url) return '';
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
   const baseUrl = import.meta.env.VITE_API_URL || '';
   return baseUrl + url;
 };
