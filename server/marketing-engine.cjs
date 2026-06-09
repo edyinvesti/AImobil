@@ -228,6 +228,19 @@ class MarketingEngine {
 
       const pageId = process.env.META_FACEBOOK_PAGE_ID;
 
+      const geoLocations = {};
+      if (property.latitude && property.longitude) {
+        geoLocations.custom_locations = [
+          { latitude: property.latitude, longitude: property.longitude, radius: 10, distance_unit: 'km' }
+        ];
+        geoLocations.location_types = ['home', 'recent'];
+      } else if (property.city) {
+        geoLocations.regions = [{ key: 'BR' }];
+        geoLocations.cities = [{ key: property.city }];
+      } else {
+        geoLocations.countries = ['BR'];
+      }
+
       const adsetBody = {
         name: `${property.neighborhood || property.city || 'Região'} - ${property.type}`,
         campaign_id: campaignId,
@@ -235,12 +248,7 @@ class MarketingEngine {
         billing_event: 'IMPRESSIONS',
         optimization_goal: 'LINK_CLICKS',
         targeting: {
-          geo_locations: {
-            custom_locations: property.latitude && property.longitude ? [
-              { latitude: property.latitude, longitude: property.longitude, radius: 10, distance_unit: 'km' }
-            ] : [],
-            location_types: ['home', 'recent']
-          },
+          geo_locations: geoLocations,
           age_min: 22,
           age_max: 60
         },
