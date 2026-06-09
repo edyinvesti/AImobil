@@ -233,7 +233,7 @@ class MarketingEngine {
         campaign_id: campaignId,
         daily_budget: Math.round(budget * 100),
         billing_event: 'IMPRESSIONS',
-        optimization_goal: 'LANDING_PAGE_CLICKS',
+        optimization_goal: 'LINK_CLICKS',
         targeting: {
           geo_locations: {
             custom_locations: property.latitude && property.longitude ? [
