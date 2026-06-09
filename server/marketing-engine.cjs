@@ -4,6 +4,7 @@ const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
 const META_ADS_TOKEN = process.env.META_ADS_ACCESS_TOKEN;
 const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act_/, '');
 const INSTAGRAM_BUSINESS_ID = process.env.INSTAGRAM_BUSINESS_ID;
+const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || META_ADS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const API_URL = process.env.VITE_API_URL || 'http://localhost:10002';
@@ -358,7 +359,7 @@ class MarketingEngine {
           body: JSON.stringify({
             image_url: criativo?.imageUrl || '',
             caption: legenda,
-            access_token: META_ADS_TOKEN
+            access_token: INSTAGRAM_TOKEN
           })
         }
       );
@@ -377,7 +378,7 @@ class MarketingEngine {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             creation_id: creationData.id,
-            access_token: META_ADS_TOKEN
+            access_token: INSTAGRAM_TOKEN
           })
         }
       );
@@ -417,7 +418,7 @@ class MarketingEngine {
     return {
       metaAdsConfigured: !!META_ADS_TOKEN && !!META_ACCOUNT_ID,
       facebookPageConfigured: !!process.env.META_FACEBOOK_PAGE_ID,
-      instagramConfigured: !!INSTAGRAM_BUSINESS_ID,
+      instagramConfigured: !!INSTAGRAM_BUSINESS_ID && !!INSTAGRAM_TOKEN,
       geminiConfigured: !!GEMINI_API_KEY,
       activeCampaigns: this.listActiveCampaigns().length,
       totalCampaigns: campaigns.size
