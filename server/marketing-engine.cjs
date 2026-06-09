@@ -354,50 +354,52 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
-      // Criar criativo — tentativa 1: com image_hash
+      // Criar criativo — tenta com image_hash, depois sem
       let creativeId = null;
-      const creativeBase = {
-        name: `Criativo - ${property.type} - Feed`,
+
+      const specs = [];
+      if (imageHash) {
+        specs.push({
+          name: `Criativo - ${property.type}`,
+          object_story_spec: {
+            page_id: pageId,
+            link_data: {
+              link: `https://iamobil-frontend.pages.dev/`,
+              message: 'Confira este imóvel incrível!',
+              image_hash: imageHash
+            }
+          },
+          access_token: META_ADS_TOKEN
+        });
+      }
+      specs.push({
+        name: `Criativo - ${property.type}`,
         object_story_spec: {
           page_id: pageId,
           link_data: {
             link: `https://iamobil-frontend.pages.dev/`,
-            message: (copys[0]?.primaryText || property.description || '').substring(0, 125),
-            name: (copys[0]?.headline || property.title).substring(0, 25),
-            description: (copys[0]?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`).substring(0, 30),
-            call_to_action: { type: 'LEARN_MORE' }
+            message: 'Confira este imóvel incrível!'
           }
         },
         access_token: META_ADS_TOKEN
-      };
+      });
 
-      for (const tryWithImage of [true, false]) {
-        const spec = {
-          ...creativeBase,
-          object_story_spec: { ...creativeBase.object_story_spec },
-        };
-        spec.object_story_spec.link_data = { ...creativeBase.object_story_spec.link_data };
-
-        if (tryWithImage && imageHash) {
-          spec.object_story_spec.link_data.image_hash = imageHash;
-        }
-
+      for (const spec of specs) {
         const res = await fetch(
           `${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) }
         );
         const data = await res.json();
-
         if (!data.error) {
           creativeId = data.id;
-          this.logger.info(`Criativo criado (tryWithImage=${tryWithImage})`, { creativeId });
+          this.logger.info('Criativo criado', { creativeId, spec: JSON.stringify(spec).substring(0, 200) });
           break;
         }
-        this.logger.warn(`Criativo falhou (tryWithImage=${tryWithImage})`, { error: data.error, full: JSON.stringify(data) });
+        this.logger.warn('Criativo falhou', { error: data.error, full: JSON.stringify(data), spec: JSON.stringify(spec).substring(0, 300) });
       }
 
       if (!creativeId) {
-        return { status: 'PARTIAL', campaignId, adsetId, error: 'Erro ao criar criativo: verifique os logs' };
+        return { status: 'PARTIAL', campaignId, adsetId, error: 'Erro ao criar criativo (consulte os logs do Render)' };
       }
 
       const adResponse = await fetch(
