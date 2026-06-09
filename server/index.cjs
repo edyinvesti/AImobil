@@ -55,8 +55,8 @@ const authLimiter = rateLimit({
   message: 'Muitas tentativas de login. Tente novamente mais tarde.'
 });
 
-// Parse JSON body
-app.use(express.json());
+// Parse JSON body (aumentado para 50MB para suportar fotos base64)
+app.use(express.json({ limit: '50mb' }));
 
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, '../dist')));
