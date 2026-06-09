@@ -80,6 +80,11 @@ export const Campaigns = () => {
       if (data.success) {
         setCampaigns(prev => prev.filter(c => c.id !== id));
         if (detail?.id === id) setDetail(null);
+        if (data.instagram?.success === false) {
+          alert(`Post do Instagram não pôde ser removido: ${data.instagram.error}`);
+        } else if (data.instagram?.success) {
+          alert('Post removido do Instagram com sucesso!');
+        }
         fetchData();
       }
     } catch (e) {

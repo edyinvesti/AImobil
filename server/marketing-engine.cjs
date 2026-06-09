@@ -655,6 +655,27 @@ class MarketingEngine {
     }
   }
 
+  async deletarDoInstagram(mediaId) {
+    if (!INSTAGRAM_BUSINESS_ID || !INSTAGRAM_TOKEN) {
+      return { success: false, error: 'Instagram não configurado' };
+    }
+    try {
+      const res = await fetch(`${FACEBOOK_GRAPH_URL}/${mediaId}?access_token=${INSTAGRAM_TOKEN}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.error) {
+        this.logger.warn('Erro ao deletar do Instagram', { error: data.error });
+        return { success: false, error: data.error.message };
+      }
+      this.logger.info('Post deletado do Instagram', { mediaId });
+      return { success: true };
+    } catch (e) {
+      this.logger.error('Erro ao deletar do Instagram', { error: e.message });
+      return { success: false, error: e.message };
+    }
+  }
+
   getStatus() {
     return {
       metaAdsConfigured: !!META_ADS_TOKEN && !!META_ACCOUNT_ID,

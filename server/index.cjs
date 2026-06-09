@@ -1265,13 +1265,26 @@ app.get('/api/campaigns/stats', async (req, res) => {
   }
 });
 
-// Deleta uma campanha
+// Deleta uma campanha (opcionalmente remove o post do Instagram)
 app.delete('/api/campaigns/:id', async (req, res) => {
   try {
     if (!dataEngine) return res.status(503).json({ success: false, error: 'dataEngine não disponível' });
+    
+    // Busca campanha antes de deletar para pegar o post ID
+    const campanhas = await dataEngine.getCampaigns();
+    const campanha = campanhas.find(c => c.id === req.params.id);
+    
+    // Deleta do banco
     const ok = await dataEngine.deleteCampaign(req.params.id);
     if (!ok) return res.status(404).json({ success: false, error: 'Campanha não encontrada' });
-    res.json({ success: true });
+    
+    // Se tem post no Instagram, tenta deletar de lá também
+    let instagramResult = null;
+    if (campanha?.instagram_post_id) {
+      instagramResult = await marketingEngine.deletarDoInstagram(campanha.instagram_post_id);
+    }
+    
+    res.json({ success: true, instagram: instagramResult });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
