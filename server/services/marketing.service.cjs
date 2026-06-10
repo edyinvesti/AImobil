@@ -1,7 +1,8 @@
 // server/services/marketing.service.cjs
 // Serviço de marketing (refatorado de marketing-engine.cjs)
 
-const logger = require('../utils/logger');
+const path = require('path');
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 class MarketingService {
   constructor(dataEngine, marketingEngine) {

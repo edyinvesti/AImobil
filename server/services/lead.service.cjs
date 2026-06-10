@@ -1,8 +1,9 @@
 // server/services/lead.service.cjs
 // Serviço de leads (CRUD)
 
-const { NotFoundError } = require('../utils/errors');
-const logger = require('../utils/logger');
+const path = require('path');
+const { NotFoundError } = require(path.join(__dirname, '..', 'utils', 'errors'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 class LeadService {
   constructor(dataEngine) {

@@ -2,8 +2,9 @@
 // Serviço de autenticação (login, registro, JWT)
 
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError, ConflictError } = require('../utils/errors');
-const logger = require('../utils/logger');
+const path = require('path');
+const { UnauthorizedError, ConflictError } = require(path.join(__dirname, '..', 'utils', 'errors'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'aimobil-jwt-secret-2024';
 const JWT_EXPIRES_IN = '24h';

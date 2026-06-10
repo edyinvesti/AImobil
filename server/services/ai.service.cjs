@@ -1,8 +1,9 @@
 // server/services/ai.service.cjs
 // Serviço de IA com fallback: Mistral → Groq → Gemini
 
-const { ExternalServiceError } = require('../utils/errors');
-const logger = require('../utils/logger');
+const path = require('path');
+const { ExternalServiceError } = require(path.join(__dirname, '..', 'utils', 'errors'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;

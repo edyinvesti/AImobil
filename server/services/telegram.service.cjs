@@ -1,7 +1,8 @@
 // server/services/telegram.service.cjs
 // Serviço do bot Telegram
 
-const logger = require('../utils/logger');
+const path = require('path');
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 

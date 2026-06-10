@@ -1,8 +1,9 @@
 // server/services/property.service.cjs
 // Serviço de imóveis (CRUD)
 
-const { NotFoundError, ValidationError } = require('../utils/errors');
-const logger = require('../utils/logger');
+const path = require('path');
+const { NotFoundError, ValidationError } = require(path.join(__dirname, '..', 'utils', 'errors'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 const MAX_IMAGES = 10;
 
