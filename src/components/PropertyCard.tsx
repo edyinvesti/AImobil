@@ -38,24 +38,24 @@ export function PropertyCard({ property, onClick, onDelete, campaignActive }: Pr
   
   return (
     <div 
-      className="group bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all duration-300 cursor-pointer flex flex-col"
+      className="group bg-zinc-900/30 border border-zinc-800/60 rounded-xl overflow-hidden hover:border-zinc-600/60 transition-all duration-300 cursor-pointer"
       onClick={onClick}
     >
-      <div className="relative h-36 sm:h-40 overflow-hidden bg-zinc-950">
+      <div className="relative h-28 overflow-hidden bg-zinc-950">
         <img 
           src={resolveImageUrl(getFallbackImage(property.title || '', thumbnail))}
           alt={property.title || ''}
-          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => { 
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
           }}
         />
-        <div className="absolute top-2 left-2 bg-zinc-900/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-medium text-emerald-400 border border-emerald-500/20">
+        <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-semibold text-emerald-400 border border-emerald-500/20 leading-tight max-w-[60%] truncate">
           {property.type || 'Venda'}
         </div>
         {campaignActive && (
-          <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-600/90 to-violet-600/90 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] font-bold text-white flex items-center gap-1 border border-white/10 shadow-lg shadow-blue-600/20">
-            <Megaphone size={9} />
+          <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-600/90 to-violet-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[8px] font-bold text-white flex items-center gap-0.5 border border-white/10">
+            <Megaphone size={8} />
             Marketing
           </div>
         )}
@@ -63,54 +63,42 @@ export function PropertyCard({ property, onClick, onDelete, campaignActive }: Pr
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-            className="absolute bottom-2 right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all shadow-lg"
+            className="absolute bottom-1.5 right-1.5 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-md flex items-center justify-center text-white transition-all"
             title="Excluir imóvel"
           >
-            <Trash2 size={12} />
+            <Trash2 size={10} />
           </button>
         )}
       </div>
 
-      <div className="p-3 sm:p-4 flex flex-col flex-grow">
-        <span className="text-lg sm:text-xl font-bold text-zinc-100 mb-1">
-          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price)}
-        </span>
+      <div className="p-2.5 space-y-1.5">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-sm font-bold text-zinc-100 truncate">
+            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price)}
+          </span>
+          <span className="text-[9px] text-zinc-500 font-medium uppercase whitespace-nowrap shrink-0">
+            {property.status || 'Disponível'}
+          </span>
+        </div>
 
-        <h3 className="text-sm font-semibold text-zinc-200 mb-1 line-clamp-1 group-hover:text-emerald-400 transition-colors">
+        <h3 className="text-xs font-semibold text-zinc-300 line-clamp-1 group-hover:text-emerald-400 transition-colors">
           {property.title}
         </h3>
 
-        <div className="flex items-center gap-1 text-zinc-400 text-xs mb-3">
-          <MapPin size={12} className="text-zinc-500 shrink-0" />
+        <div className="flex items-center gap-1 text-zinc-500 text-[10px]">
+          <MapPin size={10} className="shrink-0" />
           <span className="line-clamp-1">{property.address || property.title}</span>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5 pt-3 border-t border-zinc-800 text-zinc-400 text-[11px] mt-auto">
-          <div className="flex flex-col items-center gap-0.5 bg-zinc-950/40 py-1.5 rounded-lg border border-zinc-800/50">
-            <span className="font-semibold text-zinc-200 text-xs">{property.size}{property.sizeUnit === 'Hectares' ? ' ha' : 'm²'}</span>
-            <span className="text-[9px] text-zinc-500 uppercase">Área</span>
-          </div>
-          <div className="flex flex-col items-center gap-0.5 bg-zinc-950/40 py-1.5 rounded-lg border border-zinc-800/50">
-            <div className="flex items-center gap-0.5 text-zinc-200 text-xs">
-              <BedDouble size={10} />
-              <span className="font-semibold">{property.bedrooms}</span>
-            </div>
-            <span className="text-[9px] text-zinc-500 uppercase">Dorm</span>
-          </div>
-          <div className="flex flex-col items-center gap-0.5 bg-zinc-950/40 py-1.5 rounded-lg border border-zinc-800/50">
-            <div className="flex items-center gap-0.5 text-zinc-200 text-xs">
-              <Bath size={10} />
-              <span className="font-semibold">{property.suites}</span>
-            </div>
-            <span className="text-[9px] text-zinc-500 uppercase">Suítes</span>
-          </div>
-          <div className="flex flex-col items-center gap-0.5 bg-zinc-950/40 py-1.5 rounded-lg border border-zinc-800/50">
-            <div className="flex items-center gap-0.5 text-zinc-200 text-xs">
-              <Car size={10} />
-              <span className="font-semibold">{property.parkingSpaces}</span>
-            </div>
-            <span className="text-[9px] text-zinc-500 uppercase">Vagas</span>
-          </div>
+        <div className="flex items-center gap-3 pt-1.5 border-t border-zinc-800/60 text-zinc-400">
+          <span className="text-[10px] font-medium text-zinc-300">{property.size}{property.sizeUnit === 'Hectares' ? ' ha' : 'm²'}</span>
+          <span className="text-zinc-700">|</span>
+          <BedDouble size={10} className="shrink-0" />
+          <span className="text-[10px]">{property.bedrooms}</span>
+          <Bath size={10} className="shrink-0" />
+          <span className="text-[10px]">{property.suites}</span>
+          <Car size={10} className="shrink-0" />
+          <span className="text-[10px]">{property.parkingSpaces}</span>
         </div>
       </div>
     </div>
