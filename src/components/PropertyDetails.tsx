@@ -1,5 +1,5 @@
 import { useState, useEffect, MouseEvent } from 'react';
-import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2 } from 'lucide-react';
+import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
 import { resolveImageUrl, getApiUrl } from '../utils';
@@ -153,6 +153,24 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
                             <MapPin size={40} />
                             <span className="text-[10px] font-black uppercase tracking-widest">Sem Mídia Disponível</span>
+                        </div>
+                    )}
+
+                    {/* Vídeo do imóvel */}
+                    {(property as Property).videoData && (
+                        <div className="absolute bottom-4 left-4 right-4 z-10">
+                            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
+                                <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5">
+                                    <Film size={12} className="text-orange-500" />
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Tour em Vídeo</span>
+                                </div>
+                                <video
+                                    src={(property as Property).videoData || resolveImageUrl('')}
+                                    className="w-full aspect-video object-cover"
+                                    controls
+                                    playsInline
+                                />
+                            </div>
                         </div>
                     )}
 

@@ -28,6 +28,72 @@ export function getApiUrl(): string {
   return API_URL.replace(/\/$/, ''); // Remove trailing slash if present
 }
 
+function autoEnhance(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const len = data.length;
+
+  // 1. Auto-levels: calcular histograma e esticar
+  let minR = 255, maxR = 0, minG = 255, maxG = 0, minB = 255, maxB = 0;
+  for (let i = 0; i < len; i += 4) {
+    if (data[i] < minR) minR = data[i];
+    if (data[i] > maxR) maxR = data[i];
+    if (data[i + 1] < minG) minG = data[i + 1];
+    if (data[i + 1] > maxG) maxG = data[i + 1];
+    if (data[i + 2] < minB) minB = data[i + 2];
+    if (data[i + 2] > maxB) maxB = data[i + 2];
+  }
+
+  const rangeR = maxR - minR || 1;
+  const rangeG = maxG - minG || 1;
+  const rangeB = maxB - minB || 1;
+
+  // 2. Aplicar correção + saturação + nitidez (kernel sharpen)
+  const factor = 1.15; // saturação
+  const sharpen = [
+    0, -0.3, 0,
+    -0.3, 2.2, -0.3,
+    0, -0.3, 0
+  ];
+
+  const original = new Uint8ClampedArray(data);
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const idx = (y * width + x) * 4;
+
+      // Auto-levels + brilho
+      let r = ((original[idx] - minR) / rangeR) * 255;
+      let g = ((original[idx + 1] - minG) / rangeG) * 255;
+      let b = ((original[idx + 2] - minB) / rangeB) * 255;
+
+      // Saturação
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+      r = r + (r - gray) * (factor - 1);
+      g = g + (g - gray) * (factor - 1);
+      b = b + (b - gray) * (factor - 1);
+
+      // Sharpening
+      let sr = 0, sg = 0, sb = 0;
+      for (let ky = -1; ky <= 1; ky++) {
+        for (let kx = -1; kx <= 1; kx++) {
+          const kidx = ((y + ky) * width + (x + kx)) * 4;
+          const k = sharpen[(ky + 1) * 3 + (kx + 1)];
+          sr += original[kidx] * k;
+          sg += original[kidx + 1] * k;
+          sb += original[kidx + 2] * k;
+        }
+      }
+      r += sr; g += sg; b += sb;
+
+      data[idx] = Math.max(0, Math.min(255, r));
+      data[idx + 1] = Math.max(0, Math.min(255, g));
+      data[idx + 2] = Math.max(0, Math.min(255, b));
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
 export function compressImage(file: File, maxWidth = 800, quality = 0.6, depth = 0): Promise<string> {
   if (depth > 5) {
     return compressImageFallback(file, maxWidth);
@@ -54,6 +120,14 @@ export function compressImage(file: File, maxWidth = 800, quality = 0.6, depth =
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
+
+        // Auto-enhance: corrige brilho, contraste, saturação e nitidez
+        try {
+          autoEnhance(ctx, width, height);
+        } catch (e) {
+          console.warn('Auto-enhance falhou, usando imagem original', e);
+        }
+
         const compressed = canvas.toDataURL('image/jpeg', quality);
         
         const sizeKB = compressed.length / 1024;

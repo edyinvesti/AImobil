@@ -24,19 +24,42 @@ services:
         value: 100
       - key: LOG_LEVEL
         value: info
+      # ══════════════════════════════════════════
+      # DATABASE — Turso
       - key: TURSO_DATABASE_URL
         value: "libsql://alma-edyinvesti.aws-us-west-2.turso.io"
-      # ⚠️ Preencha estas variáveis no painel do Render (não colocar valores sensíveis aqui)
       - key: TURSO_AUTH_TOKEN
         sync: false
-      - key: GEMINI_API_KEY
+      # ══════════════════════════════════════════
+      # AUTH — JWT
+      - key: JWT_SECRET
         sync: false
-      - key: TELEGRAM_BOT_TOKEN
+      # ══════════════════════════════════════════
+      # AI — LLM Providers
+      - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
       # ══════════════════════════════════════════
-      # MARKETING ENGINE — Meta Ads (preencher no painel)
+      # TELEGRAM
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # ══════════════════════════════════════════
+      # STORAGE — Cloudflare R2
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        value: "iamobil-images"
+      - key: R2_PUBLIC_URL
+        sync: false
+      # ══════════════════════════════════════════
+      # MARKETING — Meta Ads
       - key: META_ADS_ACCESS_TOKEN
         sync: false
       - key: META_ADS_AD_ACCOUNT_ID

@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export const MAX_IMAGES = 10;
+export const MAX_VIDEO_SIZE_MB = 15;
+export const MAX_VIDEO_DURATION_SEC = 30;
+
 export type PropertyType = 'Casa' | 'Apartamento' | 'Terreno' | 'Comercial' | 'Rural' | 'Chácara' | 'Fazenda';
 export type OfferType = 'Venda' | 'Aluguel';
 export type AreaUnit = 'm²' | 'Hectares' | 'Alqueires';
@@ -35,6 +39,8 @@ export interface Property {
   amenities: string[];
   images: string[];
   thumbnail?: string;
+  videoData?: string;
+  videoType?: string;
   latitude?: number;
   longitude?: number;
   brokerCreci?: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption } from '../types';
-import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car } from 'lucide-react';
+import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption, MAX_IMAGES, MAX_VIDEO_SIZE_MB } from '../types';
+import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car, Video, Film } from 'lucide-react';
 import { compressImage, getApiUrl } from '../utils';
 import { useToast } from '../hooks/useToast';
 
@@ -55,6 +55,8 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
             : ''
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
+    const [videoData, setVideoData] = useState<string | null>(initialData?.videoData || null);
+    const [videoName, setVideoName] = useState<string | null>(null);
     interface IBGEState { sigla: string; nome: string; }
 interface IBGECity { nome: string; }
 const [states, setStates] = useState<IBGEState[]>([]);
@@ -103,9 +105,9 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            const remainingSlots = 10 - images.length;
+            const remainingSlots = MAX_IMAGES - images.length;
             if (remainingSlots <= 0) {
-                toast('Máximo de 10 imagens por imóvel.', 'warning');
+                toast(`Máximo de ${MAX_IMAGES} imagens por imóvel.`, 'warning');
                 return;
             }
 
@@ -120,6 +122,35 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 }
             }
         }
+    };
+
+    const handleVideoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('video/')) {
+            toast('Formato de vídeo inválido. Use MP4.', 'warning');
+            return;
+        }
+
+        if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+            toast(`Vídeo muito grande. Máximo ${MAX_VIDEO_SIZE_MB}MB.`, 'warning');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const result = ev.target?.result as string;
+            setVideoData(result);
+            setVideoName(file.name);
+        };
+        reader.onerror = () => toast('Erro ao ler o vídeo.', 'error');
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveVideo = () => {
+        setVideoData(null);
+        setVideoName(null);
     };
 
     const handlePriceChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -232,6 +263,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 ...formData,
                 id,
                 images,
+                videoData: videoData || undefined,
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
             await onSave(property);
@@ -311,6 +343,36 @@ const [states, setStates] = useState<IBGEState[]>([]);
                         <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest text-center mt-4">
                             Dica: Use fotos horizontais para melhor visualização
                         </p>
+
+                        {/* Vídeo */}
+                        <div className="border-t border-white/5 pt-6 mt-2">
+                            <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em] flex items-center gap-2 mb-4">
+                                <Film size={12} className="text-orange-500" /> Vídeo do Imóvel
+                            </p>
+                            {videoData ? (
+                                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                                    <video src={videoData} className="w-full aspect-video object-cover" controls />
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveVideo}
+                                        className="absolute top-2 right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 rounded-lg flex items-center justify-center text-white transition-all shadow-lg"
+                                        title="Remover vídeo"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                    {videoName && (
+                                        <p className="text-[8px] text-gray-500 px-3 py-1.5 truncate">{videoName}</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 p-6 cursor-pointer hover:bg-white/5 hover:border-orange-500/30 transition-all text-gray-700 hover:text-orange-500 bg-black/20">
+                                    <Video size={24} />
+                                    <span className="text-[9px] font-black uppercase">Adicionar Vídeo</span>
+                                    <span className="text-[7px] text-gray-600">MP4 • máx {MAX_VIDEO_SIZE_MB}MB • 30s</span>
+                                    <input type="file" accept="video/mp4,video/quicktime,video/x-msvideo" onChange={handleVideoUpload} className="hidden" />
+                                </label>
+                            )}
+                        </div>
                     </div>
 
                     {/* Dados Principais */}

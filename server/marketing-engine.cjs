@@ -1,5 +1,5 @@
 const path = require('path');
-const { DataEngine } = require(path.join(__dirname, 'data_engine.cjs'));
+const { getDataEngine } = require(path.join(__dirname, 'db/index.cjs'));
 
 const META_ADS_TOKEN = process.env.META_ADS_ACCESS_TOKEN;
 const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act_/, '');
@@ -8,8 +8,8 @@ const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || META_ADS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
-const API_URL = process.env.VITE_API_URL || 'http://localhost:10000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://iamobil-frontend.pages.dev';
+const API_URL = (process.env.VITE_API_URL || 'http://localhost:10002').replace(/\/$/, '');
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://aimobil.onrender.com';
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 const campaigns = new Map();
@@ -20,12 +20,19 @@ function stripBase64Prefix(data) {
 
 class MarketingEngine {
   constructor() {
-    this.dataEngine = new DataEngine();
+    this.dataEngine = null;
     this.logger = {
       info: (msg, data) => console.log(`[MarketingEngine] ${msg}`, data || ''),
       error: (msg, data) => console.error(`[MarketingEngine] ${msg}`, data || ''),
       warn: (msg, data) => console.warn(`[MarketingEngine] ${msg}`, data || '')
     };
+  }
+
+  async getDataEngine() {
+    if (!this.dataEngine) {
+      this.dataEngine = await getDataEngine();
+    }
+    return this.dataEngine;
   }
 
   async uploadToFacebookAdimages(base64Data) {
@@ -43,6 +50,11 @@ class MarketingEngine {
         body: params
       }
     );
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Facebook adimages HTTP ${res.status}: ${errorText.substring(0, 200)}`);
+    }
 
     const data = await res.json();
     if (data.error) {
@@ -93,7 +105,7 @@ class MarketingEngine {
     this.logger.info('Iniciando campanha', { propertyId, budget, campaignDays, includeOrganic, includeAds });
 
     try {
-      const property = await this.dataEngine.getPropertyById(propertyId);
+      const property = await (await this.getDataEngine()).getPropertyById(propertyId);
       if (!property) {
         return { success: false, error: 'Imóvel não encontrado' };
       }
@@ -104,8 +116,18 @@ class MarketingEngine {
 
       this.logger.info('Dados do imóvel obtidos', { title: property.title, imagesCount: property.images.length });
 
+      let broker = null;
+      const brokerCreci = property.brokerCreci || property.broker_creci || '';
+      if (brokerCreci) {
+        try {
+          broker = await (await this.getDataEngine()).getBroker(brokerCreci);
+        } catch (e) {
+          this.logger.warn('Erro ao buscar dados do corretor', { error: e.message });
+        }
+      }
+
       const criativos = this.processarFotos(property);
-      const copys = await this.gerarCopy(property);
+      const copys = await this.gerarCopy(property, broker);
 
       // Upload da primeira imagem para o Facebook (adimages)
       let fbImage = null;
@@ -120,8 +142,8 @@ class MarketingEngine {
 
       // Gera URL pública da imagem via endpoint próprio
       let publicImageUrl = fbImage?.url || null;
-      if (!publicImageUrl && property.images[0]) {
-        publicImageUrl = `https://aimobil.onrender.com/api/properties/${property.id}/image`;
+      if (!publicImageUrl && property.images?.[0]) {
+        publicImageUrl = `${API_URL}/api/properties/${property.id}/image`;
       }
 
       let campaignResult = null;
@@ -137,11 +159,20 @@ class MarketingEngine {
 
       let instagramResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
-        const imageUrls = [publicImageUrl];
-        for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
-          imageUrls.push(`https://aimobil.onrender.com/api/properties/${property.id}/image?index=${i}`);
+        const temVideo = !!(property.videoData || property.video_data);
+        if (temVideo) {
+          this.logger.info('Publicando Reels com vídeo do imóvel');
+          instagramResult = await this.publicarInstagramReel(property, copys[0]);
+        } else if (!publicImageUrl) {
+          this.logger.warn('Nenhuma mídia disponível para Instagram');
+          instagramResult = { status: 'SKIPPED', reason: 'Nenhuma mídia disponível' };
+        } else {
+          const imageUrls = [publicImageUrl];
+          for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
+            imageUrls.push(`${API_URL}/api/properties/${property.id}/image?index=${i}`);
+          }
+          instagramResult = await this.publicarInstagram(property, copys[0], imageUrls);
         }
-        instagramResult = await this.publicarInstagram(property, copys[0], imageUrls);
       } else if (includeOrganic) {
         this.logger.warn('Instagram Business ID não configurado');
         instagramResult = { status: 'SKIPPED', reason: 'Instagram Business ID não configurado' };
@@ -170,7 +201,7 @@ class MarketingEngine {
 
       // Salva no banco de dados
       try {
-        await this.dataEngine.saveCampaign({
+        await (await this.getDataEngine()).saveCampaign({
           id: campaignId,
           property_id: propertyId,
           property_title: property.title || '',
@@ -225,51 +256,172 @@ class MarketingEngine {
     return criativos;
   }
 
-  async gerarCopy(property) {
-    const copys = [];
+  gerarHashtags(property) {
+    const tags = ['iamobil', 'imoveis'];
+    if (property.city) tags.push(...property.city.toLowerCase().split(/\s+/));
+    if (property.neighborhood) tags.push(...property.neighborhood.toLowerCase().split(/\s+/).map(s => s.replace(/[^a-z0-9]/g, '')));
+    if (property.type) tags.push(property.type.toLowerCase());
+    if (property.bedrooms) tags.push(`${property.bedrooms}quartos`);
+    if (property.suites) tags.push(`${property.suites}suite`);
+    if (property.parkingSpaces) tags.push(`${property.parkingSpaces}vagas`);
+    tags.push('corretordeimoveis', 'imovelavenda', 'imobiliaria');
+    const seen = new Set();
+    return tags.filter(t => { if (seen.has(t)) return false; seen.add(t); return t.length > 0; }).slice(0, 15);
+  }
 
-    const limit = (s, n) => s ? s.substring(0, n) : '';
+  gerarPerguntaEngajamento(property) {
+    const perguntas = [
+      `Qual cômodo você mais gostou?`,
+      `Já pensou em morar em ${property.neighborhood || property.city || 'um lugar assim'}?`,
+      `Você prefere ${property.bedrooms > 1 ? `${property.bedrooms} quartos` : 'um quarto'} ou maior?`,
+      `O que você acha do valor?`,
+      `Qual seria a primeira coisa que você faria nesse espaço?`,
+      `Você se vive morando aqui?`,
+    ];
+    return perguntas[Math.floor(Math.random() * perguntas.length)];
+  }
 
-    const templates = [
+  gerarWhatsAppLink(broker, property) {
+    if (!broker?.phone) return null;
+    const phone = broker.phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(
+      `Olá! Tenho interesse no imóvel: ${property.title || ''} (${property.type || ''}) - ` +
+      `R$ ${Number(property.price).toLocaleString('pt-BR')}`
+    );
+    return `https://wa.me/55${phone}?text=${msg}`;
+  }
+
+  montarLegendaCompleta({ headline, primaryText, description, cta, style, hashtags, engagement, whatsapp }) {
+    const separador = '\n\n. . . . .\n\n';
+    const emojis = {
+      professional: { title: '🏡', price: '💰', cta: '📞' },
+      emotional: { title: '💛', price: '✨', cta: '🔑' },
+      urgency: { title: '⚡', price: '🔥', cta: '📲' },
+      question: { title: '🤔', price: '💰', cta: '💬' },
+    };
+    const e = emojis[style] || emojis.professional;
+
+    let legenda =
+      `${e.title} ${headline}\n\n` +
+      `${primaryText}\n\n` +
+      `${e.price} ${description}\n`;
+
+    if (cta) legenda += `\n📌 ${cta}`;
+    if (whatsapp) legenda += `\n📱 Fale comigo: ${whatsapp}`;
+    legenda += separador;
+    if (engagement) legenda += `💭 ${engagement}\n\n`;
+    legenda += hashtags.map(t => `#${t}`).join(' ');
+    return legenda;
+  }
+
+  stylesConfig() {
+    return [
       {
-        headline: limit(`${property.type} em ${property.city || 'localização'}`, 25),
-        primaryText: limit(`${property.bedrooms} dorm, ${property.bathrooms} ban, ${property.size}${property.sizeUnit || 'm²'}. ${property.neighborhood ? `Bairro ${property.neighborhood}.` : ''} Agende sua visita!`, 125),
-        description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        id: 'professional',
+        label: 'Profissional',
+        emoji: '🏡',
+        headlineFn: (p) => `${p.type} em ${p.city || p.neighborhood || 'localização'}`,
+        primaryFn: (p) => `${p.bedrooms} dorm • ${p.bathrooms} ban • ${p.size}${p.sizeUnit || 'm²'}` +
+          (p.suites ? ` • ${p.suites} suítes` : '') +
+          (p.parkingSpaces ? ` • ${p.parkingSpaces} vagas` : '') +
+          `. ${p.neighborhood ? `Bairro ${p.neighborhood}.` : ''} Agende sua visita!`,
         cta: 'Agende sua visita'
       },
       {
-        headline: limit(`O lar perfeito espera`, 25),
-        primaryText: limit(`${property.title} — ${property.type} em ${property.city || 'região nobre'}. ${property.description ? property.description.substring(0, 60) : ''}`, 125),
-        description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        id: 'emotional',
+        label: 'Emocional',
+        emoji: '💛',
+        headlineFn: (p) => `Seu novo lar te espera`,
+        primaryFn: (p) => `${p.title} — um ${p.type} pensado para você e sua família. ` +
+          (p.description ? p.description.substring(0, 80) : `${p.bedrooms} quartos aconchegantes em ${p.city || 'localização privilegiada'}.`) +
+          ` Venha se apaixonar!`,
+        cta: 'Agende uma visita'
+      },
+      {
+        id: 'urgency',
+        label: 'Urgência',
+        emoji: '⚡',
+        headlineFn: (p) => `Não perca! ${p.type}`,
+        primaryFn: (p) => `Oportunidade imperdível! ${p.type} em ${p.city || 'ótima localização'} — ` +
+          `${p.bedrooms} dormitórios${p.suites ? `, ${p.suites} suítes` : ''}, ${p.parkingSpaces} vagas. ` +
+          `Preço especial. Corra antes que alguém veja antes de você!`,
         cta: 'Fale com o corretor'
       },
       {
-        headline: limit(`Não perca! ${property.type}`, 25),
-        primaryText: limit(`${property.type} à venda em ${property.city || 'excelente localização'}. ${property.suites} suítes, ${property.parkingSpaces} vagas.`, 125),
-        description: `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        id: 'question',
+        label: 'Pergunta',
+        emoji: '🤔',
+        headlineFn: (p) => `Já pensou em morar aqui?`,
+        primaryFn: (p) => `Imagina acordar todos os dias em um ${p.type} incrível em ${p.city || 'um lugar especial'}. ` +
+          `${p.bedrooms} quartos, área de ${p.size}${p.sizeUnit || 'm²'}. ` +
+          `${p.neighborhood ? `No bairro ${p.neighborhood}. ` : ''}O que está esperando?`,
         cta: 'Saiba mais'
       }
     ];
+  }
+
+  async gerarCopy(property, broker = null) {
+    const limit = (s, n) => s ? s.substring(0, n) : '';
+    const styles = this.stylesConfig();
+    const hashtags = this.gerarHashtags(property);
+    const engagement = this.gerarPerguntaEngajamento(property);
+    const whatsappLink = this.gerarWhatsAppLink(broker, property);
+
+    const copys = styles.map(s => {
+      const headline = limit(s.headlineFn(property), 25);
+      const primaryText = limit(s.primaryFn(property), 125);
+      const description = `R$ ${Number(property.price).toLocaleString('pt-BR')}`;
+
+      const copy = {
+        style: s.id,
+        headline,
+        primaryText,
+        description,
+        cta: s.cta,
+        hashtags,
+        engagement,
+        whatsapp: whatsappLink,
+        fullCaption: '',
+      };
+      copy.fullCaption = this.montarLegendaCompleta(copy);
+      return copy;
+    });
 
     if (GEMINI_API_KEY) {
       try {
-        const prompt = `Gere 3 headlines persuasivas para anunciar este imóvel no Facebook e Instagram:
-          Tipo: ${property.type}
-          Título: ${property.title}
-          Preço: R$ ${property.price}
-          Cidade: ${property.city}
-          Bairro: ${property.neighborhood}
-          Quartos: ${property.bedrooms}
-          Banheiros: ${property.bathrooms}
-          Área: ${property.size}${property.sizeUnit}
-          Descrição: ${property.description || ''}
+        const prompt = `Você é um copywriter especializado em marketing imobiliário.
+Crie 4 versões de legenda COMPLETA para Instagram/Facebook anunciando este imóvel.
+Cada versão deve ter um estilo diferente: Profissional, Emocional, Urgência e Pergunta.
 
-          Regras:
-          - Headline máxima 25 caracteres (limite do Facebook)
-          - Tom persuasivo e profissional
-          - Português brasileiro
-          - Incluir localização
-          - Retorne apenas as 3 headlines, uma por linha`;
+Dados do imóvel:
+- Tipo: ${property.type}
+- Título: ${property.title}
+- Preço: R$ ${Number(property.price).toLocaleString('pt-BR')}
+- Cidade: ${property.city || 'N/I'}
+- Bairro: ${property.neighborhood || 'N/I'}
+- Quartos: ${property.bedrooms}
+- Suítes: ${property.suites || 0}
+- Banheiros: ${property.bathrooms}
+- Vagas: ${property.parkingSpaces || 0}
+- Área: ${property.size}${property.sizeUnit || 'm²'}
+- Descrição: ${property.description || ''}
+${whatsappLink ? `- WhatsApp do corretor: ${whatsappLink}` : ''}
+
+Regras para cada legenda:
+1. Máximo 2000 caracteres
+2. Incluir headline curta (max 25 chars)
+3. Descrição persuasiva do imóvel
+4. O preço formatado
+5. Emojis relevantes
+6. ${whatsappLink ? 'Incluir link do WhatsApp para contato' : 'Incluir CTA para contato'}
+7. Terminar com uma pergunta de engajamento
+8. Incluir hashtags: ${hashtags.map(t => '#' + t).join(' ')}
+
+Formato de resposta (para cada estilo):
+---{estilo}---
+Headline: ...
+Texto: ...
+---fim---`;
 
         const response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${GEMINI_API_KEY}`,
@@ -278,21 +430,38 @@ class MarketingEngine {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.7, maxOutputTokens: 200 }
+              generationConfig: { temperature: 0.8, maxOutputTokens: 1024 }
             })
           }
         );
 
-        const data = await response.json();
-        if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          const geminiHeadlines = data.candidates[0].content.parts[0].text
-            .split('\n')
-            .filter(h => h.trim().length > 0)
-            .slice(0, 3);
-
-          geminiHeadlines.forEach((headline, i) => {
-            if (templates[i]) {
-              templates[i].headline = limit(headline.replace(/^\d+[\.\-\)]\s*/, ''), 25);
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const blocks = rawText.split('---');
+          blocks.forEach(block => {
+            if (!block.includes('Headline:')) return;
+            const lines = block.split('\n').filter(l => l.trim());
+            let estilo = '';
+            let headline = '';
+            let texto = '';
+            for (const line of lines) {
+              if (line.startsWith('Headline:')) headline = line.replace('Headline:', '').trim();
+              else if (line.startsWith('Texto:')) texto = line.replace('Texto:', '').trim();
+              else if (block.includes(line)) {
+                const match = line.match(/\{(\w+)\}/);
+                if (match) estilo = match[1];
+              }
+            }
+            if (headline || texto) {
+              const idx = styles.findIndex(s => s.id === estilo);
+              if (idx >= 0 && copys[idx]) {
+                if (headline) copys[idx].headline = limit(headline, 25);
+                if (texto) {
+                  copys[idx].primaryText = limit(texto, 125);
+                  copys[idx].fullCaption = this.montarLegendaCompleta(copys[idx]);
+                }
+              }
             }
           });
         }
@@ -301,7 +470,7 @@ class MarketingEngine {
       }
     }
 
-    return templates;
+    return copys;
   }
 
   async criarCampanhaMeta(property, criativos, copys, budget, days, imageHash) {
@@ -323,6 +492,12 @@ class MarketingEngine {
           })
         }
       );
+
+      if (!campaignResponse.ok) {
+        const errorText = await campaignResponse.text();
+        this.logger.error('Erro Meta Ads HTTP ao criar campanha', { status: campaignResponse.status, error: errorText.substring(0, 300) });
+        return { status: 'ERROR', error: `HTTP ${campaignResponse.status}: ${errorText.substring(0, 200)}` };
+      }
 
       const campaignData = await campaignResponse.json();
 
@@ -367,6 +542,11 @@ class MarketingEngine {
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(adsetBody) }
       );
 
+      if (!adsetResponse.ok) {
+        const errorText = await adsetResponse.text();
+        return { status: 'PARTIAL', campaignId, error: `HTTP ${adsetResponse.status}: ${errorText.substring(0, 200)}`, campaign: { id: campaignId, name: campaignName } };
+      }
+
       const adsetData = await adsetResponse.json();
       if (adsetData.error) {
         return { status: 'PARTIAL', campaignId, error: adsetData.error.message, campaign: { id: campaignId, name: campaignName } };
@@ -378,31 +558,46 @@ class MarketingEngine {
         return { status: 'NO_PAGE', campaignId, name: campaignName, adsetId, dailyBudget: budget, duration: days, message: 'Conjunto criado. Configure META_FACEBOOK_PAGE_ID no .env para gerar os anúncios.' };
       }
 
-      // Criar criativo — testa sem image_hash (igual ao original que funcionava)
+      // Criar criativo com dados reais do imóvel
       let creativeId = null;
 
+      const copyAtual = copys?.[0] || {};
+      const propertyLink = `${FRONTEND_URL}/imovel/${property.id}`;
+      const headline = copyAtual.headline || property.type || 'Imóvel';
+      const primaryText = (copyAtual.primaryText || property.description || 'Confira este imóvel incrível!').substring(0, 125);
+      const description = copyAtual.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`;
+
       const spec = {
-        name: `Criativo - ${property.type} - Feed`,
+        name: `Criativo - ${property.type} - ${property.city || 'Feed'}`,
         object_story_spec: {
           page_id: pageId,
           link_data: {
-            link: `${FRONTEND_URL}`,
-            message: 'Confira este imóvel incrível!',
-            name: 'Apartamento incrível',
-            description: 'Ótima oportunidade',
+            link: propertyLink,
+            message: primaryText,
+            name: headline,
+            description: description,
             call_to_action: { type: 'LEARN_MORE' }
           }
         },
         access_token: META_ADS_TOKEN
       };
 
+      if (imageHash) {
+        spec.object_story_spec.link_data.image_hash = imageHash;
+      }
+
       const res = await fetch(`${FACEBOOK_GRAPH_URL}/act_${META_ACCOUNT_ID}/adcreatives`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
+      if (!res.ok) {
+        const errorText = await res.text();
+        this.logger.warn('Creative falhou', { status: res.status, error: errorText });
+        return { status: 'PARTIAL', campaignId, adsetId, error: `HTTP ${res.status}: ${errorText.substring(0, 200)}` };
+      }
       const data = await res.json();
       if (!data.error) { creativeId = data.id; }
       else {
-        this.logger.warn('Creative falhou', { error: data.error, full: JSON.stringify(data), spec: JSON.stringify(spec).substring(0, 400) });
-        return { status: 'PARTIAL', campaignId, adsetId, error: `Erro: ${data.error.message}`, fbResponse: data.error, specEnviado: JSON.stringify(spec).substring(0, 500) };
+        this.logger.warn('Creative falhou', { error: data.error, spec: JSON.stringify(spec).substring(0, 400) });
+        return { status: 'PARTIAL', campaignId, adsetId, error: `Erro: ${data.error.message}`, fbResponse: data.error };
       }
 
       if (!creativeId) {
@@ -423,6 +618,12 @@ class MarketingEngine {
           })
         }
       );
+
+      if (!adResponse.ok) {
+        const errorText = await adResponse.text();
+        this.logger.error('Erro Meta Ads ao criar anúncio', { status: adResponse.status, error: errorText.substring(0, 300) });
+        return { status: 'PARTIAL', campaignId, adsetId, creativeId, error: `HTTP ${adResponse.status}: ${errorText.substring(0, 200)}` };
+      }
 
       const adData = await adResponse.json();
 
@@ -454,6 +655,39 @@ class MarketingEngine {
     }
   }
 
+  gerarLegendaStorytelling(property, copy, slideIndex, totalSlides) {
+    const price = `R$ ${Number(property.price).toLocaleString('pt-BR')}`;
+    const hashtags = copy?.hashtags?.map(t => `#${t}`).join(' ') || '#iamobil';
+    const stories = [
+      {
+        title: `📍 A Localização`,
+        text: `${property.neighborhood ? `Bairro ${property.neighborhood}, ` : ''}${property.city || 'região nobre'}. ` +
+          `${property.type} perfeito para quem busca conforto e praticidade.`
+      },
+      {
+        title: `🛏️ Os Ambientes`,
+        text: `${property.bedrooms} quartos • ${property.bathrooms} banheiros • ${property.size}${property.sizeUnit || 'm²'}` +
+          (property.suites ? ` • ${property.suites} suítes` : '') +
+          (property.parkingSpaces ? ` • ${property.parkingSpaces} vagas` : '')
+      },
+      {
+        title: `💰 Oportunidade`,
+        text: `Tudo isso por ${price}. ${property.description ? property.description.substring(0, 80) : 'Agende já sua visita e venha conferir pessoalmente!'}`
+      },
+      {
+        title: `💛 Seu Novo Lar`,
+        text: `${copy?.headline || property.title}. Não deixe essa oportunidade passar!`
+      },
+      {
+        title: `📞 Fale Conosco`,
+        text: `Clique no link da bio ou me chame no direct para mais informações!` +
+          (copy?.whatsapp ? `\n📱 WhatsApp: ${copy.whatsapp}` : '')
+      }
+    ];
+    const s = stories[Math.min(slideIndex, stories.length - 1)];
+    return `${s.title}\n\n${s.text}\n\n. . . . .\n\n${hashtags}`;
+  }
+
   async publicarInstagram(property, copy, imageUrls) {
     try {
       if (!INSTAGRAM_BUSINESS_ID) {
@@ -464,20 +698,21 @@ class MarketingEngine {
         return { status: 'SKIPPED', reason: 'Nenhuma URL de imagem disponível.' };
       }
 
-      const legenda =
-        `✨ ${copy?.headline || property.title}\n\n` +
-        `${copy?.primaryText || property.description || ''}\n\n` +
-        `💰 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n\n` +
-        `📍 ${property.neighborhood || ''}, ${property.city || ''}\n\n` +
-        `. . . . .\n\n` +
-        `#iamobil #imoveis #${property.city ? property.city.toLowerCase().replace(/\s/g, '') : 'imovel'} ` +
-        `#${property.type ? property.type.toLowerCase() : 'imovel'} ` +
-        `#corretordeimoveis #${property.neighborhood ? property.neighborhood.toLowerCase().replace(/\s/g, '') : 'imovel'}`;
+      const legenda = copy?.fullCaption || this.montarLegendaCompleta({
+        headline: copy?.headline || property.title,
+        primaryText: copy?.primaryText || property.description || '',
+        description: copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`,
+        cta: copy?.cta || 'Saiba mais',
+        style: copy?.style || 'professional',
+        hashtags: copy?.hashtags || this.gerarHashtags(property),
+        engagement: copy?.engagement || this.gerarPerguntaEngajamento(property),
+        whatsapp: copy?.whatsapp
+      });
 
-      this.logger.info('Publicando no Instagram', { totalImages: imageUrls.length });
+      this.logger.info('Publicando no Instagram', { totalImages: imageUrls.length, style: copy?.style || 'auto' });
 
       if (imageUrls.length === 1) {
-        // Post único
+        // Post único — legenda completa rica
         const creationResponse = await fetch(
           `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
           {
@@ -486,6 +721,12 @@ class MarketingEngine {
             body: JSON.stringify({ image_url: imageUrls[0], caption: legenda, access_token: INSTAGRAM_TOKEN })
           }
         );
+
+        if (!creationResponse.ok) {
+          const errorText = await creationResponse.text();
+          this.logger.warn('Erro HTTP ao criar media no Instagram', { status: creationResponse.status, error: errorText.substring(0, 200) });
+          return { status: 'DRAFT', error: `HTTP ${creationResponse.status}`, apiResponse: errorText.substring(0, 200) };
+        }
 
         const creationData = await creationResponse.json();
         if (creationData.error) {
@@ -504,18 +745,25 @@ class MarketingEngine {
           }
         );
 
+        if (!publishResponse.ok) {
+          const errorText = await publishResponse.text();
+          this.logger.warn('Erro HTTP ao publicar no Instagram', { status: publishResponse.status, error: errorText.substring(0, 200) });
+          return { status: 'DRAFT', error: `HTTP ${publishResponse.status}`, apiResponse: errorText.substring(0, 200) };
+        }
+
         const publishData = await publishResponse.json();
         const mediaId = publishData.id || creationData.id;
         this.logger.info('Post Instagram publicado', { mediaId });
 
-        // Busca shortcode para gerar URL correta
         let shortcode = null;
         try {
           const mediaRes = await fetch(
             `${FACEBOOK_GRAPH_URL}/${mediaId}?fields=shortcode&access_token=${INSTAGRAM_TOKEN}`
           );
-          const mediaData = await mediaRes.json();
-          shortcode = mediaData.shortcode || null;
+          if (mediaRes.ok) {
+            const mediaData = await mediaRes.json();
+            shortcode = mediaData.shortcode || null;
+          }
         } catch (e) {
           this.logger.warn('Erro ao buscar shortcode', { error: e.message });
         }
@@ -531,9 +779,10 @@ class MarketingEngine {
         };
       }
 
-      // CARROSSEL: múltiplas imagens
+      // CARROSSEL: storytelling — legenda diferente por slide
       const childrenIds = [];
       for (let i = 0; i < imageUrls.length; i++) {
+        const captionSlide = this.gerarLegendaStorytelling(property, copy, i, imageUrls.length);
         const childRes = await fetch(
           `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
           {
@@ -542,10 +791,18 @@ class MarketingEngine {
             body: JSON.stringify({
               image_url: imageUrls[i],
               is_carousel_item: true,
+              caption: captionSlide,
               access_token: INSTAGRAM_TOKEN
             })
           }
         );
+
+        if (!childRes.ok) {
+          const errorText = await childRes.text();
+          this.logger.warn('Erro HTTP ao criar item do carrossel', { status: childRes.status, index: i, error: errorText.substring(0, 200) });
+          return { status: 'DRAFT', error: `Item ${i}: HTTP ${childRes.status}`, apiResponse: errorText.substring(0, 200) };
+        }
+
         const childData = await childRes.json();
         if (childData.error) {
           this.logger.warn('Erro ao criar item do carrossel', { error: childData.error, index: i });
@@ -555,7 +812,17 @@ class MarketingEngine {
         await new Promise(r => setTimeout(r, 1000));
       }
 
-      // Cria container do carrossel
+      // Legenda principal do carrossel (aparece no feed)
+      const legendaCarrossel =
+        `${copy?.headline || property.title}\n\n` +
+        `${copy?.primaryText || property.description || ''}\n\n` +
+        `💰 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n` +
+        (copy?.whatsapp ? `📱 Fale comigo: ${copy.whatsapp}\n` : '') +
+        `\n. . . . .\n\n` +
+        (copy?.engagement ? `💭 ${copy.engagement}\n\n` : '') +
+        `👆 Deslize para ver mais fotos!\n\n` +
+        (copy?.hashtags?.map(t => `#${t}`).join(' ') || '#iamobil');
+
       const carouselRes = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
         {
@@ -564,11 +831,17 @@ class MarketingEngine {
           body: JSON.stringify({
             media_type: 'CAROUSEL',
             children: childrenIds.join(','),
-            caption: legenda,
+            caption: legendaCarrossel,
             access_token: INSTAGRAM_TOKEN
           })
         }
       );
+
+      if (!carouselRes.ok) {
+        const errorText = await carouselRes.text();
+        this.logger.warn('Erro HTTP ao criar carrossel', { status: carouselRes.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${carouselRes.status}`, apiResponse: errorText.substring(0, 200) };
+      }
 
       const carouselData = await carouselRes.json();
       if (carouselData.error) {
@@ -578,7 +851,6 @@ class MarketingEngine {
 
       await new Promise(r => setTimeout(r, 3000));
 
-      // Publica
       const publishRes = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
         {
@@ -588,22 +860,29 @@ class MarketingEngine {
         }
       );
 
+      if (!publishRes.ok) {
+        const errorText = await publishRes.text();
+        this.logger.warn('Erro HTTP ao publicar carrossel', { status: publishRes.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${publishRes.status}`, apiResponse: errorText.substring(0, 200) };
+      }
+
       const publishData = await publishRes.json();
       const mediaId = publishData.id || carouselData.id;
 
-      // Busca shortcode para gerar URL correta
       let shortcode = null;
       try {
         const mediaRes = await fetch(
           `${FACEBOOK_GRAPH_URL}/${mediaId}?fields=shortcode&access_token=${INSTAGRAM_TOKEN}`
         );
-        const mediaData = await mediaRes.json();
-        shortcode = mediaData.shortcode || null;
+        if (mediaRes.ok) {
+          const mediaData = await mediaRes.json();
+          shortcode = mediaData.shortcode || null;
+        }
       } catch (e) {
         this.logger.warn('Erro ao buscar shortcode do carrossel', { error: e.message });
       }
 
-      this.logger.info('Carrossel Instagram publicado', { mediaId, images: imageUrls.length, shortcode });
+      this.logger.info('Carrossel Instagram com storytelling publicado', { mediaId, images: imageUrls.length, shortcode });
 
       return {
         status: 'PUBLISHED',
@@ -611,7 +890,7 @@ class MarketingEngine {
         url: shortcode
           ? `https://instagram.com/p/${shortcode}`
           : `https://instagram.com/p/${mediaId}`,
-        caption: legenda.substring(0, 100),
+        caption: legendaCarrossel.substring(0, 100),
         carousel: true,
         imagesCount: imageUrls.length
       };
@@ -622,36 +901,149 @@ class MarketingEngine {
     }
   }
 
+  async publicarInstagramReel(property, copy) {
+    try {
+      if (!INSTAGRAM_BUSINESS_ID) {
+        return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID não configurado' };
+      }
+
+      const videoUrl = `${API_URL}/api/properties/${property.id}/video`;
+      this.logger.info('Publicando Reels no Instagram', { propertyId: property.id, videoUrl });
+
+      const hashtags = copy?.hashtags?.map(t => `#${t}`).join(' ') || '#iamobil';
+      const legenda =
+        `${copy?.headline || property.title}\n\n` +
+        `${copy?.primaryText || property.description || ''}\n\n` +
+        `💰 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n` +
+        (copy?.whatsapp ? `📱 Fale comigo: ${copy.whatsapp}\n` : '') +
+        `\n. . . . .\n\n` +
+        (copy?.engagement ? `💭 ${copy.engagement}\n\n` : '') +
+        hashtags;
+
+      const creationResponse = await fetch(
+        `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            media_type: 'REELS',
+            video_url: videoUrl,
+            caption: legenda,
+            access_token: INSTAGRAM_TOKEN
+          })
+        }
+      );
+
+      if (!creationResponse.ok) {
+        const errorText = await creationResponse.text();
+        this.logger.warn('Erro HTTP ao criar Reels', { status: creationResponse.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${creationResponse.status}: ${errorText.substring(0, 200)}` };
+      }
+
+      const creationData = await creationResponse.json();
+      if (creationData.error) {
+        this.logger.warn('Erro ao criar Reels', { error: creationData.error });
+        return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
+      }
+
+      // Reels pode levar mais tempo para processar o vídeo
+      this.logger.info('Reels criado, aguardando processamento do vídeo...', { creationId: creationData.id });
+      await new Promise(r => setTimeout(r, 5000));
+
+      const publishResponse = await fetch(
+        `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ creation_id: creationData.id, access_token: INSTAGRAM_TOKEN })
+        }
+      );
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text();
+        this.logger.warn('Erro HTTP ao publicar Reels', { status: publishResponse.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${publishResponse.status}: ${errorText.substring(0, 200)}` };
+      }
+
+      const publishData = await publishResponse.json();
+      const mediaId = publishData.id || creationData.id;
+      this.logger.info('Reels publicado com sucesso', { mediaId });
+
+      let shortcode = null;
+      try {
+        const mediaRes = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${mediaId}?fields=shortcode&access_token=${INSTAGRAM_TOKEN}`
+        );
+        if (mediaRes.ok) {
+          const mediaData = await mediaRes.json();
+          shortcode = mediaData.shortcode || null;
+        }
+      } catch (e) {
+        this.logger.warn('Erro ao buscar shortcode do Reels', { error: e.message });
+      }
+
+      return {
+        status: 'PUBLISHED',
+        postId: mediaId,
+        url: shortcode
+          ? `https://instagram.com/p/${shortcode}`
+          : `https://instagram.com/p/${mediaId}`,
+        caption: legenda.substring(0, 100),
+        reel: true
+      };
+
+    } catch (error) {
+      this.logger.error('Erro ao publicar Reels', { error: error.message });
+      return { status: 'ERROR', error: error.message };
+    }
+  }
+
   getCampaignStatus(propertyId) {
-    return campaigns.get(propertyId) || null;
+    const entry = campaigns.get(propertyId);
+    if (!entry) return null;
+    if (entry.campaignId) {
+      return campaigns.get(entry.campaignId) || entry;
+    }
+    return entry;
   }
 
   listActiveCampaigns() {
     const active = [];
+    const seen = new Set();
     campaigns.forEach((value, key) => {
-      if (value.status === 'ACTIVE' || value.campaign?.status === 'ACTIVE') {
-        active.push({ key, ...value });
+      if (seen.has(key)) return;
+      const isActive = value.status === 'ACTIVE' || value.campaign?.status === 'ACTIVE';
+      if (isActive && value.propertyId) {
+        seen.add(key);
+        active.push({ campaignKey: key, ...value });
       }
     });
     return active;
   }
 
   async listAllCampaigns() {
-    return await this.dataEngine.getCampaigns();
+    return await (await this.getDataEngine()).getCampaigns();
   }
 
   async getCampaignStats() {
     try {
-      const rows = await this.dataEngine.getCampaigns();
+      const rows = await (await this.getDataEngine()).getCampaigns();
+      const published = rows.filter(r => r.instagram_status === 'PUBLISHED').length;
+      const adsActive = rows.filter(r => r.campaign_status === 'ACTIVE').length;
+      const failed = rows.filter(r =>
+        r.instagram_status !== 'PUBLISHED' && r.instagram_status !== '' &&
+        r.campaign_status !== 'ACTIVE' && r.campaign_status !== ''
+      ).length;
       return {
         total: rows.length,
-        published: rows.filter(r => r.instagram_status === 'PUBLISHED').length,
-        failed: rows.filter(r => r.instagram_status !== 'PUBLISHED' && r.instagram_status !== '').length,
+        published,
+        adsActive,
+        failed,
         carousel: rows.filter(r => r.has_carousel).length
       };
     } catch (e) {
       this.logger?.error?.('Erro ao obter stats de campanhas', { error: e.message });
-      return { total: 0, published: 0, failed: 0, carousel: 0 };
+      return { total: 0, published: 0, adsActive: 0, failed: 0, carousel: 0 };
     }
   }
 
@@ -663,6 +1055,15 @@ class MarketingEngine {
       const res = await fetch(`${FACEBOOK_GRAPH_URL}/${mediaId}?access_token=${INSTAGRAM_TOKEN}`, {
         method: 'DELETE'
       });
+      if (!res.ok && res.status !== 404) {
+        const errorText = await res.text();
+        this.logger.warn('Erro HTTP ao deletar do Instagram', { status: res.status, error: errorText.substring(0, 200) });
+        return { success: false, error: `HTTP ${res.status}: ${errorText.substring(0, 200)}` };
+      }
+      if (res.status === 404) {
+        this.logger.warn('Post Instagram já foi removido', { mediaId });
+        return { success: true, alreadyDeleted: true };
+      }
       const data = await res.json();
       if (data.error) {
         this.logger.warn('Erro ao deletar do Instagram', { error: data.error });

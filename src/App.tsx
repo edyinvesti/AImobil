@@ -1,5 +1,6 @@
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { SplashScreen } from "./components/SplashScreen";
+import { Login } from "./components/Login";
 import { useState, useEffect } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { PropertyForm } from "./components/PropertyForm";
@@ -14,6 +15,7 @@ import { ConfirmationModal } from "./components/ConfirmationModal";
 import { Bell } from "lucide-react";
 import { useProperties } from "./hooks/useProperties";
 import { useUser } from "./context/UserContext";
+import { useAuth } from "./hooks/useAuth";
 import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
@@ -42,7 +44,8 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   useNotifications();
-  const { profile, updateProfile, logout } = useUser();
+  const { profile, updateProfile, logout: userLogout } = useUser();
+  const { isAuthenticated, logout: authLogout } = useAuth();
 
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
@@ -54,6 +57,17 @@ export default function App() {
       window.removeEventListener('offline', goOffline);
     };
   }, []);
+
+  // Se não estiver autenticado, mostrar login
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
   const { properties, saveProperty, deleteProperty, forceSync, loading, syncStatus } = useProperties(profile.login);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
@@ -62,9 +76,10 @@ export default function App() {
   const location = useLocation();
 
   const handleLogout = () => {
-    logout();
+    authLogout();
+    userLogout();
     setShowSplash(true);
-    navigate('/');
+    navigate('/login');
   };
 
   const currentView = location.pathname.split('/')[1] || 'dashboard';
@@ -145,6 +160,8 @@ export default function App() {
         <main className="flex-1 overflow-y-auto custom-scrollbar pb-32 lg:pb-12">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
+              <Route path="/login" element={<Login />} />
+              
               <Route path="/" element={
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <Dashboard 

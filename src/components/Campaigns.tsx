@@ -20,6 +20,7 @@ interface Campaign {
 interface CampaignStats {
   total: number;
   published: number;
+  adsActive: number;
   failed: number;
   carousel: number;
 }
@@ -46,7 +47,7 @@ type FilterId = typeof filters[number]['id'];
 export const Campaigns = () => {
   const { toast } = useToast();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [stats, setStats] = useState<CampaignStats>({ total: 0, published: 0, failed: 0, carousel: 0 });
+  const [stats, setStats] = useState<CampaignStats>({ total: 0, published: 0, adsActive: 0, failed: 0, carousel: 0 });
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [detail, setDetail] = useState<Campaign | null>(null);
@@ -109,7 +110,7 @@ export const Campaigns = () => {
   const statCards = [
     { label: 'Total', value: stats.total, color: 'from-blue-500 to-cyan-500', icon: BarChart3 },
     { label: 'Publicados', value: stats.published, color: 'from-emerald-500 to-green-500', icon: CheckCircle2 },
-    { label: 'Falhos', value: stats.failed, color: 'from-red-500 to-rose-500', icon: XCircle },
+    { label: 'Ads Ativos', value: stats.adsActive, color: 'from-amber-500 to-yellow-500', icon: BarChart3 },
     { label: 'Carrossel', value: stats.carousel, color: 'from-violet-500 to-purple-500', icon: Image },
   ];
 
