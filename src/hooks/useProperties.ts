@@ -46,6 +46,9 @@ export function useProperties(baseCreci?: string) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
+  const propertiesRef = useRef<Property[]>(properties);
+
+  useEffect(() => { propertiesRef.current = properties; });
 
   useEffect(() => {
     return () => {
@@ -85,7 +88,7 @@ export function useProperties(baseCreci?: string) {
             db.close();
           };
         };
-      } catch(e) {}
+      } catch(e) { console.warn("IndexedDB recovery failed:", e); }
     }
             } catch (e) {
               console.error("Erro ao carregar os dados do localStorage:", e);
@@ -216,8 +219,8 @@ export function useProperties(baseCreci?: string) {
                 merged.forEach(p => store.put(p));
                 tx.oncomplete = () => db.close();
               };
-              dbReq.onerror = () => {};
-            } catch(e) { /* IndexedDB not available */ }
+               dbReq.onerror = () => { console.warn('[IDB] Open error'); };
+            } catch(e) { console.warn('[IDB] Not available:', e); }
             }
     
             if (localOnly.length > 0 && name && isMountedRef.current) {
@@ -235,7 +238,7 @@ export function useProperties(baseCreci?: string) {
                           });
                           const d = await r.json();
                           return d.url || img;
-                        } catch { return img; }
+                        } catch { console.warn('[IDB] Upload failed, using base64'); return img; }
                       }
                       return img;
                     }));
@@ -298,6 +301,7 @@ export function useProperties(baseCreci?: string) {
   }, []);
 
   const handleSaveProperty = useCallback(async (property: Property, profile: { name: string; login: string }) => {
+    const prevSnapshot = propertiesRef.current;
     setProperties(prev => {
       const exists = prev.find(p => p.id === property.id);
       let updated: Property[];
@@ -332,6 +336,7 @@ export function useProperties(baseCreci?: string) {
               const data = await res.json();
               return data.url || img;
             } catch {
+              console.warn('Image upload failed, using base64');
               return img;
             }
           }
@@ -347,7 +352,7 @@ export function useProperties(baseCreci?: string) {
             });
             const data = await res.json();
             prop.thumbnail = data.url || prop.thumbnail;
-          } catch {}
+          } catch { console.warn('Thumbnail upload failed'); }
         }
       }
       const response = await fetch(`${API_BASE}/api/partner/properties`, {
@@ -363,22 +368,24 @@ export function useProperties(baseCreci?: string) {
       if (response.ok) {
         const data = await response.json();
         setProperties(prev => {
-          // Update with remoteId so card shows 'Hub' instead of 'Syncing'
           const updated = prev.map(p =>
             p.id === property.id
               ? { ...p, id: data.propertyId, remoteId: data.propertyId, remoteStatus: 'approved' as const }
               : p
           );
-          // Persist immediately so reload doesn't lose the remoteId
-          try { localStorage.setItem('iamobil_properties', JSON.stringify(updated)); } catch {}
+          try { localStorage.setItem('iamobil_properties', JSON.stringify(updated)); } catch { console.warn('Failed to persist after save'); }
           return updated;
         });
         setSyncStatus({ syncing: false, lastSync: Date.now(), error: null });
       } else {
+        setProperties(prevSnapshot);
+        try { localStorage.setItem('iamobil_properties', JSON.stringify(prevSnapshot)); } catch {}
         setSyncStatus({ syncing: false, lastSync: null, error: 'Erro ao salvar na nuvem' });
       }
     } catch (e: unknown) {
       console.error("Erro na integração:", e);
+      setProperties(prevSnapshot);
+      try { localStorage.setItem('iamobil_properties', JSON.stringify(prevSnapshot)); } catch {}
       setSyncStatus({ syncing: false, lastSync: null, error: 'Erro de conexão' });
       syncQueue.enqueue({
         type: 'create',
@@ -395,8 +402,9 @@ export function useProperties(baseCreci?: string) {
 
   const deleteProperty = useCallback((id: string) => {
     const propertyToDelete = properties.find(p => p.id === id);
-    const updated = properties.filter(p => p.id !== id);
-    saveProperties(updated);
+    if (!propertyToDelete) return;
+    const prevSnapshot = propertiesRef.current;
+    saveProperties(prevSnapshot.filter(p => p.id !== id));
 
     const deletedIds: string[] = JSON.parse(localStorage.getItem('iamobil_deleted_ids') || '[]');
     if (!deletedIds.includes(id)) {
@@ -404,25 +412,28 @@ export function useProperties(baseCreci?: string) {
       localStorage.setItem('iamobil_deleted_ids', JSON.stringify(deletedIds));
     }
 
-    if (propertyToDelete) {
-      (async () => {
-        const API_BASE = getApiUrl();
-        if (!API_BASE) return;
-        const targetId = propertyToDelete.remoteId || propertyToDelete.id;
-        try {
-          await fetch(`${API_BASE}/api/partner/properties?id=${targetId}`, {
-            method: "DELETE"
-          });
-        } catch (e) {
-          console.error("Erro ao deletar da nuvem:", e);
-          syncQueue.enqueue({
-            type: 'delete',
-            endpoint: `/api/partner/properties?id=${targetId}`,
-            method: 'DELETE'
-          });
-        }
-      })();
-    }
+    (async () => {
+      const API_BASE = getApiUrl();
+      if (!API_BASE) return;
+      const targetId = propertyToDelete.remoteId || propertyToDelete.id;
+      try {
+        const res = await fetch(`${API_BASE}/api/partner/properties?id=${targetId}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) {
+        console.error("Erro ao deletar da nuvem:", e);
+        setProperties(prevSnapshot);
+        try { localStorage.setItem('iamobil_properties', JSON.stringify(prevSnapshot)); } catch {}
+        const rollbackIds: string[] = JSON.parse(localStorage.getItem('iamobil_deleted_ids') || '[]').filter((did: string) => did !== id);
+        localStorage.setItem('iamobil_deleted_ids', JSON.stringify(rollbackIds));
+        syncQueue.enqueue({
+          type: 'delete',
+          endpoint: `/api/partner/properties?id=${targetId}`,
+          method: 'DELETE'
+        });
+      }
+    })();
   }, [properties, saveProperties]);
 
   useEffect(() => {
@@ -459,7 +470,7 @@ export function useProperties(baseCreci?: string) {
             return updated;
           });
         }
-      } catch (err) { /* silent */ }
+      } catch (err) { console.warn('Status polling failed:', err); }
     };
 
     checkStatuses();

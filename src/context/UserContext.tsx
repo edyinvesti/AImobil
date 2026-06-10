@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { UserProfile } from '../types';
 import { getApiUrl } from '../utils';
 import { syncQueue } from '../sync-queue';
@@ -14,6 +14,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 const API_URL = getApiUrl();
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const profileRef = useRef<UserProfile>({ name: '', login: '', photo: '', email: '', phone: '' });
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     login: '',
@@ -36,6 +37,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  useEffect(() => { profileRef.current = profile; });
 
   useEffect(() => {
     const fetchCloudProfile = async () => {
@@ -98,9 +101,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = useCallback(async (newProfile: UserProfile) => {
+    const prevProfile = profileRef.current;
     setProfile(newProfile);
     localStorage.setItem('iamobil_profile', JSON.stringify(newProfile));
-    return syncToCloud(newProfile);
+    try {
+      await syncToCloud(newProfile);
+    } catch {
+      setProfile(prevProfile);
+      localStorage.setItem('iamobil_profile', JSON.stringify(prevProfile));
+    }
   }, []);
 
   const logout = useCallback(() => {
