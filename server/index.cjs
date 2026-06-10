@@ -144,11 +144,88 @@ app.use('/api/leads', leadRoutes(leadService, authMiddleware));
 app.use('/api/appointments', appointmentRoutes(appointmentService, authMiddleware));
 app.use('/api/marketing', marketingRoutes(marketingService, authMiddleware));
 
-// Partner routes (protected)
-app.use('/api/partner/properties', propertyRoutes(propertyService, authMiddleware));
-
 // Telegram routes (webhook is public, status is protected)
 app.use('/api/telegram', telegramRoutes(telegramService));
+
+// ═══════════════════════════════════════════════════════════════
+// LEGACY PARTNER ROUTES (compatibilidade com frontend)
+// ═══════════════════════════════════════════════════════════════
+
+app.get('/api/partner/properties', authMiddleware, async (req, res, next) => {
+  try {
+    let properties = await dataEngine.getProperties();
+    const login = req.query?.login || req.query?.creci;
+    if (login && login.trim()) {
+      const target = login.trim().toLowerCase();
+      properties = properties.filter(p => {
+        const bc = (p.brokerLogin || p.brokerCreci || '').toString().trim().toLowerCase();
+        const b_c = (p.broker_login || p.broker_creci || '').toString().trim().toLowerCase();
+        return bc === target || b_c === target;
+      });
+    }
+    res.json({ success: true, count: properties.length, properties });
+  } catch (e) {
+    logger.error('Partner properties fetch error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao buscar imóveis' });
+  }
+});
+
+app.post('/api/partner/properties', authMiddleware, async (req, res, next) => {
+  try {
+    const property = req.body;
+    if (!property.id) property.id = `prop_${Date.now()}`;
+    const MAX_IMAGES = 10;
+    const images = property.images || [];
+    if (Array.isArray(images) && images.length > MAX_IMAGES) {
+      return res.status(400).json({ error: `Máximo de ${MAX_IMAGES} fotos por imóvel. Você enviou ${images.length}.` });
+    }
+    await dataEngine.addProperty(property);
+    logger.info('Property created via Partner API', { propertyId: property.id });
+    res.status(201).json({ success: true, propertyId: property.id });
+  } catch (e) {
+    logger.error('Partner property creation error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao salvar imóvel' });
+  }
+});
+
+app.delete('/api/partner/properties', authMiddleware, async (req, res, next) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
+    await dataEngine.deleteProperty(id);
+    logger.info('Property deleted via Partner API', { propertyId: id });
+    res.json({ success: true, deleted: id });
+  } catch (e) {
+    logger.error('Property deletion error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao deletar imóvel' });
+  }
+});
+
+app.get('/api/partner/properties/status', authMiddleware, async (req, res, next) => {
+  try {
+    const properties = await dataEngine.getProperties();
+    const statuses = {};
+    properties.forEach(p => {
+      statuses[p.id] = p.status || 'approved';
+    });
+    res.json({ success: true, statuses });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar status' });
+  }
+});
+
+app.get('/api/partner/property-image', authMiddleware, async (req, res, next) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
+    const property = await dataEngine.getPropertyById(id);
+    if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+    res.json({ success: true, images: property.images || [] });
+  } catch (e) {
+    logger.error('Property image fetch error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao buscar imagens' });
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════
 // LEGACY ROUTES (compatibilidade)
