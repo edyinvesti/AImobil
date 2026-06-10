@@ -1172,7 +1172,9 @@ app.post('/api/partner/register', async (req, res) => {
     const broker = req.body;
     if (!broker.login) return res.status(400).json({ error: 'login obrigatório' });
 
-    // Persist to Database (primary) and in-memory Map (fallback)
+    // Map frontend 'login' to database 'creci'
+    broker.creci = broker.login;
+
     if (dataEngine) {
       await dataEngine.saveBroker(broker);
     }
