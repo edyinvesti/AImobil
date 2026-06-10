@@ -404,7 +404,7 @@ export function useProperties(baseCreci?: string) {
       localStorage.setItem('iamobil_deleted_ids', JSON.stringify(deletedIds));
     }
 
-    if (propertyToDelete && (propertyToDelete.remoteId || propertyToDelete.id.startsWith('prop_'))) {
+    if (propertyToDelete) {
       (async () => {
         const API_BASE = getApiUrl();
         if (!API_BASE) return;
