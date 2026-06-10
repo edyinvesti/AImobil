@@ -181,7 +181,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
           )
         ) : (
           <motion.div 
-           className="flex flex-wrap gap-6 items-start justify-start"
+           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
             layout
           >
             {filteredProperties.map(property => (
@@ -191,7 +191,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-               className="w-full sm:w-full shrink-0"
+               className="w-full"
               >
                 <PropertyCard 
                   property={property}
