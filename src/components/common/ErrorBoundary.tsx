@@ -20,7 +20,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.group("🔴 Interface Crash Detected");
+    console.error("Error:", error);
+    console.error("Component Stack:", errorInfo.componentStack);
+    console.groupEnd();
   }
 
   public render() {

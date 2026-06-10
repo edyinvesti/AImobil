@@ -1,6 +1,7 @@
 
 import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2 } from 'lucide-react';
 import { Property } from '../types';
+import { safeFormatCurrency } from '../utils';
 
 interface PropertyCardProps {
   property: Property;
@@ -74,7 +75,7 @@ export function PropertyCard({ property, onClick, onDelete, campaignActive }: Pr
       <div className="p-2.5 space-y-1.5">
         <div className="flex items-center justify-between gap-1">
           <span className="text-sm font-bold text-zinc-100 truncate">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(property.price)}
+            {safeFormatCurrency(property?.price)}
           </span>
           <span className="text-[9px] text-zinc-500 font-medium uppercase whitespace-nowrap shrink-0">
             {property.status || 'Disponível'}

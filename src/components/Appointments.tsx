@@ -29,7 +29,7 @@ const formatCurrency = (val: number) => {
 };
 
 export const Appointments = () => {
-  const { leads, loading, refresh } = useLeads();
+  const { data: leads = [], isLoading: loading, refetch: refresh } = useLeads();
 
   if (loading && leads.length === 0) {
     return (
@@ -63,7 +63,7 @@ export const Appointments = () => {
         </div>
         <div className="flex items-center gap-4">
           <button 
-            onClick={refresh}
+            onClick={() => refresh()}
             className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors group"
           >
             <RefreshCw size={16} className={`text-orange-500 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />

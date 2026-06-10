@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, Download } from "lucide-react";
 import { Property } from "../types";
-import { getApiUrl } from "../utils";
+import { getApiUrl, safeFormatCurrency } from "../utils";
 import { PropertyCard } from "./PropertyCard";
 import { SkeletonCard } from "./SkeletonCard";
 import { EmptyPortfolio } from "./EmptyPortfolio";
@@ -15,6 +14,7 @@ interface DashboardProps {
   onDelete: (id: string) => void;
   onSync: () => void;
   loading?: boolean;
+  syncStatus?: { lastSync: number | null; error: string | null };
 }
 
 const CATEGORIES = [
@@ -38,7 +38,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
     return matchesSearch && matchesCategory;
   });
 
-  const totalValue = filteredProperties.reduce((acc, p) => acc + Number(p.price), 0);
+  const totalValue = filteredProperties.reduce((acc, p) => acc + Number(p?.price || 0), 0);
   const pendingProps = filteredProperties.filter(p => p.remoteStatus === 'pending' || p.remoteStatus === 'unknown').length;
 
   if (loading) {
@@ -140,7 +140,7 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
         <div className="flex-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">
           <p className="text-gray-500 text-[10px] font-black uppercase mb-1">Volume</p>
           <h2 className="text-3xl font-black text-orange-500">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(totalValue)}
+            {safeFormatCurrency(totalValue)}
           </h2>
         </div>
         <div className="flex-1 min-w-0 w-full bg-zinc-900 p-6 rounded-2xl border border-white/10">

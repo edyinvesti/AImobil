@@ -12,6 +12,9 @@ interface RawPropertyInput {
 }
 
 function normalizeProperty(p: RawPropertyInput): Property {
+  if (!p || typeof p !== 'object') {
+    return { id: Math.random().toString(36).substring(2), title: 'Item Inválido', images: [] } as any;
+  }
   const imgs = (() => {
     let imgs: string[] = [];
     if (Array.isArray(p.images)) imgs = p.images;
@@ -144,8 +147,11 @@ export function useProperties(baseCreci?: string) {
            if (!Array.isArray(data.properties)) {
              throw new Error('Formato de propriedades inválido na resposta');
            }
-           
-           const deletedIds = new Set<string>(JSON.parse(localStorage.getItem('iamobil_deleted_ids') || '[]'));
+                      const deletedIds = new Set<string>();
+            try {
+              const dIds = JSON.parse(localStorage.getItem('iamobil_deleted_ids') || '[]');
+              if (Array.isArray(dIds)) dIds.forEach(id => deletedIds.add(String(id)));
+            } catch(e) { console.warn("Failed to parse deleted ids"); }
            const cloudItems = data.properties
              .filter((p: RawPropertyInput): p is RawPropertyInput => {
                return p && typeof p === 'object';

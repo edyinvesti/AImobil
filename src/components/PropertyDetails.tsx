@@ -2,7 +2,7 @@ import { useState, useEffect, MouseEvent } from 'react';
 import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
-import { resolveImageUrl, getApiUrl } from '../utils';
+import { resolveImageUrl, getApiUrl, safeFormatCurrency } from '../utils';
 import { useToast } from '../hooks/useToast';
 
 interface PropertyDetailsProps {
@@ -50,8 +50,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
         return () => { cancelled = true; };
     }, [initialProperty.id]);
 
-    const formatPrice = (price: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
+    const formatPrice = (price: any) => safeFormatCurrency(price);
 
     const handleWhatsAppShare = () => {
         const text = `🏠 *${property.title}*\n📍 ${property.address}\n💰 *Valor:* ${formatPrice(property.price)}\n\nConfira mais detalhes!\n\n_Enviado via IAmobil_`;
@@ -78,11 +77,19 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
 
     const prevImg = (e: MouseEvent) => {
         e.stopPropagation();
-        setCurrentImageIndex(i => (i - 1 + property.images.length) % property.images.length);
+        setCurrentImageIndex(i => {
+            const len = property.images?.length || 0;
+            if (len === 0) return 0;
+            return (i - 1 + len) % len;
+        });
     };
     const nextImg = (e: MouseEvent) => {
         e.stopPropagation();
-        setCurrentImageIndex(i => (i + 1) % property.images.length);
+        setCurrentImageIndex(i => {
+            const len = property.images?.length || 0;
+            if (len === 0) return 0;
+            return (i + 1) % len;
+        });
     };
 
     return (

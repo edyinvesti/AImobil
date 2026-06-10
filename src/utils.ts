@@ -4,28 +4,49 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function getApiUrl(): string {
-  // Handle undefined or empty API_URL
-  if (!API_URL) {
-    console.warn('VITE_API_URL is not defined');
-    // In production, we expect this to be defined via environment variables
-    // In development, fallback to default
-    if (import.meta.env.PROD) {
-      return 'https://aimobil.onrender.com'; // Production fallback
+  // Check if we're in a specialized local environment (like the agent's browser)
+  // or if the VITE_API_URL is explicitly set to localhost
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  if (import.meta.env.DEV) {
+    // In development, prefer localhost for the backend if it's likely running there
+    // This avoids CORS issues when hitting production from localhost
+    if (!envUrl || envUrl.includes('render.com')) {
+      return 'http://localhost:10002';
     }
-    return 'http://localhost:10002'; // Development fallback
   }
 
-  // Defensive check for common misconfigurations (like pasting a terminal command)
-  if (API_URL && (API_URL.includes('npx') || API_URL.includes('vercel') || !API_URL.startsWith('http'))) {
-    if (!API_URL.startsWith('/') && !API_URL.startsWith('http')) {
-      console.error('CRITICAL: VITE_API_URL appears to be misconfigured:', API_URL);
-      // Fallback to relative path to at least try the Vercel proxy
-      if (!API_URL.startsWith('/') && !API_URL.startsWith('http')) {
-        return ''; // Will make relative requests
-      }
+  if (!envUrl) {
+    if (import.meta.env.PROD) {
+      return 'https://aimobil.onrender.com';
+    }
+    return 'http://localhost:10002';
+  }
+
+  // Defensive check for common misconfigurations
+  if (envUrl.includes('npx') || envUrl.includes('vercel') || !envUrl.startsWith('http')) {
+    if (!envUrl.startsWith('/') && !envUrl.startsWith('http')) {
+      return ''; 
     }
   }
-  return API_URL.replace(/\/$/, ''); // Remove trailing slash if present
+  return envUrl.replace(/\/$/, '');
+}
+
+/**
+ * Safely formats a number as currency, preventing crashes on NaN or invalid values.
+ */
+export function safeFormatCurrency(value: any): string {
+  try {
+    const num = Number(value);
+    if (isNaN(num)) return 'R$ 0,00';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(num);
+  } catch (e) {
+    console.warn('Currency formatting failed:', e);
+    return 'R$ 0,00';
+  }
 }
 
 function autoEnhance(ctx: CanvasRenderingContext2D, width: number, height: number) {
