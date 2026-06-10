@@ -2,9 +2,9 @@
 // Serviço de IA com fallback: Mistral → Groq → Gemini
 
 const path = require('path');
-const { ExternalServiceError } = require(path.join(__dirname, '..', 'utils', 'errors'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const { ExternalServiceError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
 
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;

@@ -3,8 +3,8 @@
 
 const jwt = require('jsonwebtoken');
 const path = require('path');
-const { UnauthorizedError, ConflictError } = require(path.join(__dirname, '..', 'utils', 'errors'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const { UnauthorizedError, ConflictError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'aimobil-jwt-secret-2024';
 const JWT_EXPIRES_IN = '24h';

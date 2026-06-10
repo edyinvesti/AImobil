@@ -2,9 +2,9 @@
 // Serviço de agendamentos
 
 const path = require('path');
-const { NotFoundError } = require(path.join(__dirname, '..', 'utils', 'errors'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const { NotFoundError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
 
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 class AppointmentService {
   constructor(dataEngine) {
     this.dataEngine = dataEngine;

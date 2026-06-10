@@ -5,7 +5,7 @@ const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = re
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const crypto = require('crypto');
 const path = require('path');
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 
 class StorageService {
   constructor() {

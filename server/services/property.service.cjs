@@ -2,9 +2,9 @@
 // Serviço de imóveis (CRUD)
 
 const path = require('path');
-const { NotFoundError, ValidationError } = require(path.join(__dirname, '..', 'utils', 'errors'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const { NotFoundError, ValidationError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
 
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 const MAX_IMAGES = 10;
 
 class PropertyService {
