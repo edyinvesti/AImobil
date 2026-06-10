@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { BarChart3, ExternalLink, Instagram, RefreshCw, Image, CheckCircle2, XCircle, Trash2, Clock, Filter, X, ChevronRight } from 'lucide-react';
 import { getApiUrl } from '../utils';
+import { useToast } from '../hooks/useToast';
 
 interface Campaign {
   id: string;
@@ -43,6 +44,7 @@ const filters = [
 type FilterId = typeof filters[number]['id'];
 
 export const Campaigns = () => {
+  const { toast } = useToast();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<CampaignStats>({ total: 0, published: 0, failed: 0, carousel: 0 });
   const [loading, setLoading] = useState(true);
@@ -81,9 +83,9 @@ export const Campaigns = () => {
         setCampaigns(prev => prev.filter(c => c.id !== id));
         if (detail?.id === id) setDetail(null);
         if (data.instagram?.success === false) {
-          alert(`Post do Instagram não pôde ser removido: ${data.instagram.error}`);
+          toast(`Instagram: ${data.instagram.error}`, 'warning');
         } else if (data.instagram?.success) {
-          alert('Post removido do Instagram com sucesso!');
+          toast('Post removido do Instagram com sucesso!', 'success');
         }
         fetchData();
       }

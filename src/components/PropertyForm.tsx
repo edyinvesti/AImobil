@@ -2,6 +2,7 @@ import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption } from '../types';
 import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car } from 'lucide-react';
 import { compressImage, getApiUrl } from '../utils';
+import { useToast } from '../hooks/useToast';
 
 interface PropertyFormProps {
     onSave: (property: Property) => void;
@@ -17,6 +18,7 @@ const AMENITIES_OPTIONS = [
 
 export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProps) => {
     const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
         type: initialData?.type || 'Apartamento' as PropertyType,
@@ -103,7 +105,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         if (files) {
             const remainingSlots = 10 - images.length;
             if (remainingSlots <= 0) {
-                alert('Máximo de 10 imagens por imóvel.');
+                toast('Máximo de 10 imagens por imóvel.', 'warning');
                 return;
             }
 
@@ -208,15 +210,15 @@ const [states, setStates] = useState<IBGEState[]>([]);
             });
             const data = await res.json();
             if (data.instagram?.status === 'PUBLISHED') {
-                alert(`✅ Publicado no Instagram!\n\nVeja em: ${data.instagram.url}`);
+                toast('Publicado no Instagram!', 'success');
             } else if (data.success) {
-                alert(`✅ Campanha criada! Instagram: ${data.instagram?.status || 'SKIPPED'}`);
+                toast(`Campanha criada! Instagram: ${data.instagram?.status || 'SKIPPED'}`, 'info');
             } else {
-                alert(`⚠️ Erro: ${data.error || 'Falha ao publicar'}`);
+                toast(`Erro: ${data.error || 'Falha ao publicar'}`, 'error');
             }
         } catch (error) {
             console.error("Erro ao criar campanha automática:", error);
-            alert("❌ Erro de conexão ao publicar no Instagram");
+            toast("Erro de conexão ao publicar no Instagram", 'error');
         }
     };
 
@@ -237,7 +239,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         } catch (error) {
             console.error("Erro ao salvar:", error);
             setIsSaving(false);
-            alert("Ocorreu um erro ao salvar o imóvel. Verifique os dados e tente novamente.");
+            toast("Erro ao salvar o imóvel. Verifique os dados e tente novamente.", 'error');
         }
     };
 

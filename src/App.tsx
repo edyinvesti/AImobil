@@ -18,6 +18,7 @@ import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
+import { useToast } from "./hooks/useToast";
 
 function gerarThumbnail(imgBase64: string): Promise<string> {
   return new Promise((resolve) => {
@@ -37,6 +38,7 @@ function gerarThumbnail(imgBase64: string): Promise<string> {
 }
 
 export default function App() {
+  const { toast } = useToast();
   const [showSplash, setShowSplash] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   useNotifications();
@@ -109,11 +111,11 @@ export default function App() {
                  onClick={() => {
                     const pending = syncQueue.pendingCount;
                     if (pending > 0) {
-                      alert(`📤 ${pending} operaç${pending === 1 ? 'ão' : 'ões'} pendente${pending === 1 ? '' : 's'} de sincronização`);
+                      toast(`📤 ${pending} operação pendente de sincronização`, 'info');
                     } else if (syncStatus?.lastSync) {
-                      alert(`✅ Sincronizado. Última sync: ${new Date(syncStatus.lastSync).toLocaleString('pt-BR')}`);
+                      toast(`✅ Sincronizado. Última sync: ${new Date(syncStatus.lastSync).toLocaleString('pt-BR')}`, 'success');
                     } else {
-                      alert('ℹ️ Nenhuma operação pendente.');
+                      toast('ℹ️ Nenhuma operação pendente.', 'info');
                     }
                  }}
                  className="p-1.5 text-gray-400 hover:text-white transition-colors relative"

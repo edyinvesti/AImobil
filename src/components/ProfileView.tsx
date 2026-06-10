@@ -2,8 +2,10 @@ import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useUser } from '../context/UserContext';
 import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search } from 'lucide-react';
 import { getApiUrl } from '../utils';
+import { useToast } from '../hooks/useToast';
 
 export function ProfileView() {
+  const { toast } = useToast();
   const { profile, updateProfile } = useUser();
   const [formData, setFormData] = useState(profile);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,7 +21,7 @@ export function ProfileView() {
 
   const handleFetchProfile = async () => {
     if (!formData.login) {
-      alert("Digite o login primeiro.");
+      toast("Digite o login primeiro.", 'warning');
       return;
     }
     setIsLoading(true);
@@ -39,13 +41,13 @@ export function ProfileView() {
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
         } else {
-          alert("Corretor não encontrado no banco de dados.");
+          toast("Corretor não encontrado no banco de dados.", 'error');
         }
       } else {
-        alert("Erro ao buscar perfil.");
+        toast("Erro ao buscar perfil.", 'error');
       }
     } catch (err: unknown) {
-      alert("Erro ao buscar perfil: " + (err instanceof Error ? err.message : "Tente novamente"));
+      toast("Erro ao buscar perfil: " + (err instanceof Error ? err.message : "Tente novamente"), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +56,7 @@ export function ProfileView() {
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.login) {
-      alert("O campo login é obrigatório.");
+      toast("O campo login é obrigatório.", 'warning');
       return;
     }
     setIsSaving(true);
@@ -63,7 +65,7 @@ export function ProfileView() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: unknown) {
-      alert("Erro ao salvar: " + (err instanceof Error ? err.message : "Tente novamente"));
+      toast("Erro ao salvar: " + (err instanceof Error ? err.message : "Tente novamente"), 'error');
     } finally {
       setIsSaving(false);
     }

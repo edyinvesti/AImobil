@@ -10,6 +10,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserProvider } from './context/UserContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ToastProvider } from './hooks/useToast';
 
 const queryClient = new QueryClient();
 
@@ -31,7 +32,7 @@ root.render(
       <QueryClientProvider client={queryClient}>
         <UserProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
-            <App />
+            <ToastProvider><App /></ToastProvider>
           </BrowserRouter>
         </UserProvider>
       </QueryClientProvider>

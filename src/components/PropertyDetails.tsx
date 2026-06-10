@@ -3,6 +3,7 @@ import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Imag
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
 import { resolveImageUrl, getApiUrl } from '../utils';
+import { useToast } from '../hooks/useToast';
 
 interface PropertyDetailsProps {
     property: Property;
@@ -12,6 +13,7 @@ interface PropertyDetailsProps {
 }
 
 export const PropertyDetails = ({ property: initialProperty, profile, onClose, onPublish }: PropertyDetailsProps) => {
+    const { toast } = useToast();
     const [property, setProperty] = useState(initialProperty);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -177,7 +179,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                                             navigator.share({ title: property.title, url: link });
                                         } else {
                                             navigator.clipboard.writeText(link);
-                                            alert('Link copiado! Compartilhe no Instagram ou WhatsApp.');
+                                            toast('Link copiado! Compartilhe no Instagram ou WhatsApp.', 'success');
                                         }
                                     }}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:from-blue-500 hover:to-violet-500 transition-all"
