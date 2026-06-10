@@ -20,6 +20,7 @@ Siga `.aiox-core/constitution.md` como fonte de verdade:
 npm run lint
 npm run typecheck
 npm run build
+npm test
 ```
 
 ## Agent Shortcuts

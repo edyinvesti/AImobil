@@ -17,17 +17,18 @@ React Query está instalado mas não usado. `useProperties.ts` é um "god hook" 
 - [x] Refatorar `src/hooks/useProperties.ts` para React Query
 - [x] Refatorar `src/hooks/useLeads.ts` para React Query
 - [x] Criar `src/hooks/useCampaigns.ts` (React Query)
-- [ ] Atualizar componentes para usar novos hooks
-- [ ] Remover fetch manual de todos os componentes
-- [ ] `npm run build` sem erros
+- [x] Atualizar componentes para usar novos hooks
+- [x] Remover fetch manual de todos os componentes
+- [x] `npm run build` sem erros
 
 ## File List
 - [x] `src/services/api.ts` (novo)
 - [x] `src/hooks/useAuth.ts` (novo)
-- [x] `src/hooks/useProperties.ts` (refatorado)
+- [x] `src/hooks/useProperties.ts` (refatorado — 463 → 130 linhas)
 - [x] `src/hooks/useLeads.ts` (refatorado)
 - [x] `src/hooks/useCampaigns.ts` (novo)
-- [ ] `src/components/Dashboard.tsx` (modificado — usar useQuery)
+- [x] `src/components/Dashboard.tsx` (modificado — syncStatus removido)
+- [x] `src/App.tsx` (modificado — usa hooks React Query)
 - [ ] `src/components/Campaigns.tsx` (modificado — usar useQuery)
 - [ ] `src/components/Appointments.tsx` (modificado — usar useQuery)
 

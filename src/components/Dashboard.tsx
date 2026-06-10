@@ -1,14 +1,12 @@
 
 import { useState } from "react";
-import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, AlertCircle, Download } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, Download } from "lucide-react";
 import { Property } from "../types";
 import { getApiUrl } from "../utils";
 import { PropertyCard } from "./PropertyCard";
 import { SkeletonCard } from "./SkeletonCard";
 import { EmptyPortfolio } from "./EmptyPortfolio";
 import { motion, AnimatePresence } from "framer-motion";
-import { SyncStatus } from "../hooks/useProperties";
-
 interface DashboardProps {
   properties: Property[];
   onAddClick: () => void;
@@ -17,7 +15,6 @@ interface DashboardProps {
   onDelete: (id: string) => void;
   onSync: () => void;
   loading?: boolean;
-  syncStatus?: SyncStatus;
 }
 
 const CATEGORIES = [
@@ -30,15 +27,7 @@ const CATEGORIES = [
   { id: 'Comercial', label: 'Comercial', icon: Building },
 ];
 
-function formatLastSync(timestamp: number | null): string {
-  if (!timestamp) return 'Nunca';
-  const diff = Date.now() - timestamp;
-  if (diff < 60000) return 'Agora';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m atrás`;
-  return `${Math.floor(diff / 3600000)}h atrás`;
-}
-
-export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onDelete, onSync, loading, syncStatus }: DashboardProps) {
+export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onDelete, onSync, loading }: DashboardProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
 
@@ -77,23 +66,18 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
             </p>
           </div>
           
-          <div className="flex items-center gap-2 mt-1">
-            {syncStatus?.syncing ? (
+           <div className="flex items-center gap-2 mt-1">
+            {loading ? (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                 <RefreshCw size={14} className="text-blue-400 animate-spin" />
-                <span className="text-[10px] font-bold text-blue-400 uppercase">Sincronizando</span>
+                <span className="text-[10px] font-bold text-blue-400 uppercase">Carregando</span>
               </div>
-            ) : syncStatus?.error ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <AlertCircle size={14} className="text-red-400" />
-                <span className="text-[10px] font-bold text-red-400 uppercase">{syncStatus.error}</span>
-              </div>
-            ) : syncStatus?.lastSync ? (
+            ) : (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-400 uppercase">Sincronizado {formatLastSync(syncStatus.lastSync)}</span>
+                <span className="text-[10px] font-bold text-emerald-400 uppercase">Sincronizado</span>
               </div>
-            ) : null}
+            )}
             
             <button 
               onClick={() => window.open(getApiUrl() + '/api/properties/export', '_blank')}
