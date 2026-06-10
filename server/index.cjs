@@ -151,7 +151,7 @@ app.use('/api/telegram', telegramRoutes(telegramService));
 // LEGACY PARTNER ROUTES (compatibilidade com frontend)
 // ═══════════════════════════════════════════════════════════════
 
-app.get('/api/partner/properties', authMiddleware, async (req, res, next) => {
+app.get('/api/partner/properties', async (req, res, next) => {
   try {
     let properties = await dataEngine.getProperties();
     const login = req.query?.login || req.query?.creci;
@@ -170,7 +170,7 @@ app.get('/api/partner/properties', authMiddleware, async (req, res, next) => {
   }
 });
 
-app.post('/api/partner/properties', authMiddleware, async (req, res, next) => {
+app.post('/api/partner/properties', async (req, res, next) => {
   try {
     const property = req.body;
     if (!property.id) property.id = `prop_${Date.now()}`;
@@ -188,7 +188,7 @@ app.post('/api/partner/properties', authMiddleware, async (req, res, next) => {
   }
 });
 
-app.delete('/api/partner/properties', authMiddleware, async (req, res, next) => {
+app.delete('/api/partner/properties', async (req, res, next) => {
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
@@ -201,7 +201,7 @@ app.delete('/api/partner/properties', authMiddleware, async (req, res, next) => 
   }
 });
 
-app.get('/api/partner/properties/status', authMiddleware, async (req, res, next) => {
+app.get('/api/partner/properties/status', async (req, res, next) => {
   try {
     const properties = await dataEngine.getProperties();
     const statuses = {};
@@ -214,7 +214,7 @@ app.get('/api/partner/properties/status', authMiddleware, async (req, res, next)
   }
 });
 
-app.get('/api/partner/property-image', authMiddleware, async (req, res, next) => {
+app.get('/api/partner/property-image', async (req, res, next) => {
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
@@ -224,6 +224,78 @@ app.get('/api/partner/property-image', authMiddleware, async (req, res, next) =>
   } catch (e) {
     logger.error('Property image fetch error', { error: e.message });
     res.status(500).json({ error: 'Erro ao buscar imagens' });
+  }
+});
+
+app.get('/api/partner/register', async (req, res, next) => {
+  try {
+    const login = req.query.login;
+    if (!login) return res.status(400).json({ error: 'login obrigatório' });
+    let broker = null;
+    if (dataEngine) {
+      broker = await dataEngine.getBroker(login);
+    }
+    res.json({ success: true, broker });
+  } catch (e) {
+    logger.error('Get broker error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao buscar perfil' });
+  }
+});
+
+app.post('/api/partner/register', async (req, res, next) => {
+  try {
+    const broker = req.body;
+    if (!broker.login) return res.status(400).json({ error: 'login obrigatório' });
+    broker.creci = broker.login;
+    if (dataEngine) {
+      await dataEngine.saveBroker(broker);
+    }
+    logger.info('Broker profile saved', { login: broker.login });
+    res.json({ success: true });
+  } catch (e) {
+    logger.error('Save broker error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao salvar perfil' });
+  }
+});
+
+// Image upload (Imgur fallback to base64)
+const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
+
+app.post('/api/properties/upload-image', async (req, res, next) => {
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ error: 'Imagem não enviada' });
+
+    const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+    let url = null;
+
+    if (IMGUR_CLIENT_ID) {
+      try {
+        const imgurRes = await fetch('https://api.imgur.com/3/image', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ image: base64, type: 'base64' })
+        });
+        const imgurData = await imgurRes.json();
+        if (imgurData.success && imgurData.data?.link) {
+          url = imgurData.data.link;
+        }
+      } catch (e) {
+        logger.warn('[Upload] Imgur failed, using base64');
+      }
+    }
+
+    if (url) {
+      res.json({ success: true, url });
+    } else {
+      res.json({ success: true, url: image });
+    }
+  } catch (e) {
+    logger.error('Image upload error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao fazer upload' });
   }
 });
 
