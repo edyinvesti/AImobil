@@ -14,7 +14,6 @@ import { ConfirmationModal } from "./components/ConfirmationModal";
 import { Bell } from "lucide-react";
 import { useProperties } from "./hooks/useProperties";
 import { useUser } from "./context/UserContext";
-import { syncQueue } from "./sync-queue";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
@@ -54,7 +53,7 @@ export default function App() {
       window.removeEventListener('offline', goOffline);
     };
   }, []);
-  const { properties, saveProperty, deleteProperty, forceSync, loading, syncStatus } = useProperties(profile.login);
+  const { properties, saveProperty, deleteProperty, loading } = useProperties(profile.login);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
   
@@ -108,25 +107,11 @@ export default function App() {
 
           <div className="flex items-center gap-4">
               <button
-                 onClick={() => {
-                    const pending = syncQueue.pendingCount;
-                    if (pending > 0) {
-                      toast(`📤 ${pending} operação pendente de sincronização`, 'info');
-                    } else if (syncStatus?.lastSync) {
-                      toast(`✅ Sincronizado. Última sync: ${new Date(syncStatus.lastSync).toLocaleString('pt-BR')}`, 'success');
-                    } else {
-                      toast('ℹ️ Nenhuma operação pendente.', 'info');
-                    }
-                 }}
-                 className="p-1.5 text-gray-400 hover:text-white transition-colors relative"
-              >
-                 <Bell size={18} />
-                 {syncQueue.pendingCount > 0 && (
-                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-[8px] font-black text-white border-2 border-[#030303]">
-                     {syncQueue.pendingCount}
-                   </span>
-                 )}
-              </button>
+                  onClick={() => toast('✅ Conectado ao servidor', 'success')}
+                  className="p-1.5 text-gray-400 hover:text-white transition-colors relative"
+               >
+                  <Bell size={18} />
+               </button>
              <div className="w-[1px] h-3 bg-white/10" />
              <div className="flex items-center gap-3">
                 <div className="hidden sm:flex flex-col items-end gap-0.5">
@@ -153,9 +138,7 @@ export default function App() {
                     onPropertyClick={(p) => { setSelectedProperty(p); }}
                     onDelete={setPropertyToDelete}
                     onEdit={(p) => { setSelectedProperty(p); navigate('/form'); }}
-                    onSync={forceSync}
                     loading={loading}
-                    syncStatus={syncStatus}
                   />
                 </motion.div>
               } />

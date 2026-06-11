@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, RefreshCw, CheckCircle2, Download } from "lucide-react";
+import { Search, Filter, SlidersHorizontal, House, Building2, LandPlot, Building, Trees, Sprout, Download } from "lucide-react";
 import { Property } from "../types";
 import { getApiUrl, safeFormatCurrency } from "../utils";
 import { PropertyCard } from "./PropertyCard";
@@ -12,9 +12,7 @@ interface DashboardProps {
   onPropertyClick: (property: Property) => void;
   onEdit: (property: Property) => void;
   onDelete: (id: string) => void;
-  onSync: () => void;
   loading?: boolean;
-  syncStatus?: { lastSync: number | null; error: string | null };
 }
 
 const CATEGORIES = [
@@ -27,7 +25,7 @@ const CATEGORIES = [
   { id: 'Comercial', label: 'Comercial', icon: Building },
 ];
 
-export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onDelete, onSync, loading }: DashboardProps) {
+export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onDelete, loading }: DashboardProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
 
@@ -67,33 +65,14 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
           </div>
           
            <div className="flex items-center gap-2 mt-1">
-            {loading ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <RefreshCw size={14} className="text-blue-400 animate-spin" />
-                <span className="text-[10px] font-bold text-blue-400 uppercase">Carregando</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <CheckCircle2 size={14} className="text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-400 uppercase">Sincronizado</span>
-              </div>
-            )}
-            
-            <button 
-              onClick={() => window.open(getApiUrl() + '/api/properties/export', '_blank')}
-              title="Exportar carteira"
-              className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-emerald-500 hover:border-emerald-500/30 transition-all"
-            >
-              <Download size={18} />
-            </button>
-            <button 
-              onClick={onSync}
-              title="Sincronizar com a Nuvem"
-              className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-orange-500 hover:border-orange-500/30 transition-all group"
-            >
-              <SlidersHorizontal size={18} className="group-active:rotate-180 transition-transform duration-500" />
-            </button>
-          </div>
+             <button 
+               onClick={() => window.open(getApiUrl() + '/api/properties/export', '_blank')}
+               title="Exportar carteira"
+               className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-xl text-gray-500 hover:text-emerald-500 hover:border-emerald-500/30 transition-all"
+             >
+               <Download size={18} />
+             </button>
+           </div>
         </div>
         
         <div className="flex items-center gap-3">
