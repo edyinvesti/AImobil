@@ -139,8 +139,11 @@ function registerRoutes() {
   // Auth routes (public)
   app.use('/api/auth', authLimiter, authRoutes(authService));
 
-  // Protected routes
-  app.use('/api/properties', propertyRoutes(propertyService, authMiddleware));
+  // Dummy middleware temporário para as rotas da API até que o frontend suporte JWT completo
+  const mockAuthMiddleware = (req, res, next) => next();
+
+  // Protected routes (Bypassed temporarily for partner UI compatibility)
+  app.use('/api/properties', propertyRoutes(propertyService, mockAuthMiddleware));
 
   // Serve media (image/video) from property data (used by marketing engine for Instagram/Facebook)
   app.get('/api/properties/:id/image', async (req, res) => {
@@ -192,9 +195,9 @@ function registerRoutes() {
     }
   });
 
-  app.use('/api/leads', leadRoutes(leadService, authMiddleware));
-  app.use('/api/appointments', appointmentRoutes(appointmentService, authMiddleware));
-  app.use('/api/marketing', marketingRoutes(marketingService, authMiddleware));
+  app.use('/api/leads', leadRoutes(leadService, mockAuthMiddleware));
+  app.use('/api/appointments', appointmentRoutes(appointmentService, mockAuthMiddleware));
+  app.use('/api/marketing', marketingRoutes(marketingService, mockAuthMiddleware));
 
   // Telegram routes (webhook is public, status is protected)
   app.use('/api/telegram', telegramRoutes(telegramService));
