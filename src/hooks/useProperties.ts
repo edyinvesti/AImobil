@@ -38,7 +38,7 @@ export interface SyncStatus {
   error: string | null;
 }
 
-export function useProperties(baseCreci?: string) {
+export function useProperties(baseLogin?: string) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
@@ -97,15 +97,15 @@ export function useProperties(baseCreci?: string) {
           }
     
     const fetchCloudData = async () => {
-      let creci = baseCreci;
+      let login = baseLogin;
       let name = '';
 
-      if (!creci) {
+      if (!login) {
         const savedProfile = localStorage.getItem('iamobil_profile');
         if (savedProfile) {
           try {
             const profileData = JSON.parse(savedProfile);
-            creci = profileData.login || profileData.creci;
+            login = profileData.login;
             name = profileData.name;
           } catch(e) {
             console.error("Erro ao ler perfil do localStorage:", e);
@@ -113,7 +113,7 @@ export function useProperties(baseCreci?: string) {
         }
       }
 
-      if (!creci) {
+      if (!login) {
         setLoading(false);
         return;
       }
@@ -128,7 +128,7 @@ export function useProperties(baseCreci?: string) {
       const API_BASE = getApiUrl();
       
        try {
-         const url = `${API_BASE}/api/partner/properties?login=${encodeURIComponent(creci)}`;
+         const url = `${API_BASE}/api/partner/properties?login=${encodeURIComponent(login)}`;
          const res = await fetch(url, {
            signal: abortControllerRef.current.signal
          });
@@ -232,7 +232,7 @@ export function useProperties(baseCreci?: string) {
                   await fetch(`${API_BASE}/api/partner/properties`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ...imgProp, brokerName: name, brokerCreci: creci })
+                    body: JSON.stringify({ ...imgProp, brokerName: name, brokerLogin: login })
                   });
                 } catch (e) {
                   console.error("Erro ao sincronizar propriedade local:", e);
@@ -346,7 +346,7 @@ export function useProperties(baseCreci?: string) {
         body: JSON.stringify({
           ...prop,
           brokerName: profile.name,
-          brokerCreci: profile.login
+          brokerLogin: profile.login
         })
       });
       
@@ -379,7 +379,7 @@ export function useProperties(baseCreci?: string) {
         body: {
           ...property,
           brokerName: profile.name,
-              brokerCreci: profile.login
+              brokerLogin: profile.login
             }
           });
         }

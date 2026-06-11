@@ -43,7 +43,7 @@ export interface Property {
   videoType?: string;
   latitude?: number;
   longitude?: number;
-  brokerCreci?: string;
+  brokerLogin?: string;
   createdAt: number;
   remoteId?: string;
   remoteStatus?: 'pending' | 'approved' | 'rejected' | 'unknown';

@@ -145,9 +145,9 @@ class PropertyService {
     return { success: true };
   }
 
-  async getByBroker(brokerCreci) {
+  async getByBroker(brokerLogin) {
     const properties = await this.dataEngine.getProperties();
-    return properties.filter(p => p.broker_creci === brokerCreci);
+    return properties.filter(p => p.brokerLogin === brokerLogin || p.broker_login === brokerLogin);
   }
 
   async search(filters = {}) {

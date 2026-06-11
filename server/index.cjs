@@ -154,14 +154,12 @@ app.use('/api/telegram', telegramRoutes(telegramService));
 app.get('/api/partner/properties', async (req, res, next) => {
   try {
     let properties = await dataEngine.getProperties();
-    const login = req.query?.login || req.query?.creci;
+    const login = req.query?.login;
     if (login && login.trim()) {
       const target = login.trim().toLowerCase();
-      properties = properties.filter(p => {
-        const bc = (p.brokerLogin || p.brokerCreci || '').toString().trim().toLowerCase();
-        const b_c = (p.broker_login || p.broker_creci || '').toString().trim().toLowerCase();
-        return bc === target || b_c === target;
-      });
+      properties = properties.filter(p =>
+        (p.brokerLogin || p.broker_login || '').toString().trim().toLowerCase() === target
+      );
     }
     res.json({ success: true, count: properties.length, properties });
   } catch (e) {
@@ -231,32 +229,25 @@ app.get('/api/partner/register', async (req, res, next) => {
   try {
     const login = req.query.login;
     if (!login) return res.status(400).json({ error: 'login obrigatório' });
-    let broker = null;
+    let user = null;
     if (dataEngine) {
-      broker = await dataEngine.getBroker(login);
-      if (!broker) {
-        broker = await dataEngine.getBrokerByName(login);
-      }
+      user = await dataEngine.validateUser(login);
     }
-    res.json({ success: true, broker });
+    res.json({ success: true, broker: user });
   } catch (e) {
-    logger.error('Get broker error', { error: e.message });
+    logger.error('Get profile error', { error: e.message });
     res.status(500).json({ error: 'Erro ao buscar perfil' });
   }
 });
 
 app.post('/api/partner/register', async (req, res, next) => {
   try {
-    const broker = req.body;
-    if (!broker.login) return res.status(400).json({ error: 'login obrigatório' });
-    broker.creci = broker.login;
-    if (dataEngine) {
-      await dataEngine.saveBroker(broker);
-    }
-    logger.info('Broker profile saved', { login: broker.login });
+    const profile = req.body;
+    if (!profile.login) return res.status(400).json({ error: 'login obrigatório' });
+    logger.info('Profile saved', { login: profile.login });
     res.json({ success: true });
   } catch (e) {
-    logger.error('Save broker error', { error: e.message });
+    logger.error('Save profile error', { error: e.message });
     res.status(500).json({ error: 'Erro ao salvar perfil' });
   }
 });

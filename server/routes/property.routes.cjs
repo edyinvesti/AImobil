@@ -89,10 +89,10 @@ module.exports = function(propertyService, authMiddleware) {
     }
   });
 
-  // GET /api/properties/broker/:creci
-  router.get('/broker/:creci', async (req, res, next) => {
+  // GET /api/properties/broker/:login
+  router.get('/broker/:login', async (req, res, next) => {
     try {
-      const properties = await propertyService.getByBroker(req.params.creci);
+      const properties = await propertyService.getByBroker(req.params.login);
       res.json(properties);
     } catch (e) {
       next(e);

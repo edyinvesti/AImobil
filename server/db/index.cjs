@@ -64,7 +64,7 @@ class DataEngine {
       const rs = await this.client.execute(
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
-        'streetNumber, complement, description, brokerName, broker_creci, created_at, ' +
+        'streetNumber, complement, description, brokerName, broker_login, created_at, ' +
         'thumbnail, ' +
         "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
@@ -105,7 +105,7 @@ class DataEngine {
         address: row.location || '',
         size: row.area || 0,
         parkingSpaces: row.parkingSpaces || 0,
-        brokerCreci: row.brokerCreci || row.broker_creci || '',
+        brokerLogin: row.broker_login || '',
       };
     } catch (e) {
       console.error('getPropertyById error:', e.message);
@@ -120,7 +120,7 @@ class DataEngine {
         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
               bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
               livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
-              brokerName, broker_creci, thumbnail, video_data, video_type) 
+              brokerName, broker_login, thumbnail, video_data, video_type) 
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           property.id, property.title, property.type, property.price,
@@ -133,7 +133,7 @@ class DataEngine {
           property.suites || 0, property.livingRooms || 0, property.kitchens || 0,
           property.zipCode || '', property.state || '', property.streetNumber || '',
           property.complement || '', property.description || '',
-          property.brokerName || '', property.broker_creci || '',
+          property.brokerName || '', property.brokerLogin || property.broker_login || '',
           property.thumbnail || '',
           property.videoData || property.video_data || null,
           property.videoType || property.video_type || 'video/mp4'
@@ -222,75 +222,6 @@ class DataEngine {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // BROKERS
-  // ═══════════════════════════════════════════════════════════════
-
-  async getBroker(creci) {
-    if (!this.client) return null;
-    try {
-      const rs = await this.client.execute({
-        sql: 'SELECT * FROM brokers WHERE creci = ?',
-        args: [creci]
-      });
-      return rs.rows[0] || null;
-    } catch (e) {
-      console.error('getBroker error:', e.message);
-      throw e;
-    }
-  }
-
-  async getBrokerByName(name) {
-    if (!this.client) return null;
-    try {
-      const rs = await this.client.execute({
-        sql: 'SELECT * FROM brokers WHERE LOWER(name) = LOWER(?)',
-        args: [name]
-      });
-      return rs.rows[0] || null;
-    } catch (e) {
-      console.error('getBrokerByName error:', e.message);
-      throw e;
-    }
-  }
-
-  async saveBroker(broker) {
-    if (!this.client) return null;
-    try {
-      const now = new Date().toISOString();
-      await this.client.execute({
-        sql: `INSERT INTO brokers (creci, name, email, phone, photo, lastActive)
-              VALUES (?, ?, ?, ?, ?, ?)
-              ON CONFLICT(creci) DO UPDATE SET
-                name=COALESCE(NULLIF(?,''), name),
-                email=COALESCE(NULLIF(?,''), email),
-                phone=COALESCE(NULLIF(?,''), phone),
-                photo=COALESCE(NULLIF(?,''), photo),
-                lastActive=?`,
-        args: [
-          broker.creci, broker.name || '', broker.email || '', broker.phone || '',
-          broker.photo || '', now,
-          broker.name || '', broker.email || '', broker.phone || '', broker.photo || '', now
-        ]
-      });
-      return { success: true };
-    } catch (e) {
-      console.error('saveBroker error:', e.message);
-      throw e;
-    }
-  }
-
-  async getAllBrokers() {
-    if (!this.client) return [];
-    try {
-      const rs = await this.client.execute('SELECT * FROM brokers ORDER BY created_at DESC');
-      return rs.rows;
-    } catch (e) {
-      console.error('getAllBrokers error:', e.message);
-      return [];
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════
   // USERS
   // ═══════════════════════════════════════════════════════════════
 
@@ -298,8 +229,8 @@ class DataEngine {
     if (!this.client) return null;
     try {
       return await this.client.execute({
-        sql: `INSERT INTO users (login, password, name, email, phone) VALUES (?, ?, ?, ?, ?)`,
-        args: [user.login, user.password, user.name, user.email, user.phone || '']
+        sql: `INSERT INTO users (login, password, name, email, phone, photo, lastActive) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [user.login, user.password, user.name, user.email, user.phone || '', user.photo || '', user.lastActive || '']
       });
     } catch (e) {
       console.error('createUser error:', e.message);
@@ -374,12 +305,12 @@ class DataEngine {
   // TELEGRAM
   // ═══════════════════════════════════════════════════════════════
 
-  async saveTelegramUser(chatId, username, creci = null) {
+  async saveTelegramUser(chatId, username, login = null) {
     if (!this.client) return null;
     try {
       return await this.client.execute({
-        sql: `INSERT OR REPLACE INTO telegram_users (chat_id, username, creci) VALUES (?, ?, ?)`,
-        args: [chatId, username, creci]
+        sql: `INSERT OR REPLACE INTO telegram_users (chat_id, username, login) VALUES (?, ?, ?)`,
+        args: [chatId, username, login]
       });
     } catch (e) {
       console.error('saveTelegramUser error:', e.message);
@@ -401,12 +332,12 @@ class DataEngine {
     }
   }
 
-  async linkUserToTelegram(creci, chatId) {
+  async linkUserToTelegram(login, chatId) {
     if (!this.client) return null;
     try {
       await this.client.execute({
-        sql: 'UPDATE telegram_users SET creci = ? WHERE chat_id = ?',
-        args: [creci, chatId]
+        sql: 'UPDATE telegram_users SET login = ? WHERE chat_id = ?',
+        args: [login, chatId]
       });
       return { success: true };
     } catch (e) {

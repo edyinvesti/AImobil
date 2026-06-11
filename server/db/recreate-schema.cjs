@@ -45,22 +45,10 @@ const NEW_SCHEMA = {
       complement TEXT,
       description TEXT,
       brokerName TEXT,
-      broker_creci TEXT,
+      broker_login TEXT,
       thumbnail TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      FOREIGN KEY (broker_creci) REFERENCES brokers(creci)
-    )
-  `,
-
-  brokers: `
-    CREATE TABLE IF NOT EXISTS brokers (
-      creci TEXT PRIMARY KEY,
-      name TEXT,
-      email TEXT,
-      phone TEXT,
-      photo TEXT,
-      lastActive TEXT,
-      created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      FOREIGN KEY (broker_login) REFERENCES users(login)
     )
   `,
 
@@ -71,6 +59,8 @@ const NEW_SCHEMA = {
       name TEXT NOT NULL,
       email TEXT NOT NULL,
       phone TEXT,
+      photo TEXT,
+      lastActive TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
     )
   `,
@@ -128,10 +118,10 @@ const NEW_SCHEMA = {
     CREATE TABLE IF NOT EXISTS telegram_users (
       chat_id INTEGER PRIMARY KEY,
       username TEXT,
-      creci TEXT,
+      login TEXT,
       lang TEXT DEFAULT 'pt',
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      FOREIGN KEY (creci) REFERENCES brokers(creci)
+      FOREIGN KEY (login) REFERENCES users(login)
     )
   `
 };
@@ -141,14 +131,14 @@ const NEW_SCHEMA = {
 // ═══════════════════════════════════════════════════════════════
 
 const INDEXES = [
-  'CREATE INDEX IF NOT EXISTS idx_properties_broker ON properties(broker_creci)',
+  'CREATE INDEX IF NOT EXISTS idx_properties_broker ON properties(broker_login)',
   'CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status)',
   'CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(city)',
   'CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)',
   'CREATE INDEX IF NOT EXISTS idx_leads_property ON leads(property_id)',
   'CREATE INDEX IF NOT EXISTS idx_campaigns_property ON campaigns(property_id)',
   'CREATE INDEX IF NOT EXISTS idx_appointments_property ON appointments(property_id)',
-  'CREATE INDEX IF NOT EXISTS idx_telegram_users_creci ON telegram_users(creci)'
+  'CREATE INDEX IF NOT EXISTS idx_telegram_users_login ON telegram_users(login)'
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -157,20 +147,14 @@ const INDEXES = [
 
 const COLUMN_MAP = {
   properties: {
-    // Colunas antigas → novas
-    brokerCreci: 'broker_creci',  // Mapear coluna duplicada
-    // Manter todas as colunas exceto brokerCreci
     keep: ['id', 'title', 'type', 'price', 'location', 'city', 'neighborhood', 
            'bedrooms', 'bathrooms', 'parkingSpaces', 'area', 'sizeUnit', 'status',
            'images', 'suites', 'livingRooms', 'kitchens', 'zipCode', 'state',
-           'streetNumber', 'complement', 'description', 'brokerName', 'broker_creci',
+           'streetNumber', 'complement', 'description', 'brokerName', 'broker_creci', 'broker_login',
            'thumbnail', 'created_at']
   },
-  brokers: {
-    keep: ['creci', 'name', 'email', 'phone', 'photo', 'lastActive', 'created_at']
-  },
   users: {
-    keep: ['login', 'password', 'name', 'email', 'phone', 'created_at']
+    keep: ['login', 'password', 'name', 'email', 'phone', 'photo', 'lastActive', 'created_at']
   },
   leads: {
     keep: ['id', 'name', 'phone', 'interest', 'notes', 'score', 'status', 
@@ -185,7 +169,7 @@ const COLUMN_MAP = {
            'instagram_url', 'campaign_status', 'campaign_id', 'has_carousel', 'created_at']
   },
   telegram_users: {
-    keep: ['chat_id', 'username', 'creci', 'lang', 'created_at']
+    keep: ['chat_id', 'username', 'login', 'lang', 'created_at']
   }
 };
 
@@ -288,7 +272,7 @@ async function recreate() {
   // 2. Backup de todas as tabelas
   console.log('\n═══ FASE 1: Backup ═══');
   const backups = {};
-  const tableOrder = ['telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'brokers', 'users'];
+  const tableOrder = ['telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'users'];
   
   for (const table of tableOrder) {
     backups[table] = await backupTable(table);
@@ -308,7 +292,7 @@ async function recreate() {
   
   // 5. Inserir dados com mapeamento (ordem: brokers → properties → campaigns → etc)
   console.log('\n═══ FASE 4: Migrate data ═══');
-  const insertOrder = ['brokers', 'users', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users'];
+  const insertOrder = ['users', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users'];
   for (const table of insertOrder) {
     await insertData(table, backups[table], COLUMN_MAP[table]);
   }

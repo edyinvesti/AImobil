@@ -20,9 +20,19 @@ const client = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN });
 // DADOS ORIGINAIS (restaurados da auditoria)
 // ═══════════════════════════════════════════════════════════════
 
-const BROKERS = [
+const USERS = [
   {
-    creci: '1808200',
+    login: 'admin',
+    password: 'admin123',
+    name: 'Administrador',
+    email: 'admin@iaimobil.com.br',
+    phone: '(11) 99999-0001',
+    photo: '',
+    lastActive: new Date().toISOString()
+  },
+  {
+    login: 'samuel',
+    password: 'samuel123',
     name: 'Samuel',
     email: 'samuel@iaimobil.com.br',
     phone: '(11) 99999-1808',
@@ -30,7 +40,8 @@ const BROKERS = [
     lastActive: new Date().toISOString()
   },
   {
-    creci: '123456',
+    login: 'kelly',
+    password: 'kelly123',
     name: 'Kelly',
     email: 'kelly@iaimobil.com.br',
     phone: '(11) 99999-1234',
@@ -38,7 +49,8 @@ const BROKERS = [
     lastActive: new Date().toISOString()
   },
   {
-    creci: '232123',
+    login: 'hanny',
+    password: 'hanny123',
     name: 'Hanny',
     email: 'hanny@iaimobil.com.br',
     phone: '(11) 99999-2321',
@@ -46,7 +58,8 @@ const BROKERS = [
     lastActive: new Date().toISOString()
   },
   {
-    creci: '232120',
+    login: 'kaua',
+    password: 'kaua123',
     name: 'Kaua',
     email: 'kaua@iaimobil.com.br',
     phone: '(11) 99999-2320',
@@ -54,50 +67,13 @@ const BROKERS = [
     lastActive: new Date().toISOString()
   },
   {
-    creci: '987456-F',
+    login: 'edyinvesti',
+    password: '123456',
     name: 'Edyinvesti',
     email: 'edyinvesti@iaimobil.com.br',
-    phone: '(11) 99999-9874',
+    phone: '(62) 99211-5143',
     photo: '',
     lastActive: new Date().toISOString()
-  }
-];
-
-const USERS = [
-  {
-    login: 'admin',
-    password: 'admin123', // Senha original (deveria ser hasheada)
-    name: 'Administrador',
-    email: 'admin@iaimobil.com.br',
-    phone: '(11) 99999-0001'
-  },
-  {
-    login: 'samuel',
-    password: 'samuel123',
-    name: 'Samuel',
-    email: 'samuel@iaimobil.com.br',
-    phone: '(11) 99999-1808'
-  },
-  {
-    login: 'kelly',
-    password: 'kelly123',
-    name: 'Kelly',
-    email: 'kelly@iaimobil.com.br',
-    phone: '(11) 99999-1234'
-  },
-  {
-    login: 'hanny',
-    password: 'hanny123',
-    name: 'Hanny',
-    email: 'hanny@iaimobil.com.br',
-    phone: '(11) 99999-2321'
-  },
-  {
-    login: 'kaua',
-    password: 'kaua123',
-    name: 'Kaua',
-    email: 'kaua@iaimobil.com.br',
-    phone: '(11) 99999-2320'
   }
 ];
 
@@ -126,7 +102,7 @@ const PROPERTIES = [
     complement: 'Apto 101',
     description: 'Apartamento moderno com vista panorâmica',
     brokerName: 'Samuel',
-    broker_creci: '1808200',
+    broker_login: 'samuel',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -154,7 +130,7 @@ const PROPERTIES = [
     complement: '',
     description: 'Casa espaçosa com jardim e piscina',
     brokerName: 'Kelly',
-    broker_creci: '123456',
+    broker_login: 'kelly',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -182,7 +158,7 @@ const PROPERTIES = [
     complement: 'Apto 202',
     description: 'Apartamento bem localizado próximo ao metrô',
     brokerName: 'Hanny',
-    broker_creci: '232123',
+    broker_login: 'hanny',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -210,7 +186,7 @@ const PROPERTIES = [
     complement: 'Cobertura',
     description: 'Cobertura de luxo com terraço e vista incrível',
     brokerName: 'Kaua',
-    broker_creci: '232120',
+    broker_login: 'kaua',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -238,7 +214,7 @@ const PROPERTIES = [
     complement: 'Apto 303',
     description: 'Apartamento compacto e moderno',
     brokerName: 'Edyinvesti',
-    broker_creci: '987456-F',
+    broker_login: 'edyinvesti',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -266,7 +242,7 @@ const PROPERTIES = [
     complement: '',
     description: 'Casa em condomínio fechado com lazer',
     brokerName: 'Samuel',
-    broker_creci: '1808200',
+    broker_login: 'samuel',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -294,7 +270,7 @@ const PROPERTIES = [
     complement: 'Apto 404',
     description: 'Apartamento de alto padrão em condomínio exclusivo',
     brokerName: 'Kelly',
-    broker_creci: '123456',
+    broker_login: 'kelly',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -322,7 +298,7 @@ const PROPERTIES = [
     complement: 'Studio',
     description: 'Studio mobiliado ideal para investimento',
     brokerName: 'Hanny',
-    broker_creci: '232123',
+    broker_login: 'hanny',
     thumbnail: '',
     created_at: Date.now()
   },
@@ -350,7 +326,7 @@ const PROPERTIES = [
     complement: 'Cobertura',
     description: 'Cobertura com varanda e churrasqueira',
     brokerName: 'Kaua',
-    broker_creci: '232120',
+    broker_login: 'kaua',
     thumbnail: '',
     created_at: Date.now()
   }
@@ -411,30 +387,14 @@ const CAMPAIGNS = [
 // FUNÇÕES DE RESTAURAÇÃO
 // ═══════════════════════════════════════════════════════════════
 
-async function restoreBrokers() {
-  console.log('👔 Restaurando brokers...');
-  for (const broker of BROKERS) {
-    try {
-      await client.execute({
-        sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, lastActive, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [broker.creci, broker.name, broker.email, broker.phone, broker.photo, broker.lastActive, Date.now()]
-      });
-      console.log(`  ✅ ${broker.name} (${broker.creci})`);
-    } catch (e) {
-      console.error(`  ❌ Erro ao restaurar ${broker.name}: ${e.message}`);
-    }
-  }
-}
-
 async function restoreUsers() {
   console.log('\n👤 Restaurando users...');
   for (const user of USERS) {
     try {
       await client.execute({
-        sql: `INSERT OR REPLACE INTO users (login, password, name, email, phone, created_at)
-              VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [user.login, user.password, user.name, user.email, user.phone, Date.now()]
+        sql: `INSERT OR REPLACE INTO users (login, password, name, email, phone, photo, lastActive, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [user.login, user.password, user.name, user.email, user.phone, user.photo, user.lastActive, Date.now()]
       });
       console.log(`  ✅ ${user.name} (${user.login})`);
     } catch (e) {
@@ -452,14 +412,14 @@ async function restoreProperties() {
                 id, title, type, price, location, city, neighborhood,
                 bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status,
                 images, suites, livingRooms, kitchens, zipCode, state,
-                streetNumber, complement, description, brokerName, broker_creci,
+                streetNumber, complement, description, brokerName, broker_login,
                 thumbnail, created_at
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           prop.id, prop.title, prop.type, prop.price, prop.location, prop.city, prop.neighborhood,
           prop.bedrooms, prop.bathrooms, prop.parkingSpaces, prop.area, prop.sizeUnit, prop.status,
           prop.images, prop.suites, prop.livingRooms, prop.kitchens, prop.zipCode, prop.state,
-          prop.streetNumber, prop.complement, prop.description, prop.brokerName, prop.broker_creci,
+          prop.streetNumber, prop.complement, prop.description, prop.brokerName, prop.broker_login,
           prop.thumbnail, prop.created_at
         ]
       });
@@ -499,14 +459,12 @@ async function verify() {
   console.log('\n═══ VERIFICAÇÃO FINAL ═══');
   
   const counts = {
-    brokers: await client.execute('SELECT COUNT(*) as count FROM brokers'),
     users: await client.execute('SELECT COUNT(*) as count FROM users'),
     properties: await client.execute('SELECT COUNT(*) as count FROM properties'),
     campaigns: await client.execute('SELECT COUNT(*) as count FROM campaigns')
   };
   
-  console.log(`📊 Brokers: ${counts.brokers.rows[0].count} (esperado: 5)`);
-  console.log(`📊 Users: ${counts.users.rows[0].count} (esperado: 5)`);
+  console.log(`📊 Users: ${counts.users.rows[0].count} (esperado: 6)`);
   console.log(`📊 Properties: ${counts.properties.rows[0].count} (esperado: 9)`);
   console.log(`📊 Campaigns: ${counts.campaigns.rows[0].count} (esperado: 4)`);
   
@@ -525,7 +483,6 @@ async function verify() {
 async function restore() {
   console.log('🔄 Iniciando restauração de dados...\n');
   
-  await restoreBrokers();
   await restoreUsers();
   await restoreProperties();
   await restoreCampaigns();

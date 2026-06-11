@@ -117,10 +117,13 @@ class MarketingEngine {
       this.logger.info('Dados do imóvel obtidos', { title: property.title, imagesCount: property.images.length });
 
       let broker = null;
-      const brokerCreci = property.brokerCreci || property.broker_creci || '';
-      if (brokerCreci) {
+      const brokerLogin = property.brokerLogin || property.broker_login || '';
+      if (brokerLogin) {
         try {
-          broker = await (await this.getDataEngine()).getBroker(brokerCreci);
+          const user = await (await this.getDataEngine()).validateUser(brokerLogin);
+          if (user) {
+            broker = { name: user.name, phone: user.phone, email: user.email, photo: user.photo };
+          }
         } catch (e) {
           this.logger.warn('Erro ao buscar dados do corretor', { error: e.message });
         }

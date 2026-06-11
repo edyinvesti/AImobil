@@ -17,7 +17,7 @@ function authMiddleware(req, res, next) {
   
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { login, creci, exp }
+    req.user = decoded; // { login, exp }
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido ou expirado' });
@@ -26,7 +26,7 @@ function authMiddleware(req, res, next) {
 
 function generateToken(user) {
   return jwt.sign(
-    { login: user.login, creci: user.creci },
+    { login: user.login },
     JWT_SECRET,
     { expiresIn: '24h' }
   );

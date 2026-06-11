@@ -27,7 +27,7 @@ const TABLES = {
       complement TEXT,
       description TEXT,
       brokerName TEXT,
-      broker_creci TEXT,
+      broker_login TEXT,
       thumbnail TEXT,
       video_data TEXT,
       video_type TEXT DEFAULT 'video/mp4',
@@ -67,18 +67,6 @@ const TABLES = {
     )
   `,
 
-  brokers: `
-    CREATE TABLE IF NOT EXISTS brokers (
-      creci TEXT PRIMARY KEY,
-      name TEXT,
-      email TEXT,
-      phone TEXT,
-      photo TEXT,
-      lastActive TEXT,
-      created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
-    )
-  `,
-
   users: `
     CREATE TABLE IF NOT EXISTS users (
       login TEXT PRIMARY KEY,
@@ -86,6 +74,8 @@ const TABLES = {
       name TEXT NOT NULL,
       email TEXT NOT NULL,
       phone TEXT,
+      photo TEXT,
+      lastActive TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
     )
   `,
@@ -110,7 +100,7 @@ const TABLES = {
     CREATE TABLE IF NOT EXISTS telegram_users (
       chat_id INTEGER PRIMARY KEY,
       username TEXT,
-      creci TEXT,
+      login TEXT,
       lang TEXT DEFAULT 'pt',
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
     )
@@ -119,7 +109,7 @@ const TABLES = {
 
 // Indexes para performance
 const INDEXES = [
-  'CREATE INDEX IF NOT EXISTS idx_properties_broker ON properties(broker_creci)',
+  'CREATE INDEX IF NOT EXISTS idx_properties_broker ON properties(broker_login)',
   'CREATE INDEX IF NOT EXISTS idx_properties_status ON properties(status)',
   'CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)',
   'CREATE INDEX IF NOT EXISTS idx_leads_property ON leads(property_id)',

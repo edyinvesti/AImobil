@@ -31,7 +31,7 @@ export function Login() {
           const brokerData = await brokerRes.json();
           if (brokerData.broker) {
             const profile = {
-              login: brokerData.broker.login || brokerData.broker.creci || login,
+              login: brokerData.broker.login || login,
               name: brokerData.broker.name || '',
               email: brokerData.broker.email || '',
               phone: brokerData.broker.phone || '',

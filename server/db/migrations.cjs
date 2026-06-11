@@ -2,23 +2,24 @@
 // Migrations controladas para ALTER TABLEs
 
 const MIGRATIONS = [
-  // Adicionar created_at em tabelas que não têm (sem DEFAULT para evitar erro)
-  `ALTER TABLE brokers ADD COLUMN created_at INTEGER`,
+  // Adicionar broker_login em properties
+  `ALTER TABLE properties ADD COLUMN broker_login TEXT`,
   
-  // Adicionar thumbnail em properties
-  `ALTER TABLE properties ADD COLUMN thumbnail TEXT`,
+  // Copiar dados de broker_creci → broker_login
+  `UPDATE properties SET broker_login = broker_creci WHERE broker_login IS NULL AND broker_creci IS NOT NULL`,
   
-  // Adicionar property_id em appointments (FK)
-  `ALTER TABLE appointments ADD COLUMN property_id TEXT`,
+  // Adicionar photo e lastActive em users
+  `ALTER TABLE users ADD COLUMN photo TEXT`,
+  `ALTER TABLE users ADD COLUMN lastActive TEXT`,
   
-  // Fix created_at DEFAULT 0 → timestamp real
-  `UPDATE properties SET created_at = (strftime('%s', 'now') * 1000) WHERE created_at = 0`,
+  // Copiar dados de brokers para users (foto, ultimo acesso)
+  `UPDATE users SET photo = (SELECT photo FROM brokers WHERE brokers.name = users.name) WHERE EXISTS (SELECT 1 FROM brokers WHERE brokers.name = users.name)`,
   
-  // Preencher created_at nulo com timestamp atual
-  `UPDATE brokers SET created_at = (strftime('%s', 'now') * 1000) WHERE created_at IS NULL`,
+  // Adicionar login em telegram_users
+  `ALTER TABLE telegram_users ADD COLUMN login TEXT`,
   
-  // Remover coluna duplicada brokerCreci (manter apenas broker_creci)
-  // SQLite não suporta DROP COLUMN diretamente, será feito via recriação
+  // Copiar dados de creci → login em telegram_users
+  `UPDATE telegram_users SET login = creci WHERE login IS NULL AND creci IS NOT NULL`,
 ];
 
 async function runMigrations(client) {

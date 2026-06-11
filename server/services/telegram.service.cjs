@@ -105,13 +105,13 @@ class TelegramService {
     };
   }
 
-  async handleCommand(chatId, command, username, creci = null) {
+  async handleCommand(chatId, command, username, login = null) {
     logger.info('Telegram command received', { chatId, command, username });
 
     switch (command) {
       case '/start':
-        if (creci) {
-          await this.dataEngine.saveTelegramUser(chatId, username, creci);
+        if (login) {
+          await this.dataEngine.saveTelegramUser(chatId, username, login);
         } else {
           await this.dataEngine.saveTelegramUser(chatId, username);
         }

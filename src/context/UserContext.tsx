@@ -52,7 +52,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           if (data.broker) {
             // console.log("[UserContext] Perfil encontrado na nuvem:", data.broker);
             const cloudProfile = {
-              login: data.broker.login || data.broker.creci || '',
+              login: data.broker.login || '',
               name: data.broker.name || '',
               email: data.broker.email || '',
               phone: data.broker.phone || '',
