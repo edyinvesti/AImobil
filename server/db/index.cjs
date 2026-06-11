@@ -65,14 +65,15 @@ class DataEngine {
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
         'streetNumber, complement, description, brokerName, broker_login, created_at, ' +
-        'thumbnail, video_data, video_type, ' +
+        'thumbnail, video_type, CASE WHEN video_data IS NOT NULL AND video_data != \'\' THEN 1 ELSE 0 END as has_video, ' +
         "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
       );
       return rs.rows.map(row => ({
         ...row,
         images: [],
-        videoData: row.video_data || null,
+        videoData: null,
+        hasVideo: row.has_video === 1,
         videoType: row.video_type || 'video/mp4',
         thumbnail: row.thumbnail || row.img_fallback || null,
         address: row.location || '',
