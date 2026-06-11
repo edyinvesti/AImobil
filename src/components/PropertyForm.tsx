@@ -118,6 +118,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 try {
                     const compressed = await compressImage(file);
                     setImages(prev => [...prev, compressed]);
+                    setSaved(false);
                 } catch (err) {
                     console.error("Erro ao comprimir imagem:", err);
                 }
@@ -144,6 +145,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
             const result = ev.target?.result as string;
             setVideoData(result);
             setVideoName(file.name);
+            setSaved(false);
         };
         reader.onerror = () => toast('Erro ao ler o vídeo.', 'error');
         reader.readAsDataURL(file);
@@ -165,6 +167,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         const numberValue = Number(value) / 100;
         setFormData({ ...formData, price: numberValue });
         setDisplayPrice(new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(numberValue));
+        setSaved(false);
     };
 
     const handleAreaChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -178,6 +181,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         const numberValue = Number(value);
         setFormData({ ...formData, size: numberValue });
         setDisplayArea(new Intl.NumberFormat('pt-BR').format(numberValue));
+        setSaved(false);
     };
 
     const handleCEPChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -190,6 +194,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         }
 
         setFormData(prev => ({ ...prev, zipCode: masked }));
+        setSaved(false);
     };
 
     const handleCEPBlur = async () => {
@@ -269,7 +274,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
             } as Property;
             await onSave(property);
             setSaved(true);
-            setTimeout(() => onCancel(), 2000);
+            toast("Imóvel salvo com sucesso na sua carteira!", 'success');
             triggerMarketingCampaign(property.id, formData.marketingOption);
         } catch (error) {
             console.error("Erro ao salvar:", error);
@@ -283,6 +288,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const handleAmenityToggle = (amenity: string) => {
         setFormData(prev => {
             const alreadySelected = prev.amenities.includes(amenity);
+            setSaved(false);
             if (alreadySelected) {
                 return { ...prev, amenities: prev.amenities.filter(a => a !== amenity) };
             } else {
@@ -390,7 +396,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                 required
                                 className="w-full bg-black/40 border border-emerald-500/10 rounded-2xl px-5 py-4 text-white text-base font-bold outline-none focus:ring-1 focus:ring-orange-500 focus:bg-black/60 transition-all placeholder:text-gray-800"
                                 value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                onChange={e => {
+                                    setFormData({ ...formData, title: e.target.value });
+                                    setSaved(false);
+                                }}
                                 placeholder="Ex: Apartamento frente mar na Riviera"
                             />
                         </div>
@@ -409,6 +418,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                             type: newType,
                                             sizeUnit: ruralMode ? 'Hectares' : 'm²' as AreaUnit
                                         });
+                                        setSaved(false);
                                     }}
                                 >
                                     <option className="bg-black text-white font-bold" value="Apartamento">Apartamento</option>
@@ -424,7 +434,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                 <select
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl px-4 py-4 text-orange-500 text-sm font-bold outline-none appearance-none cursor-pointer hover:bg-black/60"
                                     value={formData.offerType}
-                                    onChange={e => setFormData({ ...formData, offerType: e.target.value as OfferType })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, offerType: e.target.value as OfferType });
+                                        setSaved(false);
+                                    }}
                                 >
                                     <option className="bg-black text-white" value="Venda">Venda</option>
                                     <option className="bg-black text-white" value="Aluguel">Aluguel</option>
@@ -478,7 +491,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     <input
                                         className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-800"
                                         value={formData.streetNumber || ''}
-                                        onChange={e => setFormData({ ...formData, streetNumber: e.target.value })}
+                                        onChange={e => {
+                                            setFormData({ ...formData, streetNumber: e.target.value });
+                                            setSaved(false);
+                                        }}
                                         placeholder="Ex: 123"
                                     />
                                 </div>
@@ -494,7 +510,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     <input
                                         className="w-full bg-black/40 border border-white/5 rounded-2xl pl-12 pr-5 py-4 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-800"
                                         value={formData.address || ''}
-                                        onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                        onChange={e => {
+                                            setFormData({ ...formData, address: e.target.value });
+                                            setSaved(false);
+                                        }}
                                         placeholder="Digite apenas se desejar divulgar a rua"
                                     />
                                 </div>
@@ -507,7 +526,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                         list="neighborhoods-list"
                                         className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-800"
                                         value={formData.neighborhood || ''}
-                                        onChange={e => setFormData({ ...formData, neighborhood: e.target.value })}
+                                        onChange={e => {
+                                            setFormData({ ...formData, neighborhood: e.target.value });
+                                            setSaved(false);
+                                        }}
                                         placeholder="Ex: Lourdes"
                                     />
                                     <datalist id="neighborhoods-list">
@@ -536,7 +558,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                             list="cities-list"
                                             className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-800"
                                             value={formData.city || ''}
-                                            onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            onChange={e => {
+                                                setFormData({ ...formData, city: e.target.value });
+                                                setSaved(false);
+                                            }}
                                             placeholder="Ex: Goiânia"
                                         />
                                         <datalist id="cities-list">
@@ -548,7 +573,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                         <select
                                             className="w-full bg-black/40 border border-white/5 rounded-2xl px-3 py-4 text-white text-[10px] font-black outline-none focus:ring-1 focus:ring-orange-500 transition-all appearance-none cursor-pointer text-center uppercase"
                                             value={formData.state || ''}
-                                            onChange={e => setFormData({ ...formData, state: e.target.value })}
+                                            onChange={e => {
+                                                setFormData({ ...formData, state: e.target.value });
+                                                setSaved(false);
+                                            }}
                                         >
                                             <option value="" disabled>UF</option>
                                             {states.map(s => (
@@ -567,7 +595,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                             <textarea
                                 className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all min-h-[140px] placeholder:text-gray-800 resize-none leading-relaxed"
                                 value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                onChange={e => {
+                                    setFormData({ ...formData, description: e.target.value });
+                                    setSaved(false);
+                                }}
                                 placeholder="Descreva os detalhes e diferenciais deste ativo..."
                             />
                         </div>
@@ -606,7 +637,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                         <button
                                             key={unit}
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, sizeUnit: unit })}
+                                            onClick={() => {
+                                                setFormData({ ...formData, sizeUnit: unit });
+                                                setSaved(false);
+                                            }}
                                             className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border ${formData.sizeUnit === unit ? 'bg-orange-500 border-orange-500 text-white' : 'bg-black/40 border-white/10 text-gray-500 hover:border-orange-500/40 hover:text-white'}`}
                                         >
                                             {unit}
@@ -632,7 +666,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.bedrooms}
-                                    onChange={e => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
 
@@ -643,7 +680,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.suites}
-                                    onChange={e => setFormData({ ...formData, suites: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, suites: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
 
@@ -654,7 +694,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.bathrooms}
-                                    onChange={e => setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
 
@@ -667,7 +710,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.livingRooms}
-                                    onChange={e => setFormData({ ...formData, livingRooms: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, livingRooms: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
 
@@ -680,7 +726,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.kitchens}
-                                    onChange={e => setFormData({ ...formData, kitchens: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, kitchens: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
 
@@ -691,7 +740,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
                                     value={formData.parkingSpaces}
-                                    onChange={e => setFormData({ ...formData, parkingSpaces: parseInt(e.target.value) || 0 })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, parkingSpaces: parseInt(e.target.value) || 0 });
+                                        setSaved(false);
+                                    }}
                                 />
                             </div>
                         </div>
@@ -743,7 +795,10 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     name="marketingOption"
                                     value={option.value}
                                     checked={formData.marketingOption === option.value}
-                                    onChange={e => setFormData({ ...formData, marketingOption: e.target.value as MarketingOption })}
+                                    onChange={e => {
+                                        setFormData({ ...formData, marketingOption: e.target.value as MarketingOption });
+                                        setSaved(false);
+                                    }}
                                     className="mt-1 accent-orange-500"
                                 />
                                 <div>
