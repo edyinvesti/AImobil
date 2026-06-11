@@ -234,6 +234,9 @@ app.get('/api/partner/register', async (req, res, next) => {
     let broker = null;
     if (dataEngine) {
       broker = await dataEngine.getBroker(login);
+      if (!broker) {
+        broker = await dataEngine.getBrokerByName(login);
+      }
     }
     res.json({ success: true, broker });
   } catch (e) {

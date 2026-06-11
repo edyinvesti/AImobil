@@ -64,7 +64,7 @@ class DataEngine {
       const rs = await this.client.execute(
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
-        'streetNumber, complement, description, brokerName, brokerCreci, broker_creci, created_at, ' +
+        'streetNumber, complement, description, brokerName, broker_creci, created_at, ' +
         'thumbnail, ' +
         "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
@@ -120,8 +120,8 @@ class DataEngine {
         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
               bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
               livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
-              brokerName, brokerCreci, broker_creci, thumbnail, video_data, video_type) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              brokerName, broker_creci, thumbnail, video_data, video_type) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           property.id, property.title, property.type, property.price,
           property.address || property.location || '', property.city || '', property.neighborhood || '',
@@ -133,7 +133,7 @@ class DataEngine {
           property.suites || 0, property.livingRooms || 0, property.kitchens || 0,
           property.zipCode || '', property.state || '', property.streetNumber || '',
           property.complement || '', property.description || '',
-          property.brokerName || '', property.brokerCreci || '', property.broker_creci || '',
+          property.brokerName || '', property.broker_creci || '',
           property.thumbnail || '',
           property.videoData || property.video_data || null,
           property.videoType || property.video_type || 'video/mp4'
@@ -235,6 +235,20 @@ class DataEngine {
       return rs.rows[0] || null;
     } catch (e) {
       console.error('getBroker error:', e.message);
+      throw e;
+    }
+  }
+
+  async getBrokerByName(name) {
+    if (!this.client) return null;
+    try {
+      const rs = await this.client.execute({
+        sql: 'SELECT * FROM brokers WHERE LOWER(name) = LOWER(?)',
+        args: [name]
+      });
+      return rs.rows[0] || null;
+    } catch (e) {
+      console.error('getBrokerByName error:', e.message);
       throw e;
     }
   }

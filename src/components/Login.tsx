@@ -22,6 +22,28 @@ export function Login() {
 
     try {
       await authLogin(login, password);
+
+      // Auto-configurar perfil do corretor após login
+      try {
+        const apiUrl = (await import('../utils')).getApiUrl();
+        const brokerRes = await fetch(`${apiUrl}/api/partner/register?login=${encodeURIComponent(login)}`);
+        if (brokerRes.ok) {
+          const brokerData = await brokerRes.json();
+          if (brokerData.broker) {
+            const profile = {
+              login: brokerData.broker.login || brokerData.broker.creci || login,
+              name: brokerData.broker.name || '',
+              email: brokerData.broker.email || '',
+              phone: brokerData.broker.phone || '',
+              photo: brokerData.broker.photo || ''
+            };
+            localStorage.setItem('iamobil_profile', JSON.stringify(profile));
+          }
+        }
+      } catch (e) {
+        console.warn('Profile auto-setup failed:', e);
+      }
+
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
@@ -114,14 +136,7 @@ export function Login() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 font-medium mb-2">Credenciais de teste:</p>
-            <div className="text-sm text-gray-500 space-y-1">
-              <p><strong>Login:</strong> admin</p>
-              <p><strong>Senha:</strong> admin123</p>
-            </div>
-          </div>
+
         </div>
 
         {/* Footer */}
