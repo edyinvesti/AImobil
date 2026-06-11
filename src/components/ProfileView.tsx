@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useUser } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search, LogOut, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search, LogOut, Eye, EyeOff, KeyRound, CheckCircle2 } from 'lucide-react';
 import { getApiUrl } from '../utils';
 import { useToast } from '../hooks/useToast';
 
@@ -166,8 +166,27 @@ export function ProfileView() {
                 </div>
               </div>
             </div>
-            <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
-              {isSaving ? "Salvando..." : "Salvar Alterações"}
+            <button 
+              type="submit" 
+              disabled={isSaving}
+              className={`w-full ${saved ? 'bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'} text-white font-bold py-3.5 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-[0.98] disabled:opacity-70`}
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Salvando...
+                </>
+              ) : saved ? (
+                <>
+                  <CheckCircle2 size={18} />
+                  Salvo na sua Carteira
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Salvar Alterações
+                </>
+              )}
             </button>
           </form>
 

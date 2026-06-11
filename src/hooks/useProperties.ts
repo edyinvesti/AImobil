@@ -11,7 +11,7 @@ interface RawPropertyInput {
   [key: string]: unknown;
 }
 
-function normalizeProperty(p: RawPropertyInput): Property {
+export function normalizeProperty(p: RawPropertyInput): Property {
   if (!p || typeof p !== 'object') {
     return { id: Math.random().toString(36).substring(2), title: 'Item Inválido', images: [] } as any;
   }
@@ -55,7 +55,7 @@ export function useProperties(baseLogin?: string) {
     } catch { return ''; }
   })();
 
-  const { data: properties = [], isLoading, refetch } = useQuery({
+  const { data: properties = [], isLoading, isError, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['properties', resolvedLogin],
     queryFn: () => fetchProperties(resolvedLogin),
     enabled: !!resolvedLogin,
@@ -117,9 +117,14 @@ export function useProperties(baseLogin?: string) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [refetch]);
 
+  const syncStatus = isLoading ? 'syncing' : isError ? 'error' : 'synced';
+
   return {
     properties,
     loading: isLoading,
+    isError,
+    lastSync: dataUpdatedAt,
+    syncStatus,
     saveProperty: async (property: Property, profile: { name: string; login: string }) => {
       await savePropertyMutation.mutateAsync({ property, profile });
     },
