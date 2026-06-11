@@ -87,7 +87,12 @@ export default function App() {
     <div className="min-h-screen bg-[#030303] flex text-white font-sans selection:bg-orange-500 selection:text-white">
       <Sidebar 
         currentView={currentView} 
-        onViewChange={(v) => navigate(v === 'dashboard' ? '/' : `/${v}`)} 
+        onViewChange={(v) => {
+          if (v === 'form') {
+            setSelectedProperty(null);
+          }
+          navigate(v === 'dashboard' ? '/' : `/${v}`);
+        }} 
         profile={profile} 
         onLogout={handleLogout}
       />
@@ -134,7 +139,9 @@ export default function App() {
                   <Dashboard 
                     properties={properties} 
                     onAddClick={() => { setSelectedProperty(null); navigate('/form'); }}
-                    onPropertyClick={(p) => { setSelectedProperty(p); }}
+                    onPropertyClick={(p) => { 
+                      // Do nothing on background click to avoid silent state updates
+                    }}
                     onDelete={setPropertyToDelete}
                     onEdit={(p) => { setSelectedProperty(p); navigate('/form'); }}
                     loading={loading}
