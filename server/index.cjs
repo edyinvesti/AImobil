@@ -242,7 +242,10 @@ app.post('/api/partner/properties', async (req, res, next) => {
     if (Array.isArray(images) && images.length > MAX_IMAGES) {
       return res.status(400).json({ error: `Máximo de ${MAX_IMAGES} fotos por imóvel. Você enviou ${images.length}.` });
     }
-    await dataEngine.addProperty(property);
+    const result = await dataEngine.addProperty(property);
+    if (!result) {
+      return res.status(500).json({ error: 'Falha ao salvar imóvel no banco de dados' });
+    }
     logger.info('Property created via Partner API', { propertyId: property.id });
     res.status(201).json({ success: true, propertyId: property.id });
   } catch (e) {
