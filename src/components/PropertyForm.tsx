@@ -18,6 +18,7 @@ const AMENITIES_OPTIONS = [
 
 export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProps) => {
     const [isSaving, setIsSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
@@ -267,10 +268,13 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
             await onSave(property);
+            setSaved(true);
+            setTimeout(() => onCancel(), 2000);
             triggerMarketingCampaign(property.id, formData.marketingOption);
         } catch (error) {
             console.error("Erro ao salvar:", error);
             toast("Erro ao salvar o imóvel. Verifique os dados e tente novamente.", 'error');
+            setSaved(false);
         } finally {
             setIsSaving(false);
         }
@@ -762,10 +766,14 @@ const [states, setStates] = useState<IBGEState[]>([]);
                     </button>
                     <button
                         type="submit"
-                        disabled={isSaving}
-                        className="px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-orange-500/10 disabled:opacity-50 flex items-center gap-2"
+                        disabled={isSaving || saved}
+                        className={`px-8 py-4 text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg flex items-center gap-2 ${
+                            saved
+                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/10'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/10 disabled:opacity-50'
+                        }`}
                     >
-                        {isSaving ? 'Salvando...' : 'Salvar Imóvel'}
+                        {saved ? 'Salvo na sua carteira' : isSaving ? 'Salvando...' : 'Salvar Imóvel'}
                     </button>
                 </div>
 

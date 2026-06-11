@@ -74,7 +74,6 @@ export default function App() {
       p.thumbnail = await gerarThumbnail(p.images[0]);
     }
     await saveProperty(p, profile);
-    navigate('/');
   };
 
   if (showSplash) return <SplashScreen onEnter={() => {
