@@ -79,7 +79,6 @@ class DataEngine {
         size: row.area || 0,
         offerType: null,
         parkingSpaces: row.parkingSpaces || 0,
-        brokerCreci: row.brokerCreci || row.broker_creci || '',
       }));
     } catch (e) {
       console.error('getProperties error:', e.message);
