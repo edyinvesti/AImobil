@@ -412,19 +412,14 @@ app.get('*', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// ERROR HANDLING
-// ═══════════════════════════════════════════════════════════════
-
-app.use(notFound);
-app.use(errorHandler);
-
-// ═══════════════════════════════════════════════════════════════
 // START SERVER
 // ═══════════════════════════════════════════════════════════════
 
 async function start() {
   await initializeServices();
   registerRoutes();
+  app.use(notFound);
+  app.use(errorHandler);
   
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
