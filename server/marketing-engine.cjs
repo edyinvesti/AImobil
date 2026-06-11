@@ -162,9 +162,7 @@ class MarketingEngine {
 
       let instagramResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
-        // const temVideo = !!(property.videoData || property.video_data);
-        // Desativado a pedido do usuario: Forçar postagem em Carrossel/Foto ao invés de Reels
-        const temVideo = false; 
+        const temVideo = !!(property.videoData || property.video_data);
 
         if (temVideo) {
           this.logger.info('Publicando Reels com vídeo do imóvel');
