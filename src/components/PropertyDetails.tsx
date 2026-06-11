@@ -1,5 +1,5 @@
 import { useState, useEffect, MouseEvent } from 'react';
-import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Loader2, Film } from 'lucide-react';
+import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
 import { resolveImageUrl, getApiUrl, safeFormatCurrency } from '../utils';
@@ -9,14 +9,12 @@ interface PropertyDetailsProps {
     property: Property;
     profile: UserProfile;
     onClose: () => void;
-    onPublish?: (property: Property) => Promise<void>;
 }
 
-export const PropertyDetails = ({ property: initialProperty, profile, onClose, onPublish }: PropertyDetailsProps) => {
+export const PropertyDetails = ({ property: initialProperty, profile, onClose }: PropertyDetailsProps) => {
     const { toast } = useToast();
     const [property, setProperty] = useState(initialProperty);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-    const [isPublishing, setIsPublishing] = useState(false);
     const [loadingImages, setLoadingImages] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [campaignStatus, setCampaignStatus] = useState<{ loading: boolean; result?: any; error?: string }>({ loading: false });
@@ -226,7 +224,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                                     className="p-3 bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-xl hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
                                     title="Marketing no Facebook e Instagram"
                                 >
-                                    {campaignStatus.loading ? <Loader2 size={16} className="animate-spin" /> : <Megaphone size={16} />}
+                                    {campaignStatus.loading ? <span className="text-[8px] animate-pulse">...</span> : <Megaphone size={16} />}
                                 </button>
                             </div>
                         </div>
@@ -299,7 +297,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                     </div>
 
                     {/* Preço e Ação */}
-                    <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                    <div className="pt-6 border-t border-white/5">
                         <div className="min-w-0">
                             <span className="text-[10px] font-black uppercase text-orange-500 tracking-tight block mb-1">Valentia Comercial</span>
                             <span className="text-3xl md:text-5xl font-black tracking-tighter whitespace-nowrap">{formatPrice(property.price)}</span>
@@ -307,22 +305,6 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                                 {property.offerType === 'Aluguel' ? 'Taxa Mensal' : 'Ativo para Aquisição'}
                             </p>
                         </div>
-
-                        <button
-                            onClick={async () => {
-                                if (!onPublish) return;
-                                setIsPublishing(true);
-                                try {
-                                    await onPublish({ ...property, remoteStatus: 'approved' });
-                                    setProperty(prev => ({ ...prev, remoteStatus: 'approved' }));
-                                } catch { /* silent */ }
-                                setIsPublishing(false);
-                            }}
-                            disabled={isPublishing || Boolean(property.remoteId && property.remoteStatus === 'approved')}
-                            className="flex-shrink-0 px-6 py-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 print:hidden"
-                        >
-                            {isPublishing ? 'Transmitindo...' : 'Transmitir para Rede IAmobil'}
-                        </button>
                     </div>
                 </div>
             </motion.div>

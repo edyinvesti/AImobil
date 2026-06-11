@@ -216,7 +216,6 @@ export default function App() {
             property={selectedProperty}
             profile={profile}
             onClose={() => setSelectedProperty(null)}
-            onPublish={async (p) => { await saveProperty(p, profile); }}
           />
         )}
       </AnimatePresence>
