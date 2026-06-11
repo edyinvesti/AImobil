@@ -8,8 +8,8 @@ const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || META_ADS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
-const API_URL = (process.env.VITE_API_URL || 'http://localhost:10002').replace(/\/$/, '');
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://aimobil.onrender.com';
+const API_URL = (process.env.VITE_API_URL || FRONTEND_URL || 'http://localhost:10002').replace(/\/$/, '');
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 const campaigns = new Map();

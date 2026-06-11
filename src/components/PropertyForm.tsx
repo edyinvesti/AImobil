@@ -234,9 +234,13 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const triggerMarketingCampaign = async (propertyId: string, option: MarketingOption) => {
         if (option === 'none') return;
         try {
+            const token = localStorage.getItem('iamobil_token');
             const res = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     property_id: propertyId,
                     budget: 20,
