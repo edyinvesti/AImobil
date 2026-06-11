@@ -1,5 +1,5 @@
 
-import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2 } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2, Edit3 } from 'lucide-react';
 import { Property } from '../types';
 import { safeFormatCurrency } from '../utils';
 
@@ -34,7 +34,7 @@ const getFallbackImage = (title: string, currentUrl: string) => {
   return urlStr;
 };
 
-export function PropertyCard({ property, onClick, onDelete, campaignActive }: PropertyCardProps) {
+export function PropertyCard({ property, onClick, onEdit, onDelete, campaignActive }: PropertyCardProps) {
   const thumbnail = property.thumbnail || '';
   
   return (
@@ -60,11 +60,21 @@ export function PropertyCard({ property, onClick, onDelete, campaignActive }: Pr
             Marketing
           </div>
         )}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onEdit(property); }}
+            className="absolute bottom-1.5 right-9 w-6 h-6 bg-zinc-900/80 hover:bg-orange-500 rounded-md flex items-center justify-center text-white transition-all border border-white/10"
+            title="Editar imóvel"
+          >
+            <Edit3 size={10} />
+          </button>
+        )}
         {onDelete && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-            className="absolute bottom-1.5 right-1.5 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-md flex items-center justify-center text-white transition-all"
+            className="absolute bottom-1.5 right-1.5 w-6 h-6 bg-red-500/80 hover:bg-red-500 rounded-md flex items-center justify-center text-white transition-all border border-red-400/20"
             title="Excluir imóvel"
           >
             <Trash2 size={10} />
