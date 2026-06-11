@@ -408,11 +408,7 @@ app.get('/api/marketing/status', authMiddleware, async (req, res, next) => {
 
 // ═══════════════════════════════════════════════════════════════
 // SERVE FRONTEND
-// ═══════════════════════════════════════════════════════════════
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
-});
+// (Movido para dentro do start() para não interceptar as rotas da API)
 
 // ═══════════════════════════════════════════════════════════════
 // START SERVER
@@ -421,6 +417,12 @@ app.get('*', (req, res) => {
 async function start() {
   await initializeServices();
   registerRoutes();
+  
+  // O catch-all do frontend DEVE ser a última rota registrada antes dos error handlers
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  });
+
   app.use(notFound);
   app.use(errorHandler);
   
