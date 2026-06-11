@@ -337,10 +337,10 @@ const CAMPAIGNS = [
     id: 'camp-001',
     property_id: 'prop-001',
     property_title: 'Apartamento 3 Quartos - Jardim Europa',
-    instagram_status: 'published',
+    instagram_status: 'PUBLISHED',
     instagram_post_id: 'ig-post-001',
     instagram_url: 'https://instagram.com/p/abc123',
-    campaign_status: 'active',
+    campaign_status: 'ACTIVE',
     campaign_id: 'fb-camp-001',
     has_carousel: 1,
     created_at: Date.now()
@@ -349,10 +349,10 @@ const CAMPAIGNS = [
     id: 'camp-002',
     property_id: 'prop-002',
     property_title: 'Casa 4 Quartos - Moema',
-    instagram_status: 'published',
+    instagram_status: 'PUBLISHED',
     instagram_post_id: 'ig-post-002',
     instagram_url: 'https://instagram.com/p/def456',
-    campaign_status: 'active',
+    campaign_status: 'ACTIVE',
     campaign_id: 'fb-camp-002',
     has_carousel: 0,
     created_at: Date.now()
@@ -376,7 +376,7 @@ const CAMPAIGNS = [
     instagram_status: 'published',
     instagram_post_id: 'ig-post-004',
     instagram_url: 'https://instagram.com/p/ghi789',
-    campaign_status: 'active',
+    campaign_status: 'ACTIVE',
     campaign_id: 'fb-camp-004',
     has_carousel: 1,
     created_at: Date.now()
@@ -388,13 +388,13 @@ const CAMPAIGNS = [
 // ═══════════════════════════════════════════════════════════════
 
 async function restoreUsers() {
-  console.log('\n👤 Restaurando users...');
+  console.log('\n👤 Restaurando corretores (brokers)...');
   for (const user of USERS) {
     try {
       await client.execute({
-        sql: `INSERT OR REPLACE INTO users (login, password, name, email, phone, photo, lastActive, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [user.login, user.password, user.name, user.email, user.phone, user.photo, user.lastActive, Date.now()]
+        sql: `INSERT OR REPLACE INTO brokers (creci, login, password, name, email, phone, photo, lastActive, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [user.login, user.login, user.password, user.name, user.email, user.phone, user.photo, user.lastActive, Date.now()]
       });
       console.log(`  ✅ ${user.name} (${user.login})`);
     } catch (e) {
@@ -459,12 +459,12 @@ async function verify() {
   console.log('\n═══ VERIFICAÇÃO FINAL ═══');
   
   const counts = {
-    users: await client.execute('SELECT COUNT(*) as count FROM users'),
+    brokers: await client.execute('SELECT COUNT(*) as count FROM brokers'),
     properties: await client.execute('SELECT COUNT(*) as count FROM properties'),
     campaigns: await client.execute('SELECT COUNT(*) as count FROM campaigns')
   };
   
-  console.log(`📊 Users: ${counts.users.rows[0].count} (esperado: 6)`);
+  console.log(`📊 Brokers: ${counts.brokers.rows[0].count} (esperado: 6)`);
   console.log(`📊 Properties: ${counts.properties.rows[0].count} (esperado: 9)`);
   console.log(`📊 Campaigns: ${counts.campaigns.rows[0].count} (esperado: 4)`);
   

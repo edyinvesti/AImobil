@@ -1,0 +1,1 @@
+require('dotenv').config(); const { createClient } = require('@libsql/client'); (async()=>{const c=createClient({url:process.env.TURSO_DATABASE_URL,authToken:process.env.TURSO_AUTH_TOKEN});const r=await c.execute('PRAGMA table_info(properties)');r.rows.forEach(col=>console.log(col.name+' ('+col.type+')'+(col.dflt_value?' DEFAULT '+col.dflt_value:'')));process.exit(0)})();

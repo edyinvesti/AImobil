@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BarChart3, ExternalLink, Instagram, RefreshCw, Image, CheckCircle2, XCircle, Trash2, Clock, Filter, X, ChevronRight } from 'lucide-react';
-import { getApiUrl } from '../utils';
+import { useCampaigns, useDeleteCampaign } from '../hooks/useCampaigns';
 import { useToast } from '../hooks/useToast';
 
 interface Campaign {
@@ -46,52 +46,33 @@ type FilterId = typeof filters[number]['id'];
 
 export const Campaigns = () => {
   const { toast } = useToast();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [stats, setStats] = useState<CampaignStats>({ total: 0, published: 0, adsActive: 0, failed: 0, carousel: 0 });
-  const [loading, setLoading] = useState(true);
+  const { data: campaignsData, isLoading: loading, refetch } = useCampaigns();
+  const deleteMutation = useDeleteCampaign();
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const API_BASE = getApiUrl();
-      const [listRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/campaigns/list`),
-        fetch(`${API_BASE}/api/campaigns/stats`)
-      ]);
-      const listData = await listRes.json();
-      const statsData = await statsRes.json();
-      if (listData.success) setCampaigns(listData.campanhas || []);
-      if (statsData.success) setStats(statsData.stats);
-    } catch (e) {
-      console.error('Erro ao buscar campanhas:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, []);
+  const campaigns: Campaign[] = (campaignsData as any)?.campanhas || (Array.isArray(campaignsData) ? campaignsData : []);
+  const stats: CampaignStats = (campaignsData as any)?.stats || (() => {
+    const list = Array.isArray(campaignsData) ? campaignsData : [];
+    return {
+      total: list.length,
+      published: list.filter(c => c.instagram_status === 'PUBLISHED').length,
+      adsActive: list.filter(c => c.campaign_status === 'ACTIVE').length,
+      failed: list.filter(c => c.instagram_status && c.instagram_status !== 'PUBLISHED').length,
+      carousel: list.filter(c => c.has_carousel).length,
+    };
+  })();
 
   const deleteCampaign = async (id: string) => {
     setDeleting(id);
     try {
-      const API_BASE = getApiUrl();
-      const res = await fetch(`${API_BASE}/api/campaigns/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        setCampaigns(prev => prev.filter(c => c.id !== id));
-        if (detail?.id === id) setDetail(null);
-        if (data.instagram?.success === false) {
-          toast(`Instagram: ${data.instagram.error}`, 'warning');
-        } else if (data.instagram?.success) {
-          toast('Post removido do Instagram com sucesso!', 'success');
-        }
-        fetchData();
-      }
+      await deleteMutation.mutateAsync(id);
+      toast('Campanha removida com sucesso!', 'success');
+      refetch();
     } catch (e) {
       console.error('Erro ao deletar campanha:', e);
+      toast('Erro ao remover campanha', 'error');
     } finally {
       setDeleting(null);
     }
@@ -116,18 +97,16 @@ export const Campaigns = () => {
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="p-4 md:p-6 space-y-4 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 size={20} className="text-orange-500" />
           <h1 className="text-sm font-black uppercase tracking-[0.3em] bg-gradient-to-r from-orange-500 to-violet-500 bg-clip-text text-transparent">Campanhas</h1>
         </div>
-        <button onClick={fetchData} className="p-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-zinc-800 transition-all">
+        <button onClick={() => refetch()} className="p-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-zinc-800 transition-all">
           <RefreshCw size={16} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {statCards.map(s => (
           <div key={s.label} className="bg-zinc-900/60 border border-white/5 rounded-2xl p-3">
@@ -142,7 +121,6 @@ export const Campaigns = () => {
         ))}
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         {filters.map(f => (
           <button key={f.id} onClick={() => setActiveFilter(f.id)}
@@ -160,7 +138,6 @@ export const Campaigns = () => {
         ))}
       </div>
 
-      {/* Loading */}
       {loading && campaigns.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[30vh] gap-4">
           <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
@@ -175,7 +152,6 @@ export const Campaigns = () => {
           <p className="text-[10px]">Publique um imóvel no Instagram para ver aqui</p>
         </div>
       ) : (
-        /* Campaign List */
         <motion.div variants={containerVariants} className="space-y-2">
           {filtered.map(camp => (
             <motion.div key={camp.id} variants={itemVariants}
@@ -223,7 +199,6 @@ export const Campaigns = () => {
         </motion.div>
       )}
 
-      {/* Detail Modal */}
       {detail && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -240,13 +215,11 @@ export const Campaigns = () => {
             </div>
 
             <div className="space-y-3">
-              {/* Property */}
               <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                 <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Imóvel</div>
                 <div className="text-sm font-bold text-white">{detail.property_title || 'Sem título'}</div>
               </div>
 
-              {/* Status */}
               <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                 <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Status Instagram</div>
                 <div className="flex items-center gap-2">
@@ -262,7 +235,6 @@ export const Campaigns = () => {
                 </div>
               </div>
 
-              {/* Campaign Status */}
               {detail.campaign_status && (
                 <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                   <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Campanha Ads</div>
@@ -270,7 +242,6 @@ export const Campaigns = () => {
                 </div>
               )}
 
-              {/* Carrossel */}
               {detail.has_carousel && (
                 <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                   <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Formato</div>
@@ -280,13 +251,11 @@ export const Campaigns = () => {
                 </div>
               )}
 
-              {/* Date */}
               <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                 <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Criado em</div>
                 <div className="text-sm text-gray-300">{formatDate(detail.created_at)}</div>
               </div>
 
-              {/* Post ID */}
               {detail.instagram_post_id && (
                 <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                   <div className="text-[8px] font-black uppercase tracking-widest text-gray-500 mb-1">Post ID</div>
@@ -295,7 +264,6 @@ export const Campaigns = () => {
               )}
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-2 mt-6">
               {detail.instagram_url && (
                 <a href={detail.instagram_url} target="_blank" rel="noopener noreferrer"

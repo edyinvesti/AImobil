@@ -25,9 +25,9 @@ services:
       - key: LOG_LEVEL
         value: info
       # ══════════════════════════════════════════
-      # DATABASE — Turso (iamobil)
+      # DATABASE — Turso (configurar secrets no Render)
       - key: TURSO_DATABASE_URL
-        value: "libsql://iamobil-edyinvesti.aws-us-west-2.turso.io"
+        sync: false
       - key: TURSO_AUTH_TOKEN
         sync: false
       # ══════════════════════════════════════════

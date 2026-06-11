@@ -120,7 +120,7 @@ class MarketingEngine {
       const brokerLogin = property.brokerLogin || property.broker_login || '';
       if (brokerLogin) {
         try {
-          const user = await (await this.getDataEngine()).validateUser(brokerLogin);
+          const user = await (await this.getDataEngine()).validateBroker(brokerLogin);
           if (user) {
             broker = { name: user.name, phone: user.phone, email: user.email, photo: user.photo };
           }

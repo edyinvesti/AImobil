@@ -63,10 +63,10 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
         const includeOrganic = marketingOption !== 'none';
         const includeAds = marketingOption === 'instagram_ads';
         try {
-            const response = await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
+            const response = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ propertyId: property.id, budget: 20, campaignDays: 14, includeOrganic, includeAds })
+                body: JSON.stringify({ property_id: property.id, budget: 20, campaignDays: 14, includeOrganic, includeAds })
             });
             const data = await response.json();
             setCampaignStatus({ loading: false, result: data.success ? data : null, error: data.success ? undefined : data.error });

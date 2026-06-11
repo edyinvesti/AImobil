@@ -1,14 +1,17 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useUser } from '../context/UserContext';
-import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search, LogOut, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { getApiUrl } from '../utils';
 import { useToast } from '../hooks/useToast';
 
 export function ProfileView() {
   const { toast } = useToast();
-  const { profile, updateProfile } = useUser();
+  const navigate = useNavigate();
+  const { profile, updateProfile, logout } = useUser();
   const [formData, setFormData] = useState(profile);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +39,8 @@ export function ProfileView() {
             name: data.broker.name || '',
             email: data.broker.email || '',
             phone: data.broker.phone || '',
-            photo: data.broker.photo || ''
+            photo: data.broker.photo || '',
+            password: ''
           });
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
@@ -141,11 +145,40 @@ export function ProfileView() {
                 <label className="text-[10px] font-black uppercase text-gray-500">WhatsApp</label>
                 <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.phone || ''} onChange={handlePhoneChange} />
               </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-gray-500">Nova Senha</label>
+                <div className="flex gap-2">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm"
+                    value={formData.password || ''}
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Deixe em branco para manter a atual"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="bg-black/40 border border-white/5 text-gray-400 p-3.5 rounded-2xl hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
             </div>
             <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
               {isSaving ? "Salvando..." : "Salvar Alterações"}
             </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <button
+              onClick={() => { logout(); navigate('/'); }}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all text-[9px] font-black uppercase tracking-widest border border-red-500/20"
+            >
+              <LogOut size={14} /> Encerrar Sessão
+            </button>
+          </div>
         </div>
       </div>
     </div>

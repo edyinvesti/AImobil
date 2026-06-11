@@ -14,8 +14,8 @@ async function checkUser() {
   
   try {
     const rs = await client.execute({
-      sql: 'SELECT * FROM users WHERE login = ?',
-      args: ['232120']
+      sql: 'SELECT * FROM brokers WHERE login = ? OR creci = ?',
+      args: ['232120', '232120']
     });
     
     if (rs.rows.length === 0) {

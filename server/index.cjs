@@ -132,20 +132,73 @@ app.use('/api/health', healthRoutes(async () => ({
 })));
 
 // ═══════════════════════════════════════════════════════════════
-// API ROUTES
+// API ROUTES — Registradas após initializeServices()
 // ═══════════════════════════════════════════════════════════════
 
-// Auth routes (public)
-app.use('/api/auth', authLimiter, authRoutes(authService));
+function registerRoutes() {
+  // Auth routes (public)
+  app.use('/api/auth', authLimiter, authRoutes(authService));
 
-// Protected routes
-app.use('/api/properties', propertyRoutes(propertyService, authMiddleware));
-app.use('/api/leads', leadRoutes(leadService, authMiddleware));
-app.use('/api/appointments', appointmentRoutes(appointmentService, authMiddleware));
-app.use('/api/marketing', marketingRoutes(marketingService, authMiddleware));
+  // Protected routes
+  app.use('/api/properties', propertyRoutes(propertyService, authMiddleware));
 
-// Telegram routes (webhook is public, status is protected)
-app.use('/api/telegram', telegramRoutes(telegramService));
+  // Serve media (image/video) from property data (used by marketing engine for Instagram/Facebook)
+  app.get('/api/properties/:id/image', async (req, res) => {
+    try {
+      if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+      const property = await dataEngine.getPropertyById(req.params.id);
+      if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+      if (!property.images || property.images.length === 0) return res.status(404).json({ error: 'Imóvel sem fotos' });
+
+      const index = parseInt(req.query.index) || 0;
+      if (index < 0 || index >= property.images.length) return res.status(404).json({ error: 'Índice inválido' });
+
+      const raw = Buffer.isBuffer(property.images[index]) ? property.images[index].toString() : String(property.images[index]);
+      const base64 = raw.replace(/^data:image\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
+      const buffer = Buffer.from(base64, 'base64');
+
+      if (buffer.length === 0) return res.status(500).json({ error: 'Buffer vazio' });
+
+      res.status(200);
+      res.type('png');
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.send(buffer);
+    } catch (e) {
+      logger.error('Image serve error', { error: e.message, stack: e.stack });
+      res.status(500).json({ error: 'Erro: ' + e.message });
+    }
+  });
+
+  app.get('/api/properties/:id/video', async (req, res) => {
+    try {
+      if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+      const property = await dataEngine.getPropertyById(req.params.id);
+      if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+      if (!property.videoData) return res.status(404).json({ error: 'Imóvel sem vídeo' });
+
+      const raw = Buffer.isBuffer(property.videoData) ? property.videoData.toString() : String(property.videoData);
+      const base64 = raw.replace(/^data:video\/\w+;base64,/, '').replace(/^data:application\/octet-stream;base64,/, '');
+      const buffer = Buffer.from(base64, 'base64');
+
+      if (buffer.length === 0) return res.status(500).json({ error: 'Buffer vazio' });
+
+      res.status(200);
+      res.type(property.videoType || 'video/mp4');
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.send(buffer);
+    } catch (e) {
+      logger.error('Video serve error', { error: e.message, stack: e.stack });
+      res.status(500).json({ error: 'Erro: ' + e.message });
+    }
+  });
+
+  app.use('/api/leads', leadRoutes(leadService, authMiddleware));
+  app.use('/api/appointments', appointmentRoutes(appointmentService, authMiddleware));
+  app.use('/api/marketing', marketingRoutes(marketingService, authMiddleware));
+
+  // Telegram routes (webhook is public, status is protected)
+  app.use('/api/telegram', telegramRoutes(telegramService));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // LEGACY PARTNER ROUTES (compatibilidade com frontend)
@@ -154,12 +207,24 @@ app.use('/api/telegram', telegramRoutes(telegramService));
 app.get('/api/partner/properties', async (req, res, next) => {
   try {
     let properties = await dataEngine.getProperties();
-    const login = req.query?.login;
+    const login = req.query?.login || req.query?.creci;
     if (login && login.trim()) {
       const target = login.trim().toLowerCase();
-      properties = properties.filter(p =>
-        (p.brokerLogin || p.broker_login || '').toString().trim().toLowerCase() === target
-      );
+      properties = properties.filter(p => {
+        const bc = (p.brokerLogin || p.brokerCreci || p.broker_login || p.broker_creci || '').toString().trim().toLowerCase();
+        const bName = (p.brokerName || '').toString().trim().toLowerCase();
+        return bc === target || bName === target;
+      });
+      if (properties.length === 0) {
+        const user = await dataEngine.validateBroker(login);
+        if (user && user.name) {
+          const userName = user.name.trim().toLowerCase();
+          properties = (await dataEngine.getProperties()).filter(p => {
+            const bName = (p.brokerName || '').toString().trim().toLowerCase();
+            return bName === userName;
+          });
+        }
+      }
     }
     res.json({ success: true, count: properties.length, properties });
   } catch (e) {
@@ -229,11 +294,20 @@ app.get('/api/partner/register', async (req, res, next) => {
   try {
     const login = req.query.login;
     if (!login) return res.status(400).json({ error: 'login obrigatório' });
-    let user = null;
+    let broker = null;
     if (dataEngine) {
-      user = await dataEngine.validateUser(login);
+      broker = await dataEngine.getBroker(login);
+      if (!broker) {
+        broker = await dataEngine.getBrokerByName(login);
+      }
+      if (!broker) {
+        const user = await dataEngine.validateBroker(login);
+        if (user) {
+          broker = user;
+        }
+      }
     }
-    res.json({ success: true, broker: user });
+    res.json({ success: true, broker });
   } catch (e) {
     logger.error('Get profile error', { error: e.message });
     res.status(500).json({ error: 'Erro ao buscar perfil' });
@@ -244,6 +318,17 @@ app.post('/api/partner/register', async (req, res, next) => {
   try {
     const profile = req.body;
     if (!profile.login) return res.status(400).json({ error: 'login obrigatório' });
+    if (dataEngine) {
+      await dataEngine.saveBroker({
+        creci: profile.login,
+        login: profile.login,
+        name: profile.name || '',
+        email: profile.email || '',
+        phone: profile.phone || '',
+        photo: profile.photo || '',
+        password: profile.password || '',
+      });
+    }
     logger.info('Profile saved', { login: profile.login });
     res.json({ success: true });
   } catch (e) {
@@ -339,6 +424,7 @@ app.use(errorHandler);
 
 async function start() {
   await initializeServices();
+  registerRoutes();
   
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);

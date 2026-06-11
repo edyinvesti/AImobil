@@ -13,7 +13,7 @@ async function listUsers() {
   const client = createClient({ url, authToken });
   
   try {
-    const rs = await client.execute('SELECT login, name, email, phone, created_at FROM users');
+    const rs = await client.execute('SELECT login, name, email, phone, created_at FROM brokers');
     
     if (rs.rows.length === 0) {
       console.log('❌ Nenhum usuário cadastrado no sistema');

@@ -23,25 +23,15 @@ export function Login() {
     try {
       await authLogin(login, password);
 
-      // Auto-configurar perfil do corretor após login
-      try {
-        const apiUrl = (await import('../utils')).getApiUrl();
-        const brokerRes = await fetch(`${apiUrl}/api/partner/register?login=${encodeURIComponent(login)}`);
-        if (brokerRes.ok) {
-          const brokerData = await brokerRes.json();
-          if (brokerData.broker) {
-            const profile = {
-              login: brokerData.broker.login || login,
-              name: brokerData.broker.name || '',
-              email: brokerData.broker.email || '',
-              phone: brokerData.broker.phone || '',
-              photo: brokerData.broker.photo || ''
-            };
-            localStorage.setItem('iamobil_profile', JSON.stringify(profile));
-          }
-        }
-      } catch (e) {
-        console.warn('Profile auto-setup failed:', e);
+      const user = useAuth.getState().user;
+      if (user) {
+        localStorage.setItem('iamobil_profile', JSON.stringify({
+          login: user.login,
+          name: user.name || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          photo: ''
+        }));
       }
 
       navigate('/');

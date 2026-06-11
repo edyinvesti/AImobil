@@ -228,11 +228,11 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const triggerMarketingCampaign = async (propertyId: string, option: MarketingOption) => {
         if (option === 'none') return;
         try {
-            const res = await fetch(`${getApiUrl()}/api/marketing/criar-campanha`, {
+            const res = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    propertyId,
+                    property_id: propertyId,
                     budget: 20,
                     campaignDays: 14,
                     includeOrganic: true,
@@ -267,11 +267,12 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
             await onSave(property);
-            await triggerMarketingCampaign(property.id, formData.marketingOption);
+            triggerMarketingCampaign(property.id, formData.marketingOption);
         } catch (error) {
             console.error("Erro ao salvar:", error);
-            setIsSaving(false);
             toast("Erro ao salvar o imóvel. Verifique os dados e tente novamente.", 'error');
+        } finally {
+            setIsSaving(false);
         }
     };
 

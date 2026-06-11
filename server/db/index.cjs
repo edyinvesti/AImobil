@@ -65,7 +65,7 @@ class DataEngine {
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
         'streetNumber, complement, description, brokerName, broker_login, created_at, ' +
-        'thumbnail, ' +
+        'thumbnail, video_data, video_type, ' +
         "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
       );
@@ -221,33 +221,107 @@ class DataEngine {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // USERS
+  // BROKERS (unificado — antiga tabela users)
   // ═══════════════════════════════════════════════════════════════
 
-  async createUser(user) {
+  async createBroker(user) {
     if (!this.client) return null;
     try {
       return await this.client.execute({
-        sql: `INSERT INTO users (login, password, name, email, phone, photo, lastActive) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [user.login, user.password, user.name, user.email, user.phone || '', user.photo || '', user.lastActive || '']
+        sql: `INSERT INTO brokers (creci, login, password, name, email, phone, photo, lastActive) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [user.login, user.login, user.password, user.name, user.email, user.phone || '', user.photo || '', user.lastActive || '']
       });
     } catch (e) {
-      console.error('createUser error:', e.message);
+      console.error('createBroker error:', e.message);
       return null;
     }
   }
 
-  async validateUser(login) {
+  async validateBroker(login) {
     if (!this.client) return null;
     try {
       const rs = await this.client.execute({
-        sql: 'SELECT * FROM users WHERE login = ?',
-        args: [login]
+        sql: 'SELECT * FROM brokers WHERE login = ? OR creci = ?',
+        args: [login, login]
       });
       return rs.rows[0] || null;
     } catch (e) {
-      console.error('validateUser error:', e.message);
+      console.error('validateBroker error:', e.message);
       return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // BROKERS
+  // ═══════════════════════════════════════════════════════════════
+
+  async getBroker(creci) {
+    if (!this.client) return null;
+    try {
+      const rs = await this.client.execute({
+        sql: 'SELECT * FROM brokers WHERE creci = ?',
+        args: [creci]
+      });
+      return rs.rows[0] || null;
+    } catch (e) {
+      console.error('getBroker error:', e.message);
+      return null;
+    }
+  }
+
+  async getBrokerByName(name) {
+    if (!this.client) return null;
+    try {
+      const rs = await this.client.execute({
+        sql: 'SELECT * FROM brokers WHERE name = ?',
+        args: [name]
+      });
+      return rs.rows[0] || null;
+    } catch (e) {
+      console.error('getBrokerByName error:', e.message);
+      return null;
+    }
+  }
+
+  async saveBroker(broker) {
+    if (!this.client) return null;
+    try {
+      if (broker.password) {
+        await this.client.execute({
+          sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, login, lastActive, password)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            broker.creci || broker.login, broker.name || '', broker.email || '',
+            broker.phone || '', broker.photo || '', broker.login || '',
+            broker.lastActive || '', broker.password
+          ]
+        });
+      } else {
+        await this.client.execute({
+          sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, login, lastActive)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            broker.creci || broker.login, broker.name || '', broker.email || '',
+            broker.phone || '', broker.photo || '', broker.login || '',
+            broker.lastActive || ''
+          ]
+        });
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('saveBroker error:', e.message);
+      return null;
+    }
+  }
+
+  async getAllBrokers() {
+    if (!this.client) return [];
+    try {
+      const rs = await this.client.execute('SELECT * FROM brokers ORDER BY name');
+      return rs.rows;
+    } catch (e) {
+      console.error('getAllBrokers error:', e.message);
+      return [];
     }
   }
 

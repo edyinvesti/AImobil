@@ -20,20 +20,20 @@ async function listTables() {
       console.log(`${index + 1}. ${table.name}`);
     });
     
-    console.log('\n=== Verificando tabela users ===');
+    console.log('\n=== Verificando tabela brokers (unificada) ===');
     try {
-      const usersRs = await client.execute('SELECT COUNT(*) as count FROM users');
-      console.log(`Usuários na tabela users: ${usersRs.rows[0].count}`);
+      const brokersRs = await client.execute('SELECT COUNT(*) as count FROM brokers');
+      console.log(`Corretores na tabela brokers: ${brokersRs.rows[0].count}`);
       
-      if (usersRs.rows[0].count > 0) {
-        const allUsers = await client.execute('SELECT login, name FROM users LIMIT 10');
-        console.log('\nUsuários encontrados:');
-        allUsers.rows.forEach(user => {
-          console.log(`  - Login: ${user.login}, Nome: ${user.name}`);
+      if (brokersRs.rows[0].count > 0) {
+        const allBrokers = await client.execute('SELECT login, name FROM brokers LIMIT 10');
+        console.log('\nCorretores encontrados:');
+        allBrokers.rows.forEach(broker => {
+          console.log(`  - Login: ${broker.login}, Nome: ${broker.name}`);
         });
       }
     } catch (e) {
-      console.log('Tabela users não existe ou erro:', e.message);
+      console.log('Tabela brokers não existe ou erro:', e.message);
     }
     
   } catch (error) {

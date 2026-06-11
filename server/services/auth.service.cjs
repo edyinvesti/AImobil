@@ -27,7 +27,7 @@ class AuthService {
   }
 
   async login(login, password) {
-    const user = await this.dataEngine.validateUser(login);
+    const user = await this.dataEngine.validateBroker(login);
     if (!user) {
       throw new UnauthorizedError('Usuário não encontrado');
     }
@@ -52,12 +52,12 @@ class AuthService {
   }
 
   async register(userData) {
-    const existingUser = await this.dataEngine.validateUser(userData.login);
+    const existingUser = await this.dataEngine.validateBroker(userData.login);
     if (existingUser) {
       throw new ConflictError('Usuário já existe');
     }
 
-    const user = await this.dataEngine.createUser({
+    const user = await this.dataEngine.createBroker({
       login: userData.login,
       password: userData.password, // Em produção, usar bcrypt.hash
       name: userData.name,

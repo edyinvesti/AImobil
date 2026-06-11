@@ -45,22 +45,31 @@ const NEW_SCHEMA = {
       complement TEXT,
       description TEXT,
       brokerName TEXT,
+      broker_creci TEXT,
       broker_login TEXT,
       thumbnail TEXT,
+      video_data TEXT,
+      video_type TEXT DEFAULT 'video/mp4',
+      offer_type TEXT,
+      amenities TEXT,
+      latitude REAL,
+      longitude REAL,
+      marketing_option TEXT DEFAULT 'none',
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      FOREIGN KEY (broker_login) REFERENCES users(login)
+      FOREIGN KEY (broker_login) REFERENCES brokers(login)
     )
   `,
 
-  users: `
-    CREATE TABLE IF NOT EXISTS users (
-      login TEXT PRIMARY KEY,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      photo TEXT,
-      lastActive TEXT,
+  brokers: `
+    CREATE TABLE IF NOT EXISTS brokers (
+      creci TEXT PRIMARY KEY,
+      login TEXT UNIQUE,
+      password TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL DEFAULT '',
+      phone TEXT DEFAULT '',
+      photo TEXT DEFAULT '',
+      lastActive TEXT DEFAULT '',
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
     )
   `,
@@ -76,7 +85,7 @@ const NEW_SCHEMA = {
       status TEXT DEFAULT 'novo',
       date TEXT,
       potential_value INTEGER,
-      property_id INTEGER,
+      property_id TEXT,
       last_contacted TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
       FOREIGN KEY (property_id) REFERENCES properties(id)
@@ -93,8 +102,7 @@ const NEW_SCHEMA = {
       status TEXT DEFAULT 'agendado',
       notes TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      FOREIGN KEY (property_id) REFERENCES properties(id),
-      FOREIGN KEY (lead_name) REFERENCES leads(name)
+      FOREIGN KEY (property_id) REFERENCES properties(id)
     )
   `,
 
@@ -118,10 +126,29 @@ const NEW_SCHEMA = {
     CREATE TABLE IF NOT EXISTS telegram_users (
       chat_id INTEGER PRIMARY KEY,
       username TEXT,
+      creci TEXT,
       login TEXT,
       lang TEXT DEFAULT 'pt',
       created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-      FOREIGN KEY (login) REFERENCES users(login)
+      FOREIGN KEY (login) REFERENCES brokers(login)
+    )
+  `,
+
+  pending_sync: `
+    CREATE TABLE IF NOT EXISTS pending_sync (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      operation TEXT,
+      data TEXT,
+      timestamp TEXT
+    )
+  `,
+
+  rag_vectors: `
+    CREATE TABLE IF NOT EXISTS rag_vectors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT,
+      content TEXT,
+      embedding TEXT
     )
   `
 };
@@ -151,10 +178,11 @@ const COLUMN_MAP = {
            'bedrooms', 'bathrooms', 'parkingSpaces', 'area', 'sizeUnit', 'status',
            'images', 'suites', 'livingRooms', 'kitchens', 'zipCode', 'state',
            'streetNumber', 'complement', 'description', 'brokerName', 'broker_creci', 'broker_login',
-           'thumbnail', 'created_at']
+           'thumbnail', 'video_data', 'video_type', 'offer_type', 'amenities',
+           'latitude', 'longitude', 'marketing_option', 'created_at']
   },
-  users: {
-    keep: ['login', 'password', 'name', 'email', 'phone', 'photo', 'lastActive', 'created_at']
+  brokers: {
+    keep: ['creci', 'login', 'password', 'name', 'email', 'phone', 'photo', 'lastActive', 'created_at']
   },
   leads: {
     keep: ['id', 'name', 'phone', 'interest', 'notes', 'score', 'status', 
@@ -169,7 +197,13 @@ const COLUMN_MAP = {
            'instagram_url', 'campaign_status', 'campaign_id', 'has_carousel', 'created_at']
   },
   telegram_users: {
-    keep: ['chat_id', 'username', 'login', 'lang', 'created_at']
+    keep: ['chat_id', 'username', 'creci', 'login', 'lang', 'created_at']
+  },
+  pending_sync: {
+    keep: ['id', 'operation', 'data', 'timestamp']
+  },
+  rag_vectors: {
+    keep: ['id', 'source', 'content', 'embedding']
   }
 };
 
@@ -272,7 +306,7 @@ async function recreate() {
   // 2. Backup de todas as tabelas
   console.log('\n═══ FASE 1: Backup ═══');
   const backups = {};
-  const tableOrder = ['telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'users'];
+  const tableOrder = ['rag_vectors', 'pending_sync', 'telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'brokers'];
   
   for (const table of tableOrder) {
     backups[table] = await backupTable(table);
@@ -292,7 +326,7 @@ async function recreate() {
   
   // 5. Inserir dados com mapeamento (ordem: brokers → properties → campaigns → etc)
   console.log('\n═══ FASE 4: Migrate data ═══');
-  const insertOrder = ['users', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users'];
+  const insertOrder = ['brokers', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users', 'pending_sync', 'rag_vectors'];
   for (const table of insertOrder) {
     await insertData(table, backups[table], COLUMN_MAP[table]);
   }
