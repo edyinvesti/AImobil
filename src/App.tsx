@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
 import { useToast } from "./hooks/useToast";
+import { getApiUrl } from "./utils";
 
 function gerarThumbnail(imgBase64: string): Promise<string> {
   return new Promise((resolve) => {
@@ -144,7 +145,24 @@ export default function App() {
                       setPropertyToView(p);
                     }}
                     onDelete={setPropertyToDelete}
-                    onEdit={(p) => { setPropertyToView(null); setPropertyToEdit(p); navigate('/form'); }}
+                    onEdit={async (p) => { 
+                      setPropertyToView(null); 
+                      // Busca a mídia completa (vídeo/imagens grandes) que não vem na listagem
+                      try {
+                        const res = await fetch(`${getApiUrl()}/api/partner/property-image?id=${p.id}`);
+                        const data = await res.json();
+                        if (data.success) {
+                          p.videoData = data.videoData || p.videoData;
+                          p.videoType = data.videoType || p.videoType;
+                          p.images = data.images?.length > 0 ? data.images : p.images;
+                        }
+                      } catch (e) {
+                        console.error('Erro pre-fetch edição:', e);
+                      }
+                      
+                      setPropertyToEdit(p); 
+                      navigate('/form'); 
+                    }}
                     loading={loading}
                   />
                 </motion.div>
