@@ -54,7 +54,8 @@ export default function App() {
     };
   }, []);
   const { properties, saveProperty, deleteProperty, loading } = useProperties(profile.login);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [propertyToView, setPropertyToView] = useState<Property | null>(null);
+  const [propertyToEdit, setPropertyToEdit] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);
   
   const navigate = useNavigate();
@@ -89,7 +90,7 @@ export default function App() {
         currentView={currentView} 
         onViewChange={(v) => {
           if (v === 'form') {
-            setSelectedProperty(null);
+            setPropertyToEdit(null);
           }
           navigate(v === 'dashboard' ? '/' : `/${v}`);
         }} 
@@ -138,12 +139,12 @@ export default function App() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <Dashboard 
                     properties={properties} 
-                    onAddClick={() => { setSelectedProperty(null); navigate('/form'); }}
+                    onAddClick={() => { setPropertyToEdit(null); navigate('/form'); }}
                     onPropertyClick={(p) => { 
-                      // Do nothing on background click to avoid silent state updates
+                      setPropertyToView(p);
                     }}
                     onDelete={setPropertyToDelete}
-                    onEdit={(p) => { setSelectedProperty(p); navigate('/form'); }}
+                    onEdit={(p) => { setPropertyToView(null); setPropertyToEdit(p); navigate('/form'); }}
                     loading={loading}
                   />
                 </motion.div>
@@ -152,10 +153,10 @@ export default function App() {
               <Route path="/form" element={
                 <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="p-6 lg:p-12">
                   <PropertyForm 
-                    key={selectedProperty ? selectedProperty.id : 'new'}
+                    key={propertyToEdit ? propertyToEdit.id : 'new'}
                     onSave={handleSaveProperty}
                     onCancel={() => navigate('/')}
-                    initialData={selectedProperty || undefined}
+                    initialData={propertyToEdit || undefined}
                   />
                 </motion.div>
               } />
@@ -211,11 +212,11 @@ export default function App() {
 
       {/* PropertyDetails fora do layout para fixed funcionar corretamente */}
       <AnimatePresence>
-        {selectedProperty && (
+      {propertyToView && (
           <PropertyDetails
-            property={selectedProperty}
+            property={propertyToView}
             profile={profile}
-            onClose={() => setSelectedProperty(null)}
+            onClose={() => setPropertyToView(null)}
           />
         )}
       </AnimatePresence>
