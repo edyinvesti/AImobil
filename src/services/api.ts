@@ -1,10 +1,10 @@
 // src/services/api.ts
 // Instância fetch configurada com JWT
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10002';
+import { getApiUrl } from '../utils';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('iamobil_token');
+  const API_URL = getApiUrl();
   
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,

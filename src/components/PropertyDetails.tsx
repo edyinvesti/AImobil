@@ -117,7 +117,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                             <Image size={40} className="animate-pulse" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Carregando...</span>
                         </div>
-                    ) : property.images.length > 0 ? (
+                    ) : (property.images?.length ?? 0) > 0 ? (
                         <div className="relative w-full h-full group">
                             <AnimatePresence mode="wait">
                                 <motion.img
@@ -126,15 +126,15 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.3 }}
-                                    src={resolveImageUrl(property.images[currentImageIndex])}
+                                    src={resolveImageUrl(property.images?.[currentImageIndex] || '')}
                                     className="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
-                                    onClick={() => setZoomedImage(resolveImageUrl(property.images[currentImageIndex]))}
+                                    onClick={() => setZoomedImage(resolveImageUrl(property.images?.[currentImageIndex] || ''))}
                                     alt={property.title}
                                 />
                             </AnimatePresence>
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
 
-                            {property.images.length > 1 && (
+                            {(property.images?.length ?? 0) > 1 && (
                                 <>
                                     <button onClick={prevImg} className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 active:scale-95">
                                         <ChevronLeft size={20} />
@@ -143,7 +143,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                                         <ChevronRight size={20} />
                                     </button>
                                     <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
-                                        {property.images.map((_, idx) => (
+                                        {property.images?.map((_, idx) => (
                                             <button key={idx} onClick={e => { e.stopPropagation(); setCurrentImageIndex(idx); }}
                                                 className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex ? 'bg-white scale-125' : 'bg-white/30'}`}
                                             />
