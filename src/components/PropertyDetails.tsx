@@ -37,8 +37,13 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
             })
             .then(d => {
                 if (!cancelled) {
-                    if (d.success && d.images?.length > 0) {
-                        setProperty(prev => ({ ...prev, images: d.images }));
+                    if (d.success) {
+                        setProperty(prev => ({ 
+                           ...prev, 
+                           images: d.images?.length > 0 ? d.images : prev.images,
+                           videoData: d.videoData || prev.videoData,
+                           videoType: d.videoType || prev.videoType
+                        }));
                     }
                     setLoadingImages(false);
                 }
@@ -158,8 +163,8 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
-                            <MapPin size={40} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Sem Mídia Disponível</span>
+                            {!property.videoData && <MapPin size={40} />}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{property.videoData ? '' : 'Sem Mídia Disponível'}</span>
                         </div>
                     )}
 
@@ -297,7 +302,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose, o
                     <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                         <div className="min-w-0">
                             <span className="text-[10px] font-black uppercase text-orange-500 tracking-tight block mb-1">Valentia Comercial</span>
-                            <span className="text-3xl md:text-5xl font-black tracking-tighter break-all">{formatPrice(property.price)}</span>
+                            <span className="text-3xl md:text-5xl font-black tracking-tighter whitespace-nowrap">{formatPrice(property.price)}</span>
                             <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-1">
                                 {property.offerType === 'Aluguel' ? 'Taxa Mensal' : 'Ativo para Aquisição'}
                             </p>
