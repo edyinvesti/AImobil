@@ -43,7 +43,6 @@ export function ProfileView() {
             password: ''
           });
           setSaved(true);
-          setTimeout(() => setSaved(false), 2000);
         } else {
           toast("Corretor não encontrado no banco de dados.", 'error');
         }
@@ -57,6 +56,11 @@ export function ProfileView() {
     }
   };
 
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setSaved(false);
+  };
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.login) {
@@ -67,7 +71,6 @@ export function ProfileView() {
     try {
       await updateProfile(formData);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
     } catch (err: unknown) {
       toast("Erro ao salvar: " + (err instanceof Error ? err.message : "Tente novamente"), 'error');
     } finally {
@@ -81,6 +84,7 @@ export function ProfileView() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, photo: reader.result as string }));
+        setSaved(false);
       };
       reader.readAsDataURL(file);
     }
@@ -98,6 +102,7 @@ export function ProfileView() {
       }
     }
     setFormData(prev => ({ ...prev, phone: formatted }));
+    setSaved(false);
   };
 
   return (
@@ -126,12 +131,12 @@ export function ProfileView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">Nome Completo</label>
-                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                <input name="name" className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.name || ''} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">login (CRECI)</label>
                 <div className="flex gap-2">
-                  <input className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} />
+                  <input name="login" className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.login || ''} onChange={handleChange} />
                   <button type="button" onClick={handleFetchProfile} disabled={isLoading} className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white p-3.5 rounded-2xl transition-colors">
                     <Search size={18} />
                   </button>
@@ -139,20 +144,21 @@ export function ProfileView() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">E-mail</label>
-                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                <input name="email" className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.email || ''} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">WhatsApp</label>
-                <input className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.phone || ''} onChange={handlePhoneChange} />
+                <input name="phone" className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm" value={formData.phone || ''} onChange={handlePhoneChange} />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500">Nova Senha</label>
                 <div className="flex gap-2">
                   <input
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
                     className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-5 py-3.5 text-white text-sm"
                     value={formData.password || ''}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    onChange={handleChange}
                     placeholder="Deixe em branco para manter a atual"
                     autoComplete="new-password"
                   />
