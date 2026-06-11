@@ -152,6 +152,7 @@ export default function App() {
               <Route path="/form" element={
                 <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="p-6 lg:p-12">
                   <PropertyForm 
+                    key={selectedProperty ? selectedProperty.id : 'new'}
                     onSave={handleSaveProperty}
                     onCancel={() => navigate('/')}
                     initialData={selectedProperty || undefined}
