@@ -26,7 +26,9 @@ const MIGRATIONS = [
   // V4 — Cleanup: tabela users removida (dados migrados para brokers)
   // ═══════════════════════════════════════════════════════════════
 
+  `PRAGMA foreign_keys = OFF`,
   `DROP TABLE IF EXISTS users`,
+  `PRAGMA foreign_keys = ON`,
 
   // ═══════════════════════════════════════════════════════════════
   // V5 — Corrigir case-sensitive dos status das campanhas
