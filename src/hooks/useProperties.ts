@@ -273,7 +273,7 @@ export function useProperties(baseLogin?: string) {
      };
      
      fetchCloudData();
-  }, [baseCreci]);
+  }, [baseLogin]);
 
   const saveProperties = useCallback((newProperties: Property[]) => {
     try {
