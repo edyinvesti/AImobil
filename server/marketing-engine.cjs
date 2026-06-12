@@ -1,5 +1,11 @@
 const path = require('path');
 const { getDataEngine } = require(path.join(__dirname, 'db/index.cjs'));
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const META_ADS_TOKEN = process.env.META_ADS_ACCESS_TOKEN;
 const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act_/, '');
@@ -110,11 +116,41 @@ class MarketingEngine {
         return { success: false, error: 'Imóvel não encontrado' };
       }
 
-      if (!property.images || property.images.length === 0) {
-        return { success: false, error: 'Imóvel não possui fotos' };
+      let videoUrl = property.videoUrl || property.video_url || null;
+
+      // Se tem video_data (base64) mas não tem video_url, faz upload pro Cloudinary
+      if (!videoUrl && property.videoData) {
+        try {
+          this.logger.info('Fazendo upload de video_data para Cloudinary...');
+          const base64 = property.videoData.toString().replace(/^data:video\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64, 'base64');
+          videoUrl = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({
+              resource_type: 'video',
+              folder: 'aimobil',
+              public_id: `property_${property.id}`,
+              overwrite: true,
+              format: 'mp4'
+            }, (error, result) => {
+              if (error) reject(error);
+              else resolve(result.secure_url);
+            });
+            stream.end(buffer);
+          });
+          await (await this.getDataEngine()).updatePropertyVideo(property.id, videoUrl);
+          this.logger.info('Video base64 enviado ao Cloudinary', { videoUrl });
+        } catch (e) {
+          this.logger.warn('Falha ao fazer upload de video_data para Cloudinary', { error: e.message });
+        }
       }
 
-      this.logger.info('Dados do imóvel obtidos', { title: property.title, imagesCount: property.images.length });
+      const hasVideo = videoUrl && videoUrl.startsWith('http');
+
+      if (!hasVideo && (!property.images || property.images.length === 0)) {
+        return { success: false, error: 'Imóvel não possui fotos nem vídeo para publicar' };
+      }
+
+      this.logger.info('Dados do imóvel obtidos', { title: property.title, imagesCount: property.images?.length || 0, hasVideo });
 
       let broker = null;
       const brokerLogin = property.brokerLogin || property.broker_login || '';
@@ -129,32 +165,40 @@ class MarketingEngine {
         }
       }
 
-      const criativos = this.processarFotos(property);
       const copys = await this.gerarCopy(property, broker);
 
-      // Upload da primeira imagem para o Facebook (adimages)
+      let criativos = [];
       let fbImage = null;
-      if (includeAds && META_ADS_TOKEN && META_ACCOUNT_ID && property.images[0]) {
-        try {
-          fbImage = await this.uploadToFacebookAdimages(property.images[0]);
-          this.logger.info('Imagem enviada ao Facebook', { hash: fbImage.hash });
-        } catch (e) {
-          this.logger.error('Falha ao enviar imagem para Facebook', { error: e.message });
+
+      let publicImageUrl = null;
+
+      if (!hasVideo) {
+        criativos = this.processarFotos(property);
+
+        if (includeAds && META_ADS_TOKEN && META_ACCOUNT_ID && property.images?.[0]) {
+          try {
+            fbImage = await this.uploadToFacebookAdimages(property.images[0]);
+            this.logger.info('Imagem enviada ao Facebook', { hash: fbImage.hash });
+          } catch (e) {
+            this.logger.error('Falha ao enviar imagem para Facebook', { error: e.message });
+          }
+        }
+
+        publicImageUrl = fbImage?.url || null;
+        if (!publicImageUrl && property.images?.[0]) {
+          publicImageUrl = `${API_URL}/api/properties/${property.id}/image`;
         }
       }
 
-      // Gera URL pública da imagem via endpoint próprio
-      let publicImageUrl = fbImage?.url || null;
-      if (!publicImageUrl && property.images?.[0]) {
-        publicImageUrl = `${API_URL}/api/properties/${property.id}/image`;
-      }
-
       let campaignResult = null;
-      if (includeAds && META_ADS_TOKEN && META_ACCOUNT_ID) {
+      if (criativos.length > 0 && includeAds && META_ADS_TOKEN && META_ACCOUNT_ID) {
         campaignResult = await this.criarCampanhaMeta(property, criativos, copys, budget, campaignDays, fbImage?.hash);
       } else if (!includeAds) {
         this.logger.info('Meta Ads desabilitado via includeAds=false');
         campaignResult = { status: 'SKIPPED', reason: 'Anúncios pagos desabilitados pelo corretor' };
+      } else if (!criativos.length) {
+        this.logger.info('Meta Ads desabilitado (sem fotos para anúncio)');
+        campaignResult = { status: 'SKIPPED', reason: 'Sem fotos para criar anúncio no Meta Ads' };
       } else {
         this.logger.warn('Meta Ads não configurado (META_ADS_ACCESS_TOKEN ausente)');
         campaignResult = { status: 'SKIPPED', reason: 'Meta Ads token não configurado' };
@@ -162,20 +206,18 @@ class MarketingEngine {
 
       let instagramResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
-        const temVideo = !!(property.videoData || property.video_data);
-
-        if (temVideo) {
-          this.logger.info('Publicando Reels com vídeo do imóvel');
-          instagramResult = await this.publicarInstagramReel(property, copys[0]);
-        } else if (!publicImageUrl) {
-          this.logger.warn('Nenhuma mídia disponível para Instagram');
-          instagramResult = { status: 'SKIPPED', reason: 'Nenhuma mídia disponível' };
-        } else {
+        if (hasVideo) {
+          this.logger.info('Publicando Reels com vídeo do Cloudinary', { videoUrl });
+          instagramResult = await this.publicarInstagramReel(property, copys[0], videoUrl);
+        } else if (publicImageUrl) {
           const imageUrls = [publicImageUrl];
           for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
             imageUrls.push(`${API_URL}/api/properties/${property.id}/image?index=${i}`);
           }
           instagramResult = await this.publicarInstagram(property, copys[0], imageUrls);
+        } else {
+          this.logger.warn('Nenhuma mídia disponível para Instagram');
+          instagramResult = { status: 'SKIPPED', reason: 'Nenhuma mídia disponível' };
         }
       } else if (includeOrganic) {
         this.logger.warn('Instagram Business ID não configurado');
@@ -226,6 +268,65 @@ class MarketingEngine {
 
     } catch (error) {
       this.logger.error('Erro ao criar campanha', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  async postarNoInstagram(propertyId, options = {}) {
+    try {
+      const property = await (await this.getDataEngine()).getPropertyById(propertyId);
+      if (!property) {
+        return { success: false, error: 'Imóvel não encontrado' };
+      }
+
+      if (!INSTAGRAM_BUSINESS_ID) {
+        return { success: false, error: 'Instagram Business ID não configurado' };
+      }
+
+      let videoUrl = property.videoUrl || property.video_url || null;
+
+      if (!videoUrl && property.videoData) {
+        try {
+          this.logger.info('postarNoInstagram: Fazendo upload de video_data para Cloudinary...');
+          const base64 = property.videoData.toString().replace(/^data:video\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64, 'base64');
+          videoUrl = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({
+              resource_type: 'video',
+              folder: 'aimobil',
+              public_id: `property_${property.id}`,
+              overwrite: true,
+              format: 'mp4'
+            }, (error, result) => {
+              if (error) reject(error);
+              else resolve(result.secure_url);
+            });
+            stream.end(buffer);
+          });
+          await (await this.getDataEngine()).updatePropertyVideo(property.id, videoUrl);
+          this.logger.info('postarNoInstagram: Video base64 enviado ao Cloudinary', { videoUrl });
+        } catch (e) {
+          this.logger.warn('postarNoInstagram: Falha ao fazer upload de video_data', { error: e.message });
+        }
+      }
+
+      const copys = await this.gerarCopy(property, null);
+      const publicImageUrl = `${API_URL}/api/properties/${property.id}/image`;
+
+      if (videoUrl && videoUrl.startsWith('http')) {
+        this.logger.info('Postando Reels no Instagram', { propertyId, videoUrl });
+        return await this.publicarInstagramReel(property, copys[0], videoUrl);
+      }
+
+      const imageUrls = [publicImageUrl];
+      for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
+        imageUrls.push(`${API_URL}/api/properties/${property.id}/image?index=${i}`);
+      }
+      this.logger.info('Postando imagens no Instagram', { propertyId, imagesCount: imageUrls.length });
+      return await this.publicarInstagram(property, copys[0], imageUrls);
+
+    } catch (error) {
+      this.logger.error('Erro ao postar no Instagram', { error: error.message });
       return { success: false, error: error.message };
     }
   }
@@ -905,23 +1006,26 @@ Texto: ...
     }
   }
 
-  async publicarInstagramReel(property, copy) {
+  async publicarInstagramReel(property, copy, videoUrl) {
     try {
       if (!INSTAGRAM_BUSINESS_ID) {
-        return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID não configurado' };
+        return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID n\u00e3o configurado' };
       }
 
-      const videoUrl = `${API_URL}/api/properties/${property.id}/video`;
-      this.logger.info('Publicando Reels no Instagram', { propertyId: property.id, videoUrl });
+      if (!videoUrl || !videoUrl.startsWith('http')) {
+        return { status: 'SKIPPED', reason: 'URL p\u00fablica do v\u00eddeo n\u00e3o dispon\u00edvel. Fa\u00e7a upload do v\u00eddeo pelo formul\u00e1rio.' };
+      }
+
+      this.logger.info('Publicando Reels no Instagram via Cloudinary', { videoUrl });
 
       const hashtags = copy?.hashtags?.map(t => `#${t}`).join(' ') || '#iamobil';
       const legenda =
         `${copy?.headline || property.title}\n\n` +
         `${copy?.primaryText || property.description || ''}\n\n` +
-        `💰 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n` +
-        (copy?.whatsapp ? `📱 Fale comigo: ${copy.whatsapp}\n` : '') +
+        `\uD83D\uDCB0 ${copy?.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n` +
+        (copy?.whatsapp ? `\uD83D\uDCF1 Fale comigo: ${copy.whatsapp}\n` : '') +
         `\n. . . . .\n\n` +
-        (copy?.engagement ? `💭 ${copy.engagement}\n\n` : '') +
+        (copy?.engagement ? `\uD83D\uDCAD ${copy.engagement}\n\n` : '') +
         hashtags;
 
       const creationResponse = await fetch(
@@ -950,9 +1054,9 @@ Texto: ...
         return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
       }
 
-      // Reels pode levar mais tempo para processar o vídeo
-      this.logger.info('Reels criado, aguardando processamento do vídeo...', { creationId: creationData.id });
-      await new Promise(r => setTimeout(r, 5000));
+      // Reels pode levar mais tempo para processar o v\u00eddeo
+      this.logger.info('Reels criado, aguardando processamento do v\u00eddeo...', { creationId: creationData.id });
+      await new Promise(r => setTimeout(r, 10000));
 
       const publishResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
@@ -990,8 +1094,8 @@ Texto: ...
         status: 'PUBLISHED',
         postId: mediaId,
         url: shortcode
-          ? `https://instagram.com/p/${shortcode}`
-          : `https://instagram.com/p/${mediaId}`,
+          ? `https://instagram.com/reel/${shortcode}`
+          : `https://instagram.com/reel/${mediaId}`,
         caption: legenda.substring(0, 100),
         reel: true
       };
