@@ -15,6 +15,9 @@ interface Campaign {
   campaign_id: string;
   has_carousel: boolean;
   created_at: number;
+  ai_copy?: string;
+  is_video?: boolean;
+  media_urls?: string[];
 }
 
 interface CampaignStats {
@@ -37,6 +40,7 @@ const itemVariants = {
 
 const filters = [
   { id: 'all', label: 'Todos' },
+  { id: 'pending', label: 'Aguardando Aprovação' },
   { id: 'published', label: 'Publicados' },
   { id: 'failed', label: 'Falhos' },
   { id: 'carousel', label: 'Carrossel' },
@@ -51,6 +55,13 @@ export const Campaigns = () => {
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [approvalCaption, setApprovalCaption] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
+
+  const openDetail = (camp: Campaign) => {
+    setDetail(camp);
+    setApprovalCaption(camp.ai_copy || '');
+  };
 
   const campaigns: Campaign[] = (campaignsData as any)?.campanhas || (Array.isArray(campaignsData) ? campaignsData : []);
 
@@ -68,10 +79,35 @@ export const Campaigns = () => {
       total: list.length,
       published: list.filter(c => c.instagram_status === 'PUBLISHED').length,
       adsActive: list.filter(c => c.campaign_status === 'ACTIVE').length,
-      failed: list.filter(c => c.instagram_status && c.instagram_status !== 'PUBLISHED').length,
+      failed: list.filter(c => c.instagram_status && c.instagram_status !== 'PUBLISHED' && c.instagram_status !== 'WAITING_APPROVAL').length,
       carousel: list.filter(c => c.has_carousel).length,
     };
   })();
+
+  const approveCampaign = async () => {
+    if (!detail) return;
+    setIsApproving(true);
+    try {
+      const api = (await import('../utils')).getApiUrl();
+      const res = await fetch(`${api}/api/marketing/approve/${detail.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption: approvalCaption })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('Post aprovado e enviado ao Instagram!', 'success');
+        setDetail(null);
+        refetch();
+      } else {
+        toast(data.error || 'Erro ao publicar', 'error');
+      }
+    } catch (e) {
+      toast('Erro de conexão ao aprovar', 'error');
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   const deleteCampaign = async (id: string) => {
     setDeleting(id);
@@ -96,28 +132,34 @@ export const Campaigns = () => {
     if (status === 'PUBLISHED') return 'Publicado';
     if (status === 'DRAFT') return 'Rascunho';
     if (status === 'SKIPPED') return 'Pulado';
+    if (status === 'WAITING_APPROVAL') return 'Aguardando Aprovação';
     if (!status) return 'Publicando...';
     return status;
   };
 
   const getStatusColor = (status: string) => {
     if (status === 'PUBLISHED') return 'text-emerald-400';
-    if (status === 'SKIPPED') return 'text-gray-500';
+    if (status === 'SKIPPED') return 'text-gray-400';
+    if (status === 'WAITING_APPROVAL') return 'text-amber-400';
     if (!status) return 'text-blue-400';
     return 'text-red-400';
   };
 
   const getStatusIcon = (status: string) => {
-    if (status === 'PUBLISHED') return <CheckCircle2 size={11} className="text-emerald-500" />;
-    if (status === 'SKIPPED') return <XCircle size={11} className="text-gray-500" />;
-    if (!status) return <Loader2 size={11} className="text-blue-400 animate-spin" />;
-    return <XCircle size={11} className="text-red-500" />;
+    if (status === 'PUBLISHED') return <CheckCircle2 size={12} className="text-emerald-400" />;
+    if (status === 'SKIPPED') return <XCircle size={12} className="text-gray-500" />;
+    if (status === 'WAITING_APPROVAL') return <Clock size={12} className="text-amber-400" />;
+    if (!status) return <Loader2 size={12} className="animate-spin text-blue-400" />;
+    return <XCircle size={12} className="text-red-400" />;
   };
 
-  const filtered = activeFilter === 'all' ? campaigns
-    : activeFilter === 'published' ? campaigns.filter(c => c.instagram_status === 'PUBLISHED')
-    : activeFilter === 'failed' ? campaigns.filter(c => c.instagram_status !== 'PUBLISHED' && c.instagram_status !== '')
-    : campaigns.filter(c => c.has_carousel);
+  const filtered = campaigns.filter(c => {
+    if (activeFilter === 'published') return c.instagram_status === 'PUBLISHED';
+    if (activeFilter === 'pending') return c.instagram_status === 'WAITING_APPROVAL';
+    if (activeFilter === 'failed') return c.instagram_status && c.instagram_status !== 'PUBLISHED' && c.instagram_status !== 'WAITING_APPROVAL';
+    if (activeFilter === 'carousel') return c.has_carousel;
+    return true;
+  });
 
   const statCards = [
     { label: 'Total', value: stats.total, color: 'from-blue-500 to-cyan-500', icon: BarChart3 },
@@ -199,7 +241,7 @@ export const Campaigns = () => {
           {filtered.map(camp => (
             <motion.div key={camp.id} variants={itemVariants}
               className="group bg-zinc-900/50 border border-white/5 rounded-2xl hover:border-white/10 hover:bg-zinc-900/80 transition-all cursor-pointer overflow-hidden"
-              onClick={() => setDetail(camp)}>
+              onClick={() => openDetail(camp)}>
               <div className="flex items-start justify-between gap-3 p-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-2">
@@ -243,11 +285,16 @@ export const Campaigns = () => {
           className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setDetail(null)}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className="bg-zinc-900 border border-white/10 rounded-3xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
+            className="bg-zinc-900 border border-white/10 rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
 
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-black uppercase tracking-widest text-white">Detalhes da Campanha</h2>
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-widest text-white">Detalhes da Campanha</h2>
+                {detail.instagram_status === 'WAITING_APPROVAL' && (
+                  <p className="text-[9px] text-amber-400 font-bold uppercase tracking-widest mt-0.5">⏳ Aguardando sua aprovação para publicar</p>
+                )}
+              </div>
               <button onClick={() => setDetail(null)} className="p-1.5 bg-zinc-800 rounded-xl hover:bg-zinc-700 transition-all">
                 <X size={14} className="text-gray-400" />
               </button>
@@ -266,6 +313,10 @@ export const Campaigns = () => {
                     <span className="flex items-center gap-1.5 text-emerald-400 text-sm font-bold">
                       <CheckCircle2 size={16} className="text-emerald-500" /> Publicado
                     </span>
+                  ) : detail.instagram_status === 'WAITING_APPROVAL' ? (
+                    <span className="flex items-center gap-1.5 text-amber-400 text-sm font-bold">
+                      <Clock size={16} className="text-amber-400" /> Aguardando Aprovação
+                    </span>
                   ) : !detail.instagram_status ? (
                     <span className="flex items-center gap-1.5 text-blue-400 text-sm font-bold">
                       <Loader2 size={16} className="text-blue-400 animate-spin" /> Publicando...
@@ -281,6 +332,30 @@ export const Campaigns = () => {
                   )}
                 </div>
               </div>
+
+              {/* PAINEL DE APROVAÇÃO DE IA */}
+              {detail.instagram_status === 'WAITING_APPROVAL' && (
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-amber-400">✨ Legenda gerada pela IA</span>
+                    <span className="text-[7px] text-gray-500">(Edite à vontade antes de publicar)</span>
+                  </div>
+                  <textarea
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white font-medium outline-none focus:ring-1 focus:ring-amber-500 transition-all resize-none min-h-[180px] leading-relaxed"
+                    value={approvalCaption}
+                    onChange={e => setApprovalCaption(e.target.value)}
+                    placeholder="Legenda do post..."
+                  />
+                  <button
+                    onClick={approveCampaign}
+                    disabled={isApproving || !approvalCaption.trim()}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl text-xs font-black uppercase tracking-widest text-white hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-50 shadow-lg shadow-orange-500/20"
+                  >
+                    {isApproving ? <Loader2 size={14} className="animate-spin" /> : <Instagram size={14} />}
+                    {isApproving ? 'Publicando no Instagram...' : '✅ Aprovar & Publicar no Instagram'}
+                  </button>
+                </div>
+              )}
 
               {detail.campaign_status && (
                 <div className="bg-black/30 rounded-2xl p-4 border border-white/5">

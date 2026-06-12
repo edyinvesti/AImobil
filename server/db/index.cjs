@@ -459,7 +459,10 @@ class DataEngine {
       const rs = await this.client.execute('SELECT * FROM campaigns ORDER BY created_at DESC');
       return rs.rows.map(r => ({
         ...r,
-        has_carousel: !!r.has_carousel
+        has_carousel: !!r.has_carousel,
+        ai_copy: r.ai_copy || '',
+        media_urls: r.media_urls ? JSON.parse(r.media_urls) : [],
+        is_video: !!r.is_video
       }));
     } catch (e) {
       console.error('getCampaigns error:', e.message);
@@ -471,13 +474,16 @@ class DataEngine {
     if (!this.client) return null;
     try {
       await this.client.execute({
-        sql: `INSERT OR REPLACE INTO campaigns (id, property_id, property_title, instagram_status, instagram_post_id, instagram_url, campaign_status, campaign_id, has_carousel, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT OR REPLACE INTO campaigns (id, property_id, property_title, instagram_status, instagram_post_id, instagram_url, campaign_status, campaign_id, has_carousel, created_at, ai_copy, media_urls, is_video) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           campaign.id, campaign.property_id, campaign.property_title || '',
           campaign.instagram_status || '', campaign.instagram_post_id || '',
           campaign.instagram_url || '', campaign.campaign_status || '',
           campaign.campaign_id || '', campaign.has_carousel ? 1 : 0,
-          campaign.created_at || Date.now()
+          campaign.created_at || Date.now(),
+          campaign.ai_copy || '',
+          campaign.media_urls ? JSON.stringify(campaign.media_urls) : '[]',
+          campaign.is_video ? 1 : 0
         ]
       });
       return { success: true };

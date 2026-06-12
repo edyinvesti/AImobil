@@ -80,5 +80,15 @@ module.exports = function(marketingService, authMiddleware) {
     }
   });
 
+  // POST /api/marketing/approve/:id
+  router.post('/approve/:id', authMiddleware, async (req, res, next) => {
+    try {
+      const result = await marketingService.publishApprovedCampaign(req.params.id, req.body.caption || '');
+      res.json(result);
+    } catch (e) {
+      next(e);
+    }
+  });
+
   return router;
 };

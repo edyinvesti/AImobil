@@ -55,6 +55,10 @@ class MarketingService {
     return await this.dataEngine.deleteCampaign(id);
   }
 
+  async publishApprovedCampaign(campaignId, caption) {
+    return await this.marketingEngine.publishApprovedCampaign(campaignId, caption);
+  }
+
   async getStatus() {
     return {
       instagramConfigured: !!process.env.INSTAGRAM_ACCESS_TOKEN,

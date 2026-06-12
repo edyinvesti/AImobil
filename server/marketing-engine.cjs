@@ -255,34 +255,89 @@ class MarketingEngine {
         createdAt: Date.now()
       };
 
-      const campaignId = `camp_${Date.now()}`;
-      campaigns.set(campaignId, { ...result, status: 'ACTIVE' });
-      campaigns.set(propertyId, { campaignId, status: 'ACTIVE' });
+      // Calcula a legenda final e mídia para salvar no draft
+      const mainCopy = copys[0];
+      const draftCaption = mainCopy
+        ? `${mainCopy.headline || property.title}\n\n${mainCopy.primaryText || ''}\n\n💰 ${mainCopy.description || `R$ ${Number(property.price).toLocaleString('pt-BR')}`}\n${mainCopy.whatsapp ? `📱 ${mainCopy.whatsapp}\n` : ''}${mainCopy.engagement ? `\n💭 ${mainCopy.engagement}\n` : ''}\n${(mainCopy.hashtags || []).map(t => `#${t}`).join(' ')}`.trim()
+        : '';
 
-      // Salva no banco de dados
+      const draftMediaUrls = hasVideo
+        ? [videoUrl]
+        : [publicImageUrl, ...Array.from({ length: Math.min((property.images?.length || 1) - 1, 9) }, (_, i) => `${API_URL}/api/properties/${property.id}/image?index=${i + 1}`)].filter(Boolean);
+
+      const campaignId = `camp_${Date.now()}`;
+      campaigns.set(campaignId, { ...result, status: 'WAITING_APPROVAL' });
+      campaigns.set(propertyId, { campaignId, status: 'WAITING_APPROVAL' });
+
+      // Salva no banco como AGUARDANDO APROVAÇÃO (draft)
       try {
         await (await this.getDataEngine()).saveCampaign({
           id: campaignId,
           property_id: propertyId,
           property_title: property.title || '',
-          instagram_status: instagramResult?.status || '',
-          instagram_post_id: instagramResult?.postId || '',
-          instagram_url: instagramResult?.url || '',
-          campaign_status: campaignResult?.status || '',
+          instagram_status: 'WAITING_APPROVAL',
+          instagram_post_id: '',
+          instagram_url: '',
+          campaign_status: campaignResult?.status || 'SKIPPED',
           campaign_id: campaignResult?.id || '',
-          has_carousel: instagramResult?.carousel || false,
-          created_at: Date.now()
+          has_carousel: draftMediaUrls.length > 1,
+          created_at: Date.now(),
+          ai_copy: draftCaption,
+          media_urls: draftMediaUrls,
+          is_video: hasVideo ? 1 : 0
         });
       } catch (dbErr) {
-        this.logger.warn('Erro ao salvar campanha no banco', { error: dbErr.message });
+        this.logger.warn('Erro ao salvar campanha draft no banco', { error: dbErr.message });
       }
 
-      this.logger.info('Campanha criada com sucesso', { campaignId });
-      return result;
+      this.logger.info('Campanha salva como DRAFT aguardando aprovação do corretor', { campaignId });
+      return { ...result, campaignId, status: 'WAITING_APPROVAL', draftCaption };
 
     } catch (error) {
       this.logger.error('Erro ao criar campanha', { error: error.message });
       return { success: false, error: error.message };
+    }
+  }
+
+  // Publicar campanha aprovada pelo corretor
+  async publishApprovedCampaign(campaignId, finalCaption) {
+    try {
+      const dataEngine = await this.getDataEngine();
+      const campaigns = await dataEngine.getCampaigns();
+      const camp = campaigns.find(c => c.id === campaignId);
+      if (!camp) return { success: false, error: 'Campanha não encontrada' };
+      if (camp.instagram_status !== 'WAITING_APPROVAL') return { success: false, error: 'Campanha já foi processada' };
+
+      const property = await dataEngine.getPropertyById(camp.property_id);
+      if (!property) return { success: false, error: 'Imóvel não encontrado' };
+
+      // Monta um copy object simples a partir do texto editado pelo corretor
+      const approvedCopy = { primaryText: finalCaption, headline: property.title, hashtags: [], whatsapp: '' };
+
+      let instagramResult = null;
+      const mediaUrls = Array.isArray(camp.media_urls) ? camp.media_urls : [];
+
+      if (camp.is_video && mediaUrls[0]) {
+        instagramResult = await this.publicarInstagramReel(property, approvedCopy, mediaUrls[0], finalCaption);
+      } else if (mediaUrls.length > 0) {
+        instagramResult = await this.publicarInstagram(property, approvedCopy, mediaUrls, finalCaption);
+      } else {
+        return { success: false, error: 'Sem mídia para publicar' };
+      }
+
+      // Atualiza camp no banco com resultado final
+      await dataEngine.saveCampaign({
+        ...camp,
+        instagram_status: instagramResult?.status || 'DRAFT',
+        instagram_post_id: instagramResult?.postId || '',
+        instagram_url: instagramResult?.url || '',
+        ai_copy: finalCaption
+      });
+
+      return { success: true, instagram: instagramResult };
+    } catch (e) {
+      this.logger.error('Erro ao publicar campanha aprovada', { error: e.message });
+      return { success: false, error: e.message };
     }
   }
 
