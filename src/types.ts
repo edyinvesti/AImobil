@@ -41,6 +41,8 @@ export interface Property {
   thumbnail?: string;
   videoData?: string;
   videoType?: string;
+  video_url?: string;
+  hasVideo?: boolean;
   latitude?: number;
   longitude?: number;
   brokerLogin?: string;

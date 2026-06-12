@@ -1,5 +1,5 @@
 
-import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2, Edit3 } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Car, Megaphone, Trash2, Edit3, Video } from 'lucide-react';
 import { Property } from '../types';
 import { safeFormatCurrency } from '../utils';
 
@@ -18,25 +18,40 @@ const resolveImageUrl = (url?: string) => {
   return baseUrl + url;
 };
 
-const getFallbackImage = (title: string, currentUrl: string) => {
+const FALLBACKS = [
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?auto=format&fit=crop&w=1200&q=80',
+];
+
+const getFallbackImage = (title: string, currentUrl: string, index: number) => {
   const lowerTitle = title ? title.toLowerCase() : '';
   const urlStr = currentUrl ? String(currentUrl) : '';
-  
-  if (!urlStr || urlStr.includes('placeholder') || urlStr.includes('test') || urlStr.includes('feia') || urlStr.length < 5) {
-    if (lowerTitle.includes('fazenda') || lowerTitle.includes('sitio') || lowerTitle.includes('chacara') || lowerTitle.includes('rubao')) {
+
+  if (!urlStr || urlStr === '' || urlStr.includes('placeholder') || urlStr.length < 5) {
+    if (lowerTitle.includes('fazenda') || lowerTitle.includes('sitio') || lowerTitle.includes('chacara')) {
       return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80';
     }
-    if (lowerTitle.includes('casa') || lowerTitle.includes('mansao')) {
-      return 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80';
+    if (lowerTitle.includes('apartamento') || lowerTitle.includes('condominio') || lowerTitle.includes('comercial')) {
+      return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
     }
-    return 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
+    return FALLBACKS[index % FALLBACKS.length];
   }
   return urlStr;
 };
 
+const getVideoThumbnail = (videoUrl?: string) => {
+  if (!videoUrl) return null;
+  const v = videoUrl.replace('/video/upload/', '/video/upload/so_0/');
+  return v.replace(/\.[^.]+$/, '.jpg');
+};
+
 export function PropertyCard({ property, onClick, onEdit, onDelete, campaignActive }: PropertyCardProps) {
-  const thumbnail = property.thumbnail || '';
-  
+  const thumbnail = property.thumbnail || getVideoThumbnail(property.videoUrl || property.video_url) || '';
+  const cardIndex = property.id ? property.id.charCodeAt(0) : 0;
+
   return (
     <div 
       className="group bg-zinc-900/30 border border-zinc-800/60 rounded-xl overflow-hidden hover:border-zinc-600/60 transition-all duration-300 cursor-pointer"
@@ -44,18 +59,24 @@ export function PropertyCard({ property, onClick, onEdit, onDelete, campaignActi
     >
       <div className="relative h-28 overflow-hidden bg-zinc-950">
         <img 
-          src={resolveImageUrl(getFallbackImage(property.title || '', thumbnail))}
+          src={resolveImageUrl(getFallbackImage(property.title || '', thumbnail, cardIndex))}
           alt={property.title || ''}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => { 
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80';
+            (e.target as HTMLImageElement).src = FALLBACKS[cardIndex % FALLBACKS.length];
           }}
         />
         <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-md text-[9px] font-semibold text-emerald-400 border border-emerald-500/20 leading-tight max-w-[60%] truncate">
           {property.type || 'Venda'}
         </div>
+        {(property.hasVideo || property.video_url || property.videoData) && (
+          <div className="absolute top-2 right-2 bg-violet-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[8px] font-bold text-white flex items-center gap-0.5 border border-violet-400/20">
+            <Video size={8} />
+            Vídeo
+          </div>
+        )}
         {campaignActive && (
-          <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-600/90 to-violet-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[8px] font-bold text-white flex items-center gap-0.5 border border-white/10">
+          <div className="absolute top-8 right-2 bg-gradient-to-r from-blue-600/90 to-violet-600/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[8px] font-bold text-white flex items-center gap-0.5 border border-white/10">
             <Megaphone size={8} />
             Marketing
           </div>
