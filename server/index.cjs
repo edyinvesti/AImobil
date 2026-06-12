@@ -25,6 +25,20 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Multer for video upload
+const multer = require('multer');
+const videoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'video/mp4' || file.mimetype === 'video/quicktime' || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos de vídeo são aceitos'));
+    }
+  }
+});
+
 // Middleware
 const { authMiddleware } = require(path.join(__dirname, 'middleware/auth.middleware.cjs'));
 const { errorHandler, notFound } = require(path.join(__dirname, 'middleware/error.middleware.cjs'));
@@ -200,6 +214,62 @@ function registerRoutes() {
     } catch (e) {
       logger.error('Video serve error', { error: e.message, stack: e.stack });
       res.status(500).json({ error: 'Erro: ' + e.message });
+    }
+  });
+
+  // POST /api/properties/:id/video — Upload video to Cloudinary
+  app.post('/api/properties/:id/video', mockAuthMiddleware, videoUpload.single('video'), async (req, res) => {
+    try {
+      if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+      if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado' });
+
+      const property = await dataEngine.getPropertyById(req.params.id);
+      if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({
+          resource_type: 'video',
+          folder: 'aimobil',
+          public_id: `property_${req.params.id}`,
+          eager: [{ streaming_profile: 'hd' }]
+        }, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+        stream.end(req.file.buffer);
+      });
+
+      // Save video_url to property
+      await dataEngine.updateProperty(req.params.id, { video_url: result.secure_url });
+
+      res.json({ video_url: result.secure_url, public_id: result.public_id });
+    } catch (e) {
+      logger.error('Video upload error', { error: e.message, stack: e.stack });
+      res.status(500).json({ error: 'Erro ao fazer upload do vídeo: ' + e.message });
+    }
+  });
+
+  // DELETE /api/properties/:id/video — Delete video from Cloudinary
+  app.delete('/api/properties/:id/video', mockAuthMiddleware, async (req, res) => {
+    try {
+      if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+
+      const property = await dataEngine.getPropertyById(req.params.id);
+      if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
+      if (!property.video_url) return res.status(404).json({ error: 'Imóvel sem vídeo no Cloudinary' });
+
+      // Extract public_id from video_url
+      // video_url format: https://res.cloudinary.com/dih8ifzph/video/upload/v1234/aimobil/property_xxx
+      const urlParts = property.video_url.split('/');
+      const publicId = urlParts.slice(urlParts.indexOf('aimobil')).join('/').replace(/\.[^/.]+$/, '');
+
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+      await dataEngine.updateProperty(req.params.id, { video_url: null });
+
+      res.json({ success: true });
+    } catch (e) {
+      logger.error('Video delete error', { error: e.message, stack: e.stack });
+      res.status(500).json({ error: 'Erro ao remover vídeo: ' + e.message });
     }
   });
 
