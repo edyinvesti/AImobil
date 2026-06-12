@@ -169,6 +169,29 @@ class DataEngine {
     }
   }
 
+  async addPropertyImage(id, imageUrl) {
+    if (!this.client) return null;
+    try {
+      const rs = await this.client.execute({ sql: 'SELECT images FROM properties WHERE id = ?', args: [id] });
+      if (!rs.rows.length) return null;
+      let images = [];
+      try { images = JSON.parse(rs.rows[0].images || '[]'); } catch { images = rs.rows[0].images || []; }
+      
+      // Prevent duplicates and add as the first image (capa)
+      if (!images.includes(imageUrl)) {
+        images.unshift(imageUrl);
+        return await this.client.execute({
+          sql: 'UPDATE properties SET images = ? WHERE id = ?',
+          args: [JSON.stringify(images), id]
+        });
+      }
+      return null;
+    } catch (e) {
+      console.error('addPropertyImage error:', e.message);
+      return null;
+    }
+  }
+
   async deleteProperty(id) {
     if (!this.client) return null;
     try {

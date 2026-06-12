@@ -243,7 +243,15 @@ function registerRoutes() {
       // Save video_url to property
       await dataEngine.updatePropertyVideo(req.params.id, result.secure_url);
 
-      res.json({ video_url: result.secure_url, public_id: result.public_id });
+      // Gerar capa automática do vídeo via Cloudinary (start_offset 0 = 1º frame)
+      const thumbnailUrl = cloudinary.url(result.public_id, { resource_type: 'video', format: 'jpg', start_offset: "0" });
+      
+      // Salvar a capa como a primeira imagem da galeria (para o painel mostrar e o post ter capa)
+      if (typeof dataEngine.addPropertyImage === 'function') {
+        await dataEngine.addPropertyImage(req.params.id, thumbnailUrl);
+      }
+
+      res.json({ video_url: result.secure_url, public_id: result.public_id, thumbnail_url: thumbnailUrl });
     } catch (e) {
       logger.error('Video upload error', { error: e.message, stack: e.stack });
       res.status(500).json({ error: 'Erro ao fazer upload do vídeo: ' + e.message });
