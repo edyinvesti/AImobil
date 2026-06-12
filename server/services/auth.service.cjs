@@ -2,11 +2,18 @@
 // Serviço de autenticação (login, registro, JWT)
 
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 const { UnauthorizedError, ConflictError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
 const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 
-const JWT_SECRET = process.env.JWT_SECRET || 'aimobil-jwt-secret-2024';
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET não configurado no .env — servidor não pode iniciar');
+  process.exit(1);
+}
 const JWT_EXPIRES_IN = '24h';
 
 class AuthService {
@@ -32,8 +39,23 @@ class AuthService {
       throw new UnauthorizedError('Usuário não encontrado');
     }
 
-    // Em produção, usar bcrypt.compare
-    if (user.password !== password) {
+    let passwordMatch = false;
+    try {
+      passwordMatch = await bcrypt.compare(password, user.password);
+    } catch {
+      passwordMatch = false;
+    }
+
+    if (!passwordMatch && user.password === password) {
+      const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      await this.dataEngine.client.execute({
+        sql: 'UPDATE brokers SET password = ? WHERE rowid = ?',
+        args: [hashed, user.rowid]
+      });
+      passwordMatch = true;
+    }
+
+    if (!passwordMatch) {
       throw new UnauthorizedError('Senha incorreta');
     }
 
@@ -57,9 +79,10 @@ class AuthService {
       throw new ConflictError('Usuário já existe');
     }
 
-    const user = await this.dataEngine.createBroker({
+    const hashedPassword = await bcrypt.hash(userData.password, BCRYPT_ROUNDS);
+    await this.dataEngine.createBroker({
       login: userData.login,
-      password: userData.password, // Em produção, usar bcrypt.hash
+      password: hashedPassword,
       name: userData.name,
       email: userData.email,
       phone: userData.phone || ''

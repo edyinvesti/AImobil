@@ -45,12 +45,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (!API_URL || !profile.login) return;
 
       try {
-        // // console.log removido;
         const response = await fetch(`${API_URL}/api/partner/register?login=${encodeURIComponent(profile.login)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.broker) {
-            // console.log("[UserContext] Perfil encontrado na nuvem:", data.broker);
             const cloudProfile = {
               login: data.broker.login || '',
               name: data.broker.name || '',
@@ -88,7 +86,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-      // console.log("[UserContext] Perfil sincronizado com a nuvem.");
     } catch (error) {
       console.error("[UserContext] Falha ao enviar perfil para nuvem:", error);
       syncQueue.enqueue({

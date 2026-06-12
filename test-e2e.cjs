@@ -1,11 +1,15 @@
+require('dotenv').config();
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
-const API_URL = 'https://aimobil.onrender.com';
-const JWT_SECRET = 'jzxVAHvDY2XOB0NFcQg8qhTlUJin4E6wCItb3RLuZGkmfysoKdp7r9a1SMW5Pe'; // User's secret shared previously
+const API_URL = process.env.API_URL || 'https://aimobil.onrender.com';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET não configurado no .env');
+  process.exit(1);
+}
 
-// Gera um token válido de "administrador/teste" para enganar nosso próprio sistema
-const token = jwt.sign({ login: 'edyinvesti' }, JWT_SECRET, { expiresIn: '1h' });
+const token = jwt.sign({ login: process.env.TEST_LOGIN || 'edyinvesti' }, JWT_SECRET, { expiresIn: '1h' });
 
 async function run() {
   console.log('[1/4] Preparando payload da mídia de vídeo (MP4)...');

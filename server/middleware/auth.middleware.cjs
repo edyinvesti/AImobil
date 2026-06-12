@@ -33,4 +33,4 @@ function generateToken(user) {
   );
 }
 
-module.exports = { authMiddleware, generateToken, JWT_SECRET };
+module.exports = { authMiddleware, generateToken };

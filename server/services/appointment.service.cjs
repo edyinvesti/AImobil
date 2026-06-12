@@ -30,13 +30,13 @@ class AppointmentService {
   }
 
   async update(id, appointmentData) {
-    // Implementar update quando DataEngine tiver o método
+    await this.dataEngine.updateAppointment(id, appointmentData);
     logger.info('Appointment updated', { appointmentId: id });
     return { id };
   }
 
   async delete(id) {
-    // Implementar delete quando DataEngine tiver o método
+    await this.dataEngine.deleteAppointment(id);
     logger.info('Appointment deleted', { appointmentId: id });
     return { success: true };
   }

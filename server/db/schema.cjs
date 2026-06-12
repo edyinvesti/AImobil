@@ -32,6 +32,7 @@ const TABLES = {
       thumbnail TEXT,
       video_data TEXT,
       video_type TEXT DEFAULT 'video/mp4',
+      video_url TEXT DEFAULT '',
       offer_type TEXT,
       amenities TEXT,
       latitude REAL,

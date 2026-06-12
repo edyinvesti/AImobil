@@ -19,6 +19,7 @@ const MIGRATIONS = [
   `ALTER TABLE properties ADD COLUMN latitude REAL`,
   `ALTER TABLE properties ADD COLUMN longitude REAL`,
   `ALTER TABLE properties ADD COLUMN marketing_option TEXT DEFAULT 'none'`,
+  `ALTER TABLE properties ADD COLUMN video_url TEXT DEFAULT ''`,
   `UPDATE properties SET broker_creci = broker_login WHERE broker_creci IS NULL AND broker_login IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS idx_properties_broker_creci ON properties(broker_creci)`,
 

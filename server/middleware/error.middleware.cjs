@@ -1,10 +1,11 @@
 // server/middleware/error.middleware.cjs
+const path = require('path');
+const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
 
 function errorHandler(err, req, res, next) {
-  console.error('Error:', err.message);
-  console.error(err.stack);
+  logger.error(err.message, { stack: err.stack });
   
-  const status = err.status || 500;
+  const status = err.statusCode || err.status || 500;
   const message = err.message || 'Erro interno do servidor';
   
   res.status(status).json({ 

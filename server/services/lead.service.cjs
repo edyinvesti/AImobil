@@ -30,13 +30,13 @@ class LeadService {
   }
 
   async update(id, leadData) {
-    // Implementar update quando DataEngine tiver o método
+    await this.dataEngine.updateLead(id, leadData);
     logger.info('Lead updated', { leadId: id });
     return { id };
   }
 
   async delete(id) {
-    // Implementar delete quando DataEngine tiver o método
+    await this.dataEngine.deleteLead(id);
     logger.info('Lead deleted', { leadId: id });
     return { success: true };
   }
@@ -52,13 +52,13 @@ class LeadService {
   }
 
   async updateScore(id, score) {
-    // Implementar updateScore quando DataEngine tiver o método
+    await this.dataEngine.updateLead(id, { score });
     logger.info('Lead score updated', { leadId: id, score });
     return { id, score };
   }
 
   async updateStatus(id, status) {
-    // Implementar updateStatus quando DataEngine tiver o método
+    await this.dataEngine.updateLead(id, { status });
     logger.info('Lead status updated', { leadId: id, status });
     return { id, status };
   }

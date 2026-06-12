@@ -3,8 +3,11 @@
 // Executar: node server/db/restore-data.cjs
 
 require('dotenv').config();
+const bcrypt = require('bcryptjs');
 const { createClient } = require('@libsql/client');
 const crypto = require('crypto');
+
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
 const TURSO_URL = process.env.TURSO_DATABASE_URL;
 const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -391,10 +394,11 @@ async function restoreUsers() {
   console.log('\n👤 Restaurando corretores (brokers)...');
   for (const user of USERS) {
     try {
+      const hashedPassword = await bcrypt.hash(user.password, BCRYPT_ROUNDS);
       await client.execute({
         sql: `INSERT OR REPLACE INTO brokers (creci, login, password, name, email, phone, photo, lastActive, created_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [user.login, user.login, user.password, user.name, user.email, user.phone, user.photo, user.lastActive, Date.now()]
+        args: [user.login, user.login, hashedPassword, user.name, user.email, user.phone, user.photo, user.lastActive, Date.now()]
       });
       console.log(`  ✅ ${user.name} (${user.login})`);
     } catch (e) {
@@ -413,14 +417,14 @@ async function restoreProperties() {
                 bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status,
                 images, suites, livingRooms, kitchens, zipCode, state,
                 streetNumber, complement, description, brokerName, broker_login,
-                thumbnail, created_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                thumbnail, created_at, video_url
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           prop.id, prop.title, prop.type, prop.price, prop.location, prop.city, prop.neighborhood,
           prop.bedrooms, prop.bathrooms, prop.parkingSpaces, prop.area, prop.sizeUnit, prop.status,
           prop.images, prop.suites, prop.livingRooms, prop.kitchens, prop.zipCode, prop.state,
           prop.streetNumber, prop.complement, prop.description, prop.brokerName, prop.broker_login,
-          prop.thumbnail, prop.created_at
+          prop.thumbnail, prop.created_at, prop.video_url || ''
         ]
       });
       console.log(`  ✅ ${prop.title}`);

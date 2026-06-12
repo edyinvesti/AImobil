@@ -1,21 +1,22 @@
+require('dotenv').config();
 const { createClient } = require('@libsql/client');
 
 
-const INSTAGRAM_BUSINESS_ID = '17841431828823553';
-const INSTAGRAM_TOKEN = 'EAAVbMBKFfvoBRvge70aTSTdNyqevi1OkziEZAwzZANvZB72Te7eR1kepLJyE9cXiqaeUplAJLk1gzP4fiUclqsoaWdxwR8SONsbO5ThxcU9le7qRUmb7JnK2sNBr3SHO9jWZB4QowXZBusAuKQqSoEX9pgv5VMkQdlkx9n7yWAYWX0wSr0dvfWhCFt01dz0RVUNd3WjfIy3SZAXkDIKnfH';
+const INSTAGRAM_BUSINESS_ID = process.env.INSTAGRAM_BUSINESS_ID || 'SEU_INSTAGRAM_BUSINESS_ID_AQUI';
+const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || 'SEU_INSTAGRAM_ACCESS_TOKEN_AQUI';
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 async function testReels() {
   console.log('--- TESTE INSTAGRAM REELS ---');
   
   // URL from render where the video is hosted
-  const API_URL = 'https://aimobil.onrender.com';
+  const API_URL = process.env.API_URL || 'https://aimobil.onrender.com';
   
   // Conectar no DB para conseguir um Prop ID valido que tem video
   console.log('Conectando no banco de dados...');
   const turso = createClient({
-    url: 'libsql://iamobil-edyinvesti.aws-us-west-2.turso.io',
-    authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODA3NjUwOTIsImlkIjoiMDE5ZGRiMmUtNjUwMS03ZjViLWFiYTktZmM5NTkzZDAwY2NhIiwicmlkIjoiYzk2ZTRkZmEtOTExYi00YmFkLWEwYjMtYzY3Nzc3OTk1MDdkIn0.-yrFGYt5CZ_PJbDbYcbSiFslhJOdHiNEIJSl9zC_GXuczOgIQJXyj-tpWWueP6s44Ie8Og8yNmZl3qh56k38BQ'
+    url: process.env.TURSO_DATABASE_URL || 'SEU_TURSO_DATABASE_URL_AQUI',
+    authToken: process.env.TURSO_AUTH_TOKEN || 'SEU_TURSO_AUTH_TOKEN_AQUI'
   });
 
   const rs = await turso.execute("SELECT id, title, video_type, CASE WHEN video_data IS NOT NULL THEN 1 ELSE 0 END as hasVideo FROM properties WHERE video_data IS NOT NULL AND video_data != '' LIMIT 1;");

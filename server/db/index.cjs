@@ -65,7 +65,8 @@ class DataEngine {
         'SELECT id, title, type, price, location, city, neighborhood, bedrooms, bathrooms, ' +
         'parkingSpaces, area, sizeUnit, status, suites, livingRooms, kitchens, zipCode, state, ' +
         'streetNumber, complement, description, brokerName, broker_login, created_at, ' +
-        'thumbnail, video_type, CASE WHEN video_data IS NOT NULL AND video_data != \'\' THEN 1 ELSE 0 END as has_video, ' +
+        'thumbnail, video_type, video_url, ' +
+        'CASE WHEN video_data IS NOT NULL AND video_data != \'\' THEN 1 ELSE 0 END as has_video, ' +
         "CASE WHEN thumbnail IS NULL OR thumbnail = '' THEN json_extract(images, '$[0]') ELSE NULL END as img_fallback " +
         'FROM properties ORDER BY created_at DESC'
       );
@@ -73,6 +74,7 @@ class DataEngine {
         ...row,
         images: [],
         videoData: null,
+        videoUrl: row.video_url || null,
         hasVideo: row.has_video === 1,
         videoType: row.video_type || 'video/mp4',
         thumbnail: row.thumbnail || row.img_fallback || null,
@@ -96,12 +98,20 @@ class DataEngine {
       });
       if (rs.rows.length === 0) return null;
       const row = rs.rows[0];
-      const imagesRaw = row.images ? JSON.parse(Buffer.isBuffer(row.images) ? row.images.toString() : row.images) : [];
+      let imagesRaw = [];
+      try {
+        const raw = row.images ? (Buffer.isBuffer(row.images) ? row.images.toString() : row.images) : '';
+        imagesRaw = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('getPropertyById JSON parse error:', e.message);
+        imagesRaw = [];
+      }
       return {
         ...row,
         images: Array.isArray(imagesRaw) ? imagesRaw.map(i => Buffer.isBuffer(i) ? i.toString() : i) : [],
         videoData: row.video_data || null,
         videoType: row.video_type || 'video/mp4',
+        videoUrl: row.video_url || null,
         address: row.location || '',
         size: row.area || 0,
         parkingSpaces: row.parkingSpaces || 0,
@@ -120,8 +130,8 @@ class DataEngine {
         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
               bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
               livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
-              brokerName, broker_login, thumbnail, video_data, video_type) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              brokerName, broker_login, thumbnail, video_data, video_type, video_url) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           property.id, property.title, property.type, property.price,
           property.address || property.location || '', property.city || '', property.neighborhood || '',
@@ -136,11 +146,25 @@ class DataEngine {
           property.brokerName || '', property.brokerLogin || property.broker_login || '',
           property.thumbnail || '',
           property.videoData || property.video_data || null,
-          property.videoType || property.video_type || 'video/mp4'
+          property.videoType || property.video_type || 'video/mp4',
+          property.videoUrl || property.video_url || ''
         ]
       });
     } catch (e) {
       console.error('addProperty error:', e.message);
+      return null;
+    }
+  }
+
+  async updatePropertyVideo(id, videoUrl) {
+    if (!this.client) return null;
+    try {
+      return await this.client.execute({
+        sql: 'UPDATE properties SET video_url = ? WHERE id = ?',
+        args: [videoUrl || '', id]
+      });
+    } catch (e) {
+      console.error('updatePropertyVideo error:', e.message);
       return null;
     }
   }
@@ -189,6 +213,42 @@ class DataEngine {
     }
   }
 
+  async updateLead(id, data) {
+    if (!this.client) return null;
+    try {
+      const sets = [];
+      const args = [];
+      const fields = ['name', 'phone', 'interest', 'notes', 'score', 'status', 'potential_value', 'property_id', 'last_contacted'];
+      for (const f of fields) {
+        if (data[f] !== undefined) {
+          sets.push(`${f} = ?`);
+          args.push(data[f]);
+        }
+      }
+      if (sets.length === 0) return { success: true };
+      args.push(id);
+      await this.client.execute({
+        sql: `UPDATE leads SET ${sets.join(', ')} WHERE rowid = ?`,
+        args
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('updateLead error:', e.message);
+      return null;
+    }
+  }
+
+  async deleteLead(id) {
+    if (!this.client) return false;
+    try {
+      await this.client.execute('DELETE FROM leads WHERE rowid = ?', [id]);
+      return true;
+    } catch (e) {
+      console.error('deleteLead error:', e.message);
+      return false;
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // APPOINTMENTS
   // ═══════════════════════════════════════════════════════════════
@@ -218,6 +278,44 @@ class DataEngine {
     } catch (e) {
       console.error('addAppointment error:', e.message);
       return null;
+    }
+  }
+
+  async updateAppointment(id, data) {
+    if (!this.client) return null;
+    try {
+      const sets = [];
+      const args = [];
+      const fields = ['lead_name', 'property_title', 'date_time', 'status', 'notes'];
+      const map = { leadName: 'lead_name', propertyTitle: 'property_title', dateTime: 'date_time', date: 'date_time', note: 'notes' };
+      for (const f of fields) {
+        const val = data[f] ?? data[Object.keys(map).find(k => map[k] === f)] ?? undefined;
+        if (val !== undefined) {
+          sets.push(`${f} = ?`);
+          args.push(val);
+        }
+      }
+      if (sets.length === 0) return { success: true };
+      args.push(id);
+      await this.client.execute({
+        sql: `UPDATE appointments SET ${sets.join(', ')} WHERE rowid = ?`,
+        args
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('updateAppointment error:', e.message);
+      return null;
+    }
+  }
+
+  async deleteAppointment(id) {
+    if (!this.client) return false;
+    try {
+      await this.client.execute('DELETE FROM appointments WHERE rowid = ?', [id]);
+      return true;
+    } catch (e) {
+      console.error('deleteAppointment error:', e.message);
+      return false;
     }
   }
 
@@ -287,27 +385,23 @@ class DataEngine {
   async saveBroker(broker) {
     if (!this.client) return null;
     try {
-      if (broker.password) {
-        await this.client.execute({
-          sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, login, lastActive, password)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            broker.creci || broker.login, broker.name || '', broker.email || '',
-            broker.phone || '', broker.photo || '', broker.login || '',
-            broker.lastActive || '', broker.password
-          ]
+      let password = broker.password;
+      if (!password) {
+        const existing = await this.client.execute({
+          sql: 'SELECT password FROM brokers WHERE creci = ? OR login = ?',
+          args: [broker.creci || broker.login, broker.login || broker.creci]
         });
-      } else {
-        await this.client.execute({
-          sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, login, lastActive)
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            broker.creci || broker.login, broker.name || '', broker.email || '',
-            broker.phone || '', broker.photo || '', broker.login || '',
-            broker.lastActive || ''
-          ]
-        });
+        password = existing.rows[0]?.password || '';
       }
+      await this.client.execute({
+        sql: `INSERT OR REPLACE INTO brokers (creci, name, email, phone, photo, login, lastActive, password)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          broker.creci || broker.login, broker.name || '', broker.email || '',
+          broker.phone || '', broker.photo || '', broker.login || '',
+          broker.lastActive || '', password
+        ]
+      });
       return { success: true };
     } catch (e) {
       console.error('saveBroker error:', e.message);
