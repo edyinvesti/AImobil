@@ -1,11 +1,5 @@
 const path = require('path');
 const { getDataEngine } = require(path.join(__dirname, 'db/index.cjs'));
-const cloudinary = require('cloudinary').v2;
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
 const META_ADS_TOKEN = process.env.META_ADS_ACCESS_TOKEN;
 const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act_/, '');
@@ -25,8 +19,9 @@ function stripBase64Prefix(data) {
 }
 
 class MarketingEngine {
-  constructor() {
+  constructor(cloudinaryInstance = null) {
     this.dataEngine = null;
+    this.cloudinary = cloudinaryInstance;
     this.logger = {
       info: (msg, data) => console.log(`[MarketingEngine] ${msg}`, data || ''),
       error: (msg, data) => console.error(`[MarketingEngine] ${msg}`, data || ''),
@@ -125,7 +120,7 @@ class MarketingEngine {
           const base64 = property.videoData.toString().replace(/^data:video\/\w+;base64,/, '');
           const buffer = Buffer.from(base64, 'base64');
           videoUrl = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream({
+            const stream = this.cloudinary.uploader.upload_stream({
               resource_type: 'video',
               folder: 'aimobil',
               public_id: `property_${property.id}`,
@@ -291,7 +286,7 @@ class MarketingEngine {
           const base64 = property.videoData.toString().replace(/^data:video\/\w+;base64,/, '');
           const buffer = Buffer.from(base64, 'base64');
           videoUrl = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream({
+            const stream = this.cloudinary.uploader.upload_stream({
               resource_type: 'video',
               folder: 'aimobil',
               public_id: `property_${property.id}`,
