@@ -1100,22 +1100,54 @@ Texto: ...
         attempts++;
       }
 
-      const publishResponse = await fetch(
-        `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ creation_id: creationData.id, access_token: INSTAGRAM_TOKEN })
-        }
-      );
+      // Retry publish até 3x em caso de erro transitório do servidor do Instagram
+      let publishData = null;
+      let publishError = null;
+      for (let publishAttempt = 1; publishAttempt <= 3; publishAttempt++) {
+        const publishResponse = await fetch(
+          `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ creation_id: creationData.id, access_token: INSTAGRAM_TOKEN })
+          }
+        );
 
-      if (!publishResponse.ok) {
-        const errorText = await publishResponse.text();
-        this.logger.warn('Erro HTTP ao publicar Reels', { status: publishResponse.status, error: errorText.substring(0, 200) });
-        return { status: 'DRAFT', error: `HTTP ${publishResponse.status}: ${errorText.substring(0, 200)}` };
+        if (!publishResponse.ok) {
+          const errorText = await publishResponse.text();
+          const isTransient = publishResponse.status === 500 || publishResponse.status === 503;
+          this.logger.warn(`Erro HTTP ao publicar Reels (tentativa ${publishAttempt}/3)`, { status: publishResponse.status, error: errorText.substring(0, 200) });
+          publishError = `HTTP ${publishResponse.status}: ${errorText.substring(0, 200)}`;
+          if (isTransient && publishAttempt < 3) {
+            this.logger.info(`Erro transitório do Instagram — tentando novamente em 30s...`);
+            await new Promise(r => setTimeout(r, 30000));
+            continue;
+          }
+          return { status: 'DRAFT', error: publishError };
+        }
+
+        publishData = await publishResponse.json();
+
+        // Se o Instagram retornar um erro no payload mesmo com status 200
+        if (publishData.error) {
+          const isTransient = publishData.error.is_transient;
+          this.logger.warn(`Erro no payload ao publicar Reels (tentativa ${publishAttempt}/3)`, { error: publishData.error });
+          publishError = publishData.error.message;
+          if (isTransient && publishAttempt < 3) {
+            this.logger.info(`Erro transitório do Instagram — tentando novamente em 30s...`);
+            await new Promise(r => setTimeout(r, 30000));
+            publishData = null;
+            continue;
+          }
+          return { status: 'DRAFT', error: publishError };
+        }
+
+        break; // Sucesso — sai do loop
       }
 
-      const publishData = await publishResponse.json();
+      if (!publishData) {
+        return { status: 'DRAFT', error: publishError || 'Falha desconhecida ao publicar' };
+      }
       const mediaId = publishData.id || creationData.id;
       this.logger.info('Reels publicado com sucesso', { mediaId });
 

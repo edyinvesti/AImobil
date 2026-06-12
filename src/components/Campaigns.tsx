@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { BarChart3, ExternalLink, Instagram, RefreshCw, Image, CheckCircle2, XCircle, Trash2, Clock, Filter, X, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BarChart3, ExternalLink, Instagram, RefreshCw, Image, CheckCircle2, XCircle, Trash2, Clock, Filter, X, ChevronRight, Loader2 } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign } from '../hooks/useCampaigns';
 import { useToast } from '../hooks/useToast';
 
@@ -53,6 +53,15 @@ export const Campaigns = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const campaigns: Campaign[] = (campaignsData as any)?.campanhas || (Array.isArray(campaignsData) ? campaignsData : []);
+
+  // Auto-refresh every 10s while any campaign is still publishing (empty status)
+  const hasPending = campaigns.some(c => !c.instagram_status || c.instagram_status === 'IN_PROGRESS');
+  useEffect(() => {
+    if (!hasPending) return;
+    const interval = setInterval(() => refetch(), 10000);
+    return () => clearInterval(interval);
+  }, [hasPending, refetch]);
+
   const stats: CampaignStats = (campaignsData as any)?.stats || (() => {
     const list = Array.isArray(campaignsData) ? campaignsData : [];
     return {
@@ -83,6 +92,28 @@ export const Campaigns = () => {
     return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const getStatusLabel = (status: string) => {
+    if (status === 'PUBLISHED') return 'Publicado';
+    if (status === 'DRAFT') return 'Rascunho';
+    if (status === 'SKIPPED') return 'Pulado';
+    if (!status) return 'Publicando...';
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === 'PUBLISHED') return 'text-emerald-400';
+    if (status === 'SKIPPED') return 'text-gray-500';
+    if (!status) return 'text-blue-400';
+    return 'text-red-400';
+  };
+
+  const getStatusIcon = (status: string) => {
+    if (status === 'PUBLISHED') return <CheckCircle2 size={11} className="text-emerald-500" />;
+    if (status === 'SKIPPED') return <XCircle size={11} className="text-gray-500" />;
+    if (!status) return <Loader2 size={11} className="text-blue-400 animate-spin" />;
+    return <XCircle size={11} className="text-red-500" />;
+  };
+
   const filtered = activeFilter === 'all' ? campaigns
     : activeFilter === 'published' ? campaigns.filter(c => c.instagram_status === 'PUBLISHED')
     : activeFilter === 'failed' ? campaigns.filter(c => c.instagram_status !== 'PUBLISHED' && c.instagram_status !== '')
@@ -106,6 +137,18 @@ export const Campaigns = () => {
           <RefreshCw size={16} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      {/* Publishing in progress banner */}
+      {hasPending && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2.5 px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+          <Loader2 size={14} className="text-blue-400 animate-spin shrink-0" />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Publicando no Instagram...</p>
+            <p className="text-[9px] text-gray-500">Esta tela atualiza automaticamente a cada 10 segundos</p>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {statCards.map(s => (
@@ -171,13 +214,9 @@ export const Campaigns = () => {
                     <span className="flex items-center gap-1"><Clock size={10} />{formatDate(camp.created_at)}</span>
                     <span className="w-1 h-1 rounded-full bg-gray-600 shrink-0" />
                     <span className="flex items-center gap-1">
-                      {camp.instagram_status === 'PUBLISHED' ? (
-                        <CheckCircle2 size={11} className="text-emerald-500" />
-                      ) : (
-                        <XCircle size={11} className="text-red-500" />
-                      )}
-                      <span className={camp.instagram_status === 'PUBLISHED' ? 'text-emerald-400' : 'text-red-400'}>
-                        {camp.instagram_status === 'PUBLISHED' ? 'Publicado' : camp.instagram_status || 'Pendente'}
+                      {getStatusIcon(camp.instagram_status)}
+                      <span className={getStatusColor(camp.instagram_status)}>
+                        {getStatusLabel(camp.instagram_status)}
                       </span>
                     </span>
                   </div>
@@ -227,9 +266,17 @@ export const Campaigns = () => {
                     <span className="flex items-center gap-1.5 text-emerald-400 text-sm font-bold">
                       <CheckCircle2 size={16} className="text-emerald-500" /> Publicado
                     </span>
+                  ) : !detail.instagram_status ? (
+                    <span className="flex items-center gap-1.5 text-blue-400 text-sm font-bold">
+                      <Loader2 size={16} className="text-blue-400 animate-spin" /> Publicando...
+                    </span>
+                  ) : detail.instagram_status === 'SKIPPED' ? (
+                    <span className="flex items-center gap-1.5 text-gray-400 text-sm font-bold">
+                      <XCircle size={16} className="text-gray-500" /> Pulado (sem mídia ou opção desativada)
+                    </span>
                   ) : (
                     <span className="flex items-center gap-1.5 text-red-400 text-sm font-bold">
-                      <XCircle size={16} className="text-red-500" /> {detail.instagram_status || 'Pendente'}
+                      <XCircle size={16} className="text-red-500" /> {detail.instagram_status}
                     </span>
                   )}
                 </div>
