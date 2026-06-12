@@ -241,7 +241,7 @@ function registerRoutes() {
       });
 
       // Save video_url to property
-      await dataEngine.updateProperty(req.params.id, { video_url: result.secure_url });
+      await dataEngine.updatePropertyVideo(req.params.id, result.secure_url);
 
       res.json({ video_url: result.secure_url, public_id: result.public_id });
     } catch (e) {
@@ -265,7 +265,7 @@ function registerRoutes() {
       const publicId = urlParts.slice(urlParts.indexOf('aimobil')).join('/').replace(/\.[^/.]+$/, '');
 
       await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
-      await dataEngine.updateProperty(req.params.id, { video_url: null });
+      await dataEngine.updatePropertyVideo(req.params.id, null);
 
       res.json({ success: true });
     } catch (e) {
