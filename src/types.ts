@@ -38,6 +38,7 @@ export interface Property {
   description: string;
   amenities: string[];
   images: string[];
+  tags?: string[];
   thumbnail?: string;
   videoData?: string;
   videoType?: string;

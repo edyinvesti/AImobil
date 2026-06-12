@@ -49,7 +49,7 @@ const getVideoThumbnail = (videoUrl?: string) => {
 };
 
 export function PropertyCard({ property, onClick, onEdit, onDelete, campaignActive }: PropertyCardProps) {
-  const thumbnail = property.thumbnail || getVideoThumbnail(property.videoUrl || property.video_url) || '';
+  const thumbnail = property.thumbnail || getVideoThumbnail(property.video_url) || '';
   const cardIndex = property.id ? property.id.charCodeAt(0) : 0;
 
   return (
@@ -121,6 +121,19 @@ export function PropertyCard({ property, onClick, onEdit, onDelete, campaignActi
           <MapPin size={10} className="shrink-0" />
           <span className="line-clamp-1">{property.address || property.title}</span>
         </div>
+
+        {property.tags && property.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {property.tags.slice(0, 3).map(tag => (
+              <span key={tag} className="px-1.5 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[8px] font-bold uppercase tracking-wider rounded">
+                {tag}
+              </span>
+            ))}
+            {property.tags.length > 3 && (
+              <span className="px-1.5 py-0.5 text-zinc-500 text-[8px] font-bold">+{property.tags.length - 3}</span>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 pt-1.5 border-t border-zinc-800/60 text-zinc-400">
           <span className="text-[10px] font-medium text-zinc-300">{property.size}{property.sizeUnit === 'Hectares' ? ' ha' : 'm²'}</span>

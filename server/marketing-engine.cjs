@@ -208,7 +208,7 @@ class MarketingEngine {
           instagramResult = await this.publicarInstagramReel(property, copys[0], videoUrl);
         } else if (publicImageUrl) {
           const imageUrls = [publicImageUrl];
-          for (let i = 1; i < Math.min(property.images?.length || 1, 5); i++) {
+          for (let i = 1; i < Math.min(property.images?.length || 1, 10); i++) {
             imageUrls.push(`${API_URL}/api/properties/${property.id}/image?index=${i}`);
           }
           instagramResult = await this.publicarInstagram(property, copys[0], imageUrls);

@@ -43,6 +43,7 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
         parkingSpaces: initialData?.parkingSpaces || 0,
         description: initialData?.description || '',
         amenities: initialData?.amenities || [] as string[],
+        tags: initialData?.tags || [] as string[],
     });
     const [displayPrice, setDisplayPrice] = useState(
         initialData?.price
@@ -56,7 +57,7 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
     const [videoFile, setVideoFile] = useState<File | null>(null);
-    const [videoData, setVideoData] = useState<string | null>(initialData?.videoUrl || initialData?.videoData || null); // preview
+    const [videoData, setVideoData] = useState<string | null>(initialData?.video_url || initialData?.videoData || null); // preview
     const [videoName, setVideoName] = useState<string | null>(null);
     const [videoUploading, setVideoUploading] = useState(false);
 
@@ -648,6 +649,39 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                             ))}
                                         </select>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 mt-4">
+                                <label className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1">Etiquetas / Tags <span className="text-gray-700">(Pressione ENTER para adicionar)</span></label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-gray-800"
+                                    placeholder="Ex: Alto Padrão, Frente ao Mar, Permuta"
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' || e.key === ',') {
+                                            e.preventDefault();
+                                            const tag = e.currentTarget.value.trim().replace(/^,+|,+$/g, '');
+                                            if (tag && !(formData.tags || []).includes(tag)) {
+                                                setFormData({ ...formData, tags: [...(formData.tags || []), tag] });
+                                                e.currentTarget.value = '';
+                                                setSaved(false);
+                                            }
+                                        }
+                                    }}
+                                />
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                    {(formData.tags || []).map(tag => (
+                                        <span key={tag} className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800/80 border border-white/5 rounded-full text-xs font-bold text-gray-300">
+                                            {tag}
+                                            <button type="button" onClick={() => {
+                                                setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) });
+                                                setSaved(false);
+                                            }} className="hover:text-red-400">
+                                                <X size={12} />
+                                            </button>
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
                         </div>

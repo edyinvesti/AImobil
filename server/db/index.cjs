@@ -79,6 +79,7 @@ class DataEngine {
         videoType: row.video_type || 'video/mp4',
         thumbnail: row.thumbnail || row.img_fallback || null,
         address: row.location || '',
+        tags: row.tags ? JSON.parse(row.tags) : [],
         size: row.area || 0,
         offerType: null,
         parkingSpaces: row.parkingSpaces || 0,
@@ -113,6 +114,7 @@ class DataEngine {
         videoType: row.video_type || 'video/mp4',
         videoUrl: row.video_url || null,
         address: row.location || '',
+        tags: row.tags ? JSON.parse(row.tags) : [],
         size: row.area || 0,
         parkingSpaces: row.parkingSpaces || 0,
         brokerLogin: row.broker_login || '',
@@ -130,8 +132,8 @@ class DataEngine {
         sql: `INSERT OR REPLACE INTO properties (id, title, type, price, location, city, neighborhood, 
               bedrooms, bathrooms, parkingSpaces, area, sizeUnit, status, images, suites, 
               livingRooms, kitchens, zipCode, state, streetNumber, complement, description, 
-              brokerName, broker_login, thumbnail, video_data, video_type, video_url) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              brokerName, broker_login, thumbnail, video_data, video_type, video_url, tags) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           property.id, property.title, property.type, property.price,
           property.address || property.location || '', property.city || '', property.neighborhood || '',
@@ -147,7 +149,8 @@ class DataEngine {
           property.thumbnail || '',
           property.videoData || property.video_data || null,
           property.videoType || property.video_type || 'video/mp4',
-          property.videoUrl || property.video_url || ''
+          property.videoUrl || property.video_url || '',
+          JSON.stringify(property.tags || [])
         ]
       });
     } catch (e) {
