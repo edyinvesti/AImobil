@@ -483,6 +483,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                 >
                                     <option className="bg-black text-white font-bold" value="Apartamento">Apartamento</option>
                                     <option className="bg-black text-white font-bold" value="Casa">Casa</option>
+                                    <option className="bg-black text-white font-bold" value="Condomínio">Condomínio</option>
                                     <option className="bg-black text-white font-bold" value="Terreno">Terreno</option>
                                     <option className="bg-black text-white font-bold" value="Chácara">Chácara</option>
                                     <option className="bg-black text-white font-bold" value="Fazenda">Fazenda</option>

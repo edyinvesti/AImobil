@@ -19,6 +19,7 @@ const CATEGORIES = [
   { id: 'all', label: 'Todos', icon: House },
   { id: 'Apartamento', label: 'Apartamentos', icon: Building2 },
   { id: 'Casa', label: 'Casas', icon: House },
+  { id: 'Condomínio', label: 'Condomínios', icon: Building2 },
   { id: 'Terreno', label: 'Terrenos', icon: LandPlot },
   { id: 'Chácara', label: 'Chácaras', icon: Trees },
   { id: 'Fazenda', label: 'Fazendas', icon: Sprout },

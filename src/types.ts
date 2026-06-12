@@ -7,7 +7,7 @@ export const MAX_IMAGES = 10;
 export const MAX_VIDEO_SIZE_MB = 15;
 export const MAX_VIDEO_DURATION_SEC = 30;
 
-export type PropertyType = 'Casa' | 'Apartamento' | 'Terreno' | 'Comercial' | 'Rural' | 'Chácara' | 'Fazenda';
+export type PropertyType = 'Casa' | 'Apartamento' | 'Terreno' | 'Comercial' | 'Rural' | 'Chácara' | 'Fazenda' | 'Condomínio';
 export type OfferType = 'Venda' | 'Aluguel';
 export type AreaUnit = 'm²' | 'Hectares' | 'Alqueires';
 export type PropertyStatus = 'Disponível' | 'Vendido' | 'Reservado';
