@@ -219,6 +219,9 @@ class MarketingEngine {
       } else if (includeOrganic) {
         this.logger.warn('Instagram Business ID não configurado');
         instagramResult = { status: 'SKIPPED', reason: 'Instagram Business ID não configurado' };
+      } else {
+        this.logger.info('Postagem orgânica (Feed/Reels) desabilitada pelo usuário');
+        instagramResult = { status: 'SKIPPED', reason: 'Postagem no Feed desativada na interface' };
       }
 
       // Stories (independente do feed — pode postar só Story mesmo sem feed)
