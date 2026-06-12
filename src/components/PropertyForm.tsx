@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption, MAX_IMAGES, MAX_VIDEO_SIZE_MB } from '../types';
-import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car, Video, Film } from 'lucide-react';
+import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car, Video, Film, Sparkles, Loader2 } from 'lucide-react';
 import { compressImage, getApiUrl } from '../utils';
 import { useToast } from '../hooks/useToast';
 
@@ -36,6 +36,7 @@ const getAmenitiesOptions = (type: PropertyType) => {
 export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProps) => {
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
     const { toast } = useToast();
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
@@ -276,6 +277,53 @@ const [states, setStates] = useState<IBGEState[]>([]);
             return crypto.randomUUID();
         } catch (e) {
             return Math.random().toString(36).substring(2) + Date.now().toString(36);
+        }
+    };
+
+    const generateDescriptionWithAI = async () => {
+        setIsGeneratingDesc(true);
+        try {
+            const token = localStorage.getItem('iamobil_token');
+            const prompt = `Gere uma descrição atraente e profissional para este anúncio de imóvel.
+            Detalhes do Imóvel:
+            Tipo: ${formData.type}
+            Operação: ${formData.offerType}
+            Preço: R$ ${displayPrice}
+            Localização: ${formData.city ? `${formData.city} - ` : ''}${formData.neighborhood || ''}
+            Quartos: ${formData.bedrooms}
+            Suítes: ${formData.suites}
+            Banheiros: ${formData.bathrooms}
+            Vagas: ${formData.parkingSpaces}
+            Área: ${formData.size} ${formData.sizeUnit}
+            Características Extras: ${formData.amenities.join(', ')}
+            
+            Aja como um corretor imobiliário premium. Destaque os diferenciais, crie um texto envolvente que valorize o imóvel, e use emojis com bom senso. Não precisa incluir hashtags no final. Retorne APENAS o texto da descrição pronta.`;
+
+            const res = await fetch(`${getApiUrl()}/api/ai/process`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    message: prompt,
+                    context: { role: "marketing_imobiliario" }
+                }),
+            });
+            
+            const data = await res.json();
+            if (data.response && !data.response.includes('Erro:')) {
+                setFormData(prev => ({ ...prev, description: data.response }));
+                setSaved(false);
+                toast('Descrição gerada com sucesso!', 'success');
+            } else {
+                toast('Falha ao gerar descrição com IA', 'error');
+            }
+        } catch (e) {
+            console.error("Erro na IA:", e);
+            toast('Erro de conexão ao gerar descrição', 'error');
+        } finally {
+            setIsGeneratingDesc(false);
         }
     };
 
@@ -704,7 +752,18 @@ const [states, setStates] = useState<IBGEState[]>([]);
                         </div>
 
                         <div className="bg-zinc-900 border border-white/10 rounded-3xl p-8 space-y-4">
-                            <label className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">Descrição Certificada</label>
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">Descrição Certificada</label>
+                                <button
+                                    type="button"
+                                    onClick={generateDescriptionWithAI}
+                                    disabled={isGeneratingDesc}
+                                    className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+                                >
+                                    {isGeneratingDesc ? <span className="animate-spin text-indigo-500"><Loader2 size={12} /></span> : <Sparkles size={12} className="text-indigo-400" />}
+                                    {isGeneratingDesc ? 'Gerando...' : 'Gerar com IA'}
+                                </button>
+                            </div>
                             <textarea
                                 className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 text-white text-sm font-bold outline-none focus:ring-1 focus:ring-orange-500 transition-all min-h-[140px] placeholder:text-gray-800 resize-none leading-relaxed"
                                 value={formData.description}
