@@ -195,6 +195,9 @@ class DataEngine {
   async deleteProperty(id) {
     if (!this.client) return null;
     try {
+      // Remove dependências primeiro para evitar erro de FOREIGN KEY Constraint
+      await this.client.execute({ sql: 'DELETE FROM campaigns WHERE property_id = ?', args: [id] });
+      
       return await this.client.execute({
         sql: 'DELETE FROM properties WHERE id = ?',
         args: [id]
