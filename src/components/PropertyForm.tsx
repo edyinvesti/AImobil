@@ -56,7 +56,7 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
     const [videoFile, setVideoFile] = useState<File | null>(null);
-    const [videoData, setVideoData] = useState<string | null>(initialData?.videoData || null); // preview
+    const [videoData, setVideoData] = useState<string | null>(initialData?.videoUrl || initialData?.videoData || null); // preview
     const [videoName, setVideoName] = useState<string | null>(null);
     const [videoUploading, setVideoUploading] = useState(false);
 
@@ -301,6 +301,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
         try {
             const id = initialData?.id || generateId();
             const property = {
+                ...initialData,
                 ...formData,
                 id,
                 images,

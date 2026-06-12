@@ -154,6 +154,7 @@ export default function App() {
                         if (data.success) {
                           p.videoData = data.videoData || p.videoData;
                           p.videoType = data.videoType || p.videoType;
+                          p.videoUrl = data.videoUrl || p.videoUrl;
                           p.images = data.images?.length > 0 ? data.images : p.images;
                         }
                       } catch (e) {

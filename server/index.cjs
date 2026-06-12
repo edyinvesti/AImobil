@@ -368,7 +368,7 @@ app.get('/api/partner/property-image', async (req, res, next) => {
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
     const property = await dataEngine.getPropertyById(id);
     if (!property) return res.status(404).json({ error: 'Imóvel não encontrado' });
-    res.json({ success: true, images: property.images || [], videoData: property.videoData, videoType: property.videoType });
+    res.json({ success: true, images: property.images || [], videoData: property.videoData, videoType: property.videoType, videoUrl: property.videoUrl });
   } catch (e) {
     logger.error('Property image fetch error', { error: e.message });
     res.status(500).json({ error: 'Erro ao buscar imagens' });

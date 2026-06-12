@@ -40,7 +40,8 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                            ...prev, 
                            images: d.images?.length > 0 ? d.images : prev.images,
                            videoData: d.videoData || prev.videoData,
-                           videoType: d.videoType || prev.videoType
+                           videoType: d.videoType || prev.videoType,
+                           videoUrl: d.videoUrl || prev.videoUrl
                         }));
                     }
                     setLoadingImages(false);
@@ -161,13 +162,13 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/20">
-                            {!property.videoData && <MapPin size={40} />}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{property.videoData ? '' : 'Sem Mídia Disponível'}</span>
+                            {!(property.videoData || property.videoUrl) && <MapPin size={40} />}
+                            <span className="text-[10px] font-black uppercase tracking-widest">{(property.videoData || property.videoUrl) ? '' : 'Sem Mídia Disponível'}</span>
                         </div>
                     )}
 
                     {/* Vídeo do imóvel */}
-                    {(property as Property).videoData && (
+                    {((property as Property).videoData || (property as Property).videoUrl) && (
                         <div className="absolute bottom-4 left-4 right-4 z-10">
                             <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
                                 <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5">
@@ -175,7 +176,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
                                     <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">Tour em Vídeo</span>
                                 </div>
                                 <video
-                                    src={(property as Property).videoData || resolveImageUrl('')}
+                                    src={(property as Property).videoUrl || (property as Property).videoData || resolveImageUrl('')}
                                     className="w-full aspect-video object-cover"
                                     controls
                                     playsInline
