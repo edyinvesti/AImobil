@@ -841,6 +841,13 @@ const [states, setStates] = useState<IBGEState[]>([]);
                         Escolha onde publicar automaticamente ao salvar:
                     </p>
                     <div className="flex flex-col gap-3">
+                        <label className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${!publishFeed && !publishStories && !publishAds ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                            <input type="checkbox" checked={!publishFeed && !publishStories && !publishAds} onChange={e => { if (e.target.checked) { setPublishFeed(false); setPublishStories(false); setPublishAds(false); } setSaved(false); }} className="mt-1 accent-orange-500" />
+                            <div>
+                                <span className="text-sm font-bold text-white">Não publicar automaticamente</span>
+                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">Apenas salva o imóvel na carteira</p>
+                            </div>
+                        </label>
                         <label className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${publishFeed ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
                             <input type="checkbox" checked={publishFeed} onChange={e => { setPublishFeed(e.target.checked); setSaved(false); }} className="mt-1 accent-orange-500" />
                             <div>
