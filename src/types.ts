@@ -11,7 +11,7 @@ export type PropertyType = 'Casa' | 'Apartamento' | 'Terreno' | 'Comercial' | 'R
 export type OfferType = 'Venda' | 'Aluguel';
 export type AreaUnit = 'm²' | 'Hectares' | 'Alqueires';
 export type PropertyStatus = 'Disponível' | 'Vendido' | 'Reservado';
-export type MarketingOption = 'none' | 'instagram_only' | 'instagram_ads';
+export type MarketingOption = 'none' | 'feed' | 'stories' | 'feed_stories' | 'feed_ads' | 'stories_ads' | 'feed_stories_ads';
 
 export interface Property {
   id: string;

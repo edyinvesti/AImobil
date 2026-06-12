@@ -43,7 +43,6 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
         parkingSpaces: initialData?.parkingSpaces || 0,
         description: initialData?.description || '',
         amenities: initialData?.amenities || [] as string[],
-        marketingOption: initialData?.marketingOption || 'none' as MarketingOption,
     });
     const [displayPrice, setDisplayPrice] = useState(
         initialData?.price
@@ -60,6 +59,33 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
     const [videoData, setVideoData] = useState<string | null>(initialData?.videoData || null); // preview
     const [videoName, setVideoName] = useState<string | null>(null);
     const [videoUploading, setVideoUploading] = useState(false);
+
+    // Marketing checkboxes independentes
+    function decodeMarketingOption(opt: MarketingOption | undefined) {
+        if (!opt || opt === 'none') return { feed: false, stories: false, ads: false };
+        if (opt === 'feed') return { feed: true, stories: false, ads: false };
+        if (opt === 'stories') return { feed: false, stories: true, ads: false };
+        if (opt === 'feed_stories') return { feed: true, stories: true, ads: false };
+        if (opt === 'feed_ads') return { feed: true, stories: false, ads: true };
+        if (opt === 'stories_ads') return { feed: false, stories: true, ads: true };
+        if (opt === 'feed_stories_ads') return { feed: true, stories: true, ads: true };
+        return { feed: false, stories: false, ads: false };
+    }
+    const initialOpts = decodeMarketingOption(initialData?.marketingOption);
+    const [publishFeed, setPublishFeed] = useState(initialOpts.feed);
+    const [publishStories, setPublishStories] = useState(initialOpts.stories);
+    const [publishAds, setPublishAds] = useState(initialOpts.ads);
+
+    function computeMarketingOption(feed: boolean, stories: boolean, ads: boolean): MarketingOption {
+        if (feed && stories && ads) return 'feed_stories_ads';
+        if (feed && stories && !ads) return 'feed_stories';
+        if (feed && !stories && ads) return 'feed_ads';
+        if (!feed && stories && ads) return 'stories_ads';
+        if (feed && !stories && !ads) return 'feed';
+        if (!feed && stories && !ads) return 'stories';
+        return 'none';
+    }
+
     interface IBGEState { sigla: string; nome: string; }
 interface IBGECity { nome: string; }
 const [states, setStates] = useState<IBGEState[]>([]);
@@ -235,8 +261,8 @@ const [states, setStates] = useState<IBGEState[]>([]);
         }
     };
 
-    const triggerMarketingCampaign = async (propertyId: string, option: MarketingOption) => {
-        if (option === 'none') return;
+    const triggerMarketingCampaign = async (propertyId: string) => {
+        if (!publishFeed && !publishStories && !publishAds) return;
         try {
             const token = localStorage.getItem('iamobil_token');
             const res = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
@@ -249,8 +275,9 @@ const [states, setStates] = useState<IBGEState[]>([]);
                     property_id: propertyId,
                     budget: 20,
                     campaignDays: 14,
-                    includeOrganic: true,
-                    includeAds: option === 'instagram_ads',
+                    includeOrganic: publishFeed,
+                    includeStories: publishStories,
+                    includeAds: publishAds,
                 }),
             });
             const data = await res.json();
@@ -277,6 +304,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 ...formData,
                 id,
                 images,
+                marketingOption: computeMarketingOption(publishFeed, publishStories, publishAds),
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
             await onSave(property);
@@ -307,7 +335,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
 
             setSaved(true);
             toast("Imóvel salvo com sucesso na sua carteira!", 'success');
-            triggerMarketingCampaign(property.id, formData.marketingOption);
+            triggerMarketingCampaign(property.id);
         } catch (error) {
             console.error("Erro ao salvar:", error);
             toast("Erro ao salvar o imóvel. Verifique os dados e tente novamente.", 'error');
@@ -810,35 +838,30 @@ const [states, setStates] = useState<IBGEState[]>([]);
                         <span className="px-2 py-0.5 bg-gradient-to-r from-blue-600/20 to-violet-600/20 border border-blue-500/20 rounded-full text-[7px] font-black uppercase text-blue-400 tracking-wider">Novo</span>
                     </div>
                     <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
-                        Escolha a ação automática ao salvar o imóvel:
+                        Escolha onde publicar automaticamente ao salvar:
                     </p>
                     <div className="flex flex-col gap-3">
-                        {[
-                            { value: 'none', label: 'Não publicar automaticamente', desc: 'Apenas salva o imóvel na carteira' },
-                            { value: 'instagram_only', label: 'Só Instagram (orgânico)', desc: 'Publica fotos no feed do Instagram' },
-                            { value: 'instagram_ads', label: 'Instagram + Meta Ads (pago)', desc: 'Publica no Instagram + campanha de R$ 20/dia por 14 dias' },
-                        ].map(option => (
-                            <label
-                                key={option.value}
-                                className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${formData.marketingOption === option.value ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="marketingOption"
-                                    value={option.value}
-                                    checked={formData.marketingOption === option.value}
-                                    onChange={e => {
-                                        setFormData({ ...formData, marketingOption: e.target.value as MarketingOption });
-                                        setSaved(false);
-                                    }}
-                                    className="mt-1 accent-orange-500"
-                                />
-                                <div>
-                                    <span className="text-sm font-bold text-white">{option.label}</span>
-                                    <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">{option.desc}</p>
-                                </div>
-                            </label>
-                        ))}
+                        <label className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${publishFeed ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                            <input type="checkbox" checked={publishFeed} onChange={e => { setPublishFeed(e.target.checked); setSaved(false); }} className="mt-1 accent-orange-500" />
+                            <div>
+                                <span className="text-sm font-bold text-white">Feed / Reels</span>
+                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">Publica carrossel de fotos ou Reels de vídeo no feed do Instagram</p>
+                            </div>
+                        </label>
+                        <label className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${publishStories ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                            <input type="checkbox" checked={publishStories} onChange={e => { setPublishStories(e.target.checked); setSaved(false); }} className="mt-1 accent-orange-500" />
+                            <div>
+                                <span className="text-sm font-bold text-white">Stories</span>
+                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">Publica nos Stories do Instagram (dura 24h)</p>
+                            </div>
+                        </label>
+                        <label className={`flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${publishAds ? 'bg-gradient-to-r from-blue-600/10 to-violet-600/10 border-blue-500/30' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                            <input type="checkbox" checked={publishAds} onChange={e => { setPublishAds(e.target.checked); setSaved(false); }} className="mt-1 accent-orange-500" />
+                            <div>
+                                <span className="text-sm font-bold text-white">Meta Ads (anúncio pago)</span>
+                                <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest mt-1">Cria campanha de R$ 20/dia por 14 dias no Facebook/Instagram</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

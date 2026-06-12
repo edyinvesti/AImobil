@@ -101,6 +101,7 @@ class MarketingEngine {
     const budget = options.budget || 20;
     const campaignDays = options.campaignDays || 14;
     const includeOrganic = options.includeOrganic !== false;
+    const includeStories = options.includeStories !== false;
     const includeAds = options.includeAds !== false;
 
     this.logger.info('Iniciando campanha', { propertyId, budget, campaignDays, includeOrganic, includeAds });
@@ -200,6 +201,7 @@ class MarketingEngine {
       }
 
       let instagramResult = null;
+      let storyResult = null;
       if (includeOrganic && INSTAGRAM_BUSINESS_ID) {
         if (hasVideo) {
           this.logger.info('Publicando Reels com vídeo do Cloudinary', { videoUrl });
@@ -219,12 +221,26 @@ class MarketingEngine {
         instagramResult = { status: 'SKIPPED', reason: 'Instagram Business ID não configurado' };
       }
 
+      // Stories (independente do feed — pode postar só Story mesmo sem feed)
+      if (includeStories && INSTAGRAM_BUSINESS_ID) {
+        if (hasVideo && videoUrl) {
+          this.logger.info('Publicando Story com vídeo...');
+          storyResult = await this.publicarInstagramStory(property, copys[0], videoUrl, 'video');
+        } else if (publicImageUrl) {
+          this.logger.info('Publicando Story com foto...');
+          storyResult = await this.publicarInstagramStory(property, copys[0], publicImageUrl, 'image');
+        } else {
+          this.logger.warn('Nenhuma mídia disponível para Story');
+        }
+      }
+
       const result = {
         success: true,
         propertyId,
         propertyTitle: property.title,
         campaign: campaignResult,
         instagram: instagramResult,
+        story: storyResult,
         creatives: {
           total: criativos.length,
           formats: criativos.map(c => c.format)
@@ -310,7 +326,12 @@ class MarketingEngine {
 
       if (videoUrl && videoUrl.startsWith('http')) {
         this.logger.info('Postando Reels no Instagram', { propertyId, videoUrl });
-        return await this.publicarInstagramReel(property, copys[0], videoUrl);
+        const result = await this.publicarInstagramReel(property, copys[0], videoUrl);
+        if (result?.status === 'PUBLISHED') {
+          this.logger.info('Postando Story com o vídeo...');
+          await this.publicarInstagramStory(property, copys[0], videoUrl, 'video');
+        }
+        return result;
       }
 
       const imageUrls = [publicImageUrl];
@@ -318,7 +339,12 @@ class MarketingEngine {
         imageUrls.push(`${API_URL}/api/properties/${property.id}/image?index=${i}`);
       }
       this.logger.info('Postando imagens no Instagram', { propertyId, imagesCount: imageUrls.length });
-      return await this.publicarInstagram(property, copys[0], imageUrls);
+      const result = await this.publicarInstagram(property, copys[0], imageUrls);
+      if (result?.status === 'PUBLISHED') {
+        this.logger.info('Postando Story com a primeira foto...');
+        await this.publicarInstagramStory(property, copys[0], publicImageUrl, 'image');
+      }
+      return result;
 
     } catch (error) {
       this.logger.error('Erro ao postar no Instagram', { error: error.message });
@@ -1097,6 +1123,77 @@ Texto: ...
 
     } catch (error) {
       this.logger.error('Erro ao publicar Reels', { error: error.message });
+      return { status: 'ERROR', error: error.message };
+    }
+  }
+
+  async publicarInstagramStory(property, copy, mediaUrl, mediaType = 'video') {
+    try {
+      if (!INSTAGRAM_BUSINESS_ID) {
+        return { status: 'SKIPPED', reason: 'INSTAGRAM_BUSINESS_ID n\u00e3o configurado' };
+      }
+
+      if (!mediaUrl || !mediaUrl.startsWith('http')) {
+        return { status: 'SKIPPED', reason: 'URL da m\u00eddia n\u00e3o dispon\u00edvel para Story' };
+      }
+
+      this.logger.info('Publicando Story no Instagram', { mediaUrl, mediaType });
+
+      const creationResponse = await fetch(
+        `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            media_type: 'STORIES',
+            [mediaType === 'video' ? 'video_url' : 'image_url']: mediaUrl,
+            access_token: INSTAGRAM_TOKEN
+          })
+        }
+      );
+
+      if (!creationResponse.ok) {
+        const errorText = await creationResponse.text();
+        this.logger.warn('Erro HTTP ao criar Story', { status: creationResponse.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${creationResponse.status}: ${errorText.substring(0, 200)}` };
+      }
+
+      const creationData = await creationResponse.json();
+      if (creationData.error) {
+        this.logger.warn('Erro ao criar Story', { error: creationData.error });
+        return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
+      }
+
+      this.logger.info('Story criada, aguardando processamento...', { creationId: creationData.id });
+      await new Promise(r => setTimeout(r, 5000));
+
+      const publishResponse = await fetch(
+        `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ creation_id: creationData.id, access_token: INSTAGRAM_TOKEN })
+        }
+      );
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text();
+        this.logger.warn('Erro HTTP ao publicar Story', { status: publishResponse.status, error: errorText.substring(0, 200) });
+        return { status: 'DRAFT', error: `HTTP ${publishResponse.status}: ${errorText.substring(0, 200)}` };
+      }
+
+      const publishData = await publishResponse.json();
+      const mediaId = publishData.id || creationData.id;
+      this.logger.info('Story publicada com sucesso', { mediaId });
+
+      return {
+        status: 'PUBLISHED',
+        storyId: mediaId,
+        story: true
+      };
+
+    } catch (error) {
+      this.logger.error('Erro ao publicar Story', { error: error.message });
       return { status: 'ERROR', error: error.message };
     }
   }
