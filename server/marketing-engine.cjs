@@ -468,11 +468,7 @@ class MarketingEngine {
   gerarWhatsAppLink(broker, property) {
     if (!broker?.phone) return null;
     const phone = broker.phone.replace(/\D/g, '');
-    const msg = encodeURIComponent(
-      `Olá! Tenho interesse no imóvel: ${property.title || ''} (${property.type || ''}) - ` +
-      `R$ ${Number(property.price).toLocaleString('pt-BR')}`
-    );
-    return `https://wa.me/55${phone}?text=${msg}`;
+    return `https://wa.me/55${phone}`;
   }
 
   montarLegendaCompleta({ headline, primaryText, description, cta, style, hashtags, engagement, whatsapp }) {
