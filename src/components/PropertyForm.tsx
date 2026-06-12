@@ -10,11 +10,28 @@ interface PropertyFormProps {
     initialData?: Property;
 }
 
-const AMENITIES_OPTIONS = [
-    'Piscina', 'Churrasqueira', 'Academia', 'Portaria 24h',
-    'Salão de Festas', 'Ar Condicionado', 'Mobiliado', 'Varanda Gourmet',
-    'Elevador', 'Jardim', 'Pet Friendly', 'Sistema de Alarme'
-];
+const getAmenitiesOptions = (type: PropertyType) => {
+    if (type === 'Fazenda' || type === 'Chácara' || type === 'Rural') {
+        return [
+            'Curral', 'Pasto Formado', 'Cerca / Alambrado', 'Represa / Açude',
+            'Nascente / Rio', 'Casa Sede', 'Casa de Caseiro / Peão', 'Pomar / Horta',
+            'Poço Artesiano', 'Topografia Plana', 'Galpão / Barracão', 'Energia Elétrica'
+        ];
+    }
+    if (type === 'Comercial') {
+        return [
+            'Estacionamento Próprio', 'Recepção', 'Escritório', 'Almoxarifado',
+            'Copa / Refeitório', 'Vestiário', 'Elevador de Carga', 'Mezanino',
+            'Sistema de Alarme', 'Segurança 24h'
+        ];
+    }
+    // Default (Apartamentos, Casas, Condomínios, Terrenos urbanos)
+    return [
+        'Piscina', 'Churrasqueira', 'Academia', 'Portaria 24h',
+        'Salão de Festas', 'Ar Condicionado', 'Mobiliado', 'Varanda Gourmet',
+        'Elevador', 'Jardim', 'Pet Friendly', 'Sistema de Alarme'
+    ];
+};
 
 export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProps) => {
     const [isSaving, setIsSaving] = useState(false);
@@ -848,7 +865,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                         <div className="space-y-3 pt-2">
                             <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest pl-1">Características & Lazer</p>
                             <div className="flex flex-wrap gap-2">
-                                {AMENITIES_OPTIONS.map(amenity => {
+                                {getAmenitiesOptions(formData.type).map(amenity => {
                                     const selected = formData.amenities.includes(amenity);
                                     return (
                                         <button
