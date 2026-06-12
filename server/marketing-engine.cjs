@@ -1075,9 +1075,27 @@ Texto: ...
         return { status: 'DRAFT', error: creationData.error.message, apiResponse: creationData };
       }
 
-      // Reels pode levar mais tempo para processar o v\u00eddeo
-      this.logger.info('Reels criado, aguardando processamento do v\u00eddeo...', { creationId: creationData.id });
-      await new Promise(r => setTimeout(r, 10000));
+      // Reels pode levar mais tempo para processar o vídeo
+      this.logger.info('Reels criado, aguardando processamento do vídeo...', { creationId: creationData.id });
+      let fetchStatus = 'IN_PROGRESS';
+      let attempts = 0;
+      while (fetchStatus !== 'FINISHED' && attempts < 30) {
+        await new Promise(r => setTimeout(r, 6000)); // wait 6s
+        try {
+          const statusRes = await fetch(`${FACEBOOK_GRAPH_URL}/${creationData.id}?fields=status_code&access_token=${INSTAGRAM_TOKEN}`);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            fetchStatus = statusData.status_code || fetchStatus;
+            this.logger.info(`Status do processamento: ${fetchStatus}`);
+            if (fetchStatus === 'ERROR') {
+              return { status: 'DRAFT', error: 'O Instagram rejeitou o formato deste vídeo.' };
+            }
+          }
+        } catch (err) {
+          this.logger.warn('Falha ao verificar status do Reels', { error: err.message });
+        }
+        attempts++;
+      }
 
       const publishResponse = await fetch(
         `${FACEBOOK_GRAPH_URL}/${INSTAGRAM_BUSINESS_ID}/media_publish`,
