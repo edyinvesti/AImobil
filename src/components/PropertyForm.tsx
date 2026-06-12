@@ -56,8 +56,10 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
             : ''
     );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
-    const [videoData, setVideoData] = useState<string | null>(initialData?.videoData || null);
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [videoData, setVideoData] = useState<string | null>(initialData?.videoData || null); // preview
     const [videoName, setVideoName] = useState<string | null>(null);
+    const [videoUploading, setVideoUploading] = useState(false);
     interface IBGEState { sigla: string; nome: string; }
 interface IBGECity { nome: string; }
 const [states, setStates] = useState<IBGEState[]>([]);
@@ -140,18 +142,20 @@ const [states, setStates] = useState<IBGEState[]>([]);
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const result = ev.target?.result as string;
-            setVideoData(result);
-            setVideoName(file.name);
-            setSaved(false);
-        };
-        reader.onerror = () => toast('Erro ao ler o vídeo.', 'error');
-        reader.readAsDataURL(file);
+        // Save file for upload later
+        setVideoFile(file);
+        setVideoName(file.name);
+        setSaved(false);
+
+        // Revoke previous preview URL to avoid memory leak
+        if (videoData?.startsWith('blob:')) URL.revokeObjectURL(videoData);
+        const previewUrl = URL.createObjectURL(file);
+        setVideoData(previewUrl);
     };
 
     const handleRemoveVideo = () => {
+        if (videoData?.startsWith('blob:')) URL.revokeObjectURL(videoData);
+        setVideoFile(null);
         setVideoData(null);
         setVideoName(null);
     };
@@ -273,10 +277,34 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 ...formData,
                 id,
                 images,
-                videoData: videoData || undefined,
                 createdAt: initialData?.createdAt || Date.now(),
             } as Property;
             await onSave(property);
+
+            // Upload vídeo para Cloudinary após salvar o imóvel
+            if (videoFile) {
+                setVideoUploading(true);
+                try {
+                    const formDataVideo = new FormData();
+                    formDataVideo.append('video', videoFile);
+                    const res = await fetch(`${getApiUrl()}/api/properties/${id}/video`, {
+                        method: 'POST',
+                        body: formDataVideo
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.video_url) {
+                        toast('Vídeo enviado ao Cloudinary! Será publicado como Reel no Instagram.', 'success');
+                    } else {
+                        toast(`Aviso: Vídeo não enviado — ${data.error || 'erro desconhecido'}`, 'warning');
+                    }
+                } catch (videoErr) {
+                    console.error('Erro ao enviar vídeo:', videoErr);
+                    toast('Imóvel salvo, mas o vídeo não foi enviado. Tente novamente.', 'warning');
+                } finally {
+                    setVideoUploading(false);
+                }
+            }
+
             setSaved(true);
             toast("Imóvel salvo com sucesso na sua carteira!", 'success');
             triggerMarketingCampaign(property.id, formData.marketingOption);
@@ -825,15 +853,16 @@ const [states, setStates] = useState<IBGEState[]>([]);
                     </button>
                     <button
                         type="submit"
-                        disabled={isSaving || saved}
+                        disabled={isSaving || saved || videoUploading}
                         className={`px-8 py-4 text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg flex items-center gap-2 ${
                             saved
                                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/10'
                                 : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/10 disabled:opacity-50'
                         }`}
                     >
-                        {saved ? 'Salvo na sua carteira' : isSaving ? 'Salvando...' : 'Salvar Imóvel'}
+                        {saved ? 'Salvo na sua carteira' : videoUploading ? '📤 Enviando vídeo...' : isSaving ? 'Salvando...' : 'Salvar Imóvel'}
                     </button>
+
                 </div>
 
             </form>
