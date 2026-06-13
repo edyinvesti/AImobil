@@ -6,8 +6,6 @@ const META_ACCOUNT_ID = (process.env.META_ADS_AD_ACCOUNT_ID || '').replace(/^act
 const INSTAGRAM_BUSINESS_ID = process.env.INSTAGRAM_BUSINESS_ID;
 const INSTAGRAM_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || META_ADS_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
-
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://aimobil.onrender.com';
 const API_URL = (process.env.VITE_API_URL || FRONTEND_URL || 'http://localhost:10002').replace(/\/$/, '');
 const FACEBOOK_GRAPH_URL = 'https://graph.facebook.com/v22.0';
@@ -68,33 +66,6 @@ class MarketingEngine {
     }
 
     return { hash: images[0].hash, url: images[0].url };
-  }
-
-  async uploadToImgur(base64Data) {
-    if (!IMGUR_CLIENT_ID) return null;
-
-    const bytes = stripBase64Prefix(base64Data);
-
-    try {
-      const res = await fetch('https://api.imgur.com/3/image', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Client-ID ${IMGUR_CLIENT_ID}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image: bytes, type: 'base64' })
-      });
-
-      const data = await res.json();
-      if (data.success && data.data?.link) {
-        return data.data.link;
-      }
-      this.logger.warn('Imgur upload failed', { error: data.data?.error });
-      return null;
-    } catch (e) {
-      this.logger.warn('Imgur upload error', { error: e.message });
-      return null;
-    }
   }
 
   async criarCampanha(propertyId, options = {}) {
@@ -1387,7 +1358,6 @@ Texto: ...
       facebookPageConfigured: !!process.env.META_FACEBOOK_PAGE_ID,
       instagramConfigured: !!INSTAGRAM_BUSINESS_ID && !!INSTAGRAM_TOKEN,
       geminiConfigured: !!GEMINI_API_KEY,
-      imgurConfigured: !!IMGUR_CLIENT_ID,
       activeCampaigns: this.listActiveCampaigns().length,
       totalCampaigns: campaigns.size
     };

@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { Property, PropertyType, OfferType, PropertyStatus, AreaUnit, MarketingOption, MAX_IMAGES, MAX_VIDEO_SIZE_MB } from '../types';
 import { X, Camera, MapPin, Bed, Trash2, CheckCircle2, DollarSign, Square, Target, Car, Video, Film, Sparkles, Loader2 } from 'lucide-react';
-import { compressImage, getApiUrl } from '../utils';
+import { compressImage, getApiUrl, authFetch } from '../utils';
 import { useToast } from '../hooks/useToast';
 
 interface PropertyFormProps {
@@ -42,7 +42,7 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
         title: initialData?.title || '',
         type: initialData?.type || 'Apartamento' as PropertyType,
         offerType: initialData?.offerType || 'Venda' as OfferType,
-        price: initialData?.price || 0,
+        price: initialData?.price ?? 0,
         status: initialData?.status || 'Disponível' as PropertyStatus,
         address: initialData?.address || '',
         zipCode: initialData?.zipCode || '',
@@ -51,14 +51,14 @@ export const PropertyForm = ({ onSave, onCancel, initialData }: PropertyFormProp
         state: initialData?.state || '',
         streetNumber: initialData?.streetNumber || '',
         complement: initialData?.complement || '',
-        size: initialData?.size || 0,
+        size: initialData?.size ?? 0,
         sizeUnit: initialData?.sizeUnit || 'm²' as AreaUnit,
-        bedrooms: initialData?.bedrooms || 0,
-        suites: initialData?.suites || 0,
-        livingRooms: initialData?.livingRooms || 0,
-        kitchens: initialData?.kitchens || 0,
-        bathrooms: initialData?.bathrooms || 0,
-        parkingSpaces: initialData?.parkingSpaces || 0,
+        bedrooms: initialData?.bedrooms ?? 0,
+        suites: initialData?.suites ?? 0,
+        livingRooms: initialData?.livingRooms ?? 0,
+        kitchens: initialData?.kitchens ?? 0,
+        bathrooms: initialData?.bathrooms ?? 0,
+        parkingSpaces: initialData?.parkingSpaces ?? 0,
         description: initialData?.description || '',
         amenities: initialData?.amenities || [] as string[],
         tags: initialData?.tags || [] as string[],
@@ -283,7 +283,6 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const generateDescriptionWithAI = async () => {
         setIsGeneratingDesc(true);
         try {
-            const token = localStorage.getItem('iamobil_token');
             const prompt = `Gere uma descrição atraente e profissional para este anúncio de imóvel.
             Detalhes do Imóvel:
             Tipo: ${formData.type}
@@ -299,12 +298,9 @@ const [states, setStates] = useState<IBGEState[]>([]);
             
             Aja como um corretor imobiliário premium. Destaque os diferenciais, crie um texto envolvente que valorize o imóvel, e use emojis com bom senso. Não precisa incluir hashtags no final. Retorne APENAS o texto da descrição pronta.`;
 
-            const res = await fetch(`${getApiUrl()}/api/ai/process`, {
+            const res = await authFetch(`${getApiUrl()}/api/ai/process`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: prompt,
                     context: { role: "marketing_imobiliario" }
@@ -312,12 +308,14 @@ const [states, setStates] = useState<IBGEState[]>([]);
             });
             
             const data = await res.json();
-            if (data.response && !data.response.includes('Erro:')) {
+            if (data.response && !data.response.includes('Erro:') && !data.response.includes('não consegui') && !data.response.includes('não configurada')) {
                 setFormData(prev => ({ ...prev, description: data.response }));
                 setSaved(false);
                 toast('Descrição gerada com sucesso!', 'success');
             } else {
-                toast('Falha ao gerar descrição com IA', 'error');
+                const erro = data.error || data.response || 'Falha ao gerar descrição';
+                console.error('Erro IA detalhado:', { erro, providers: data.providers });
+                toast('IA: ' + erro, 'error');
             }
         } catch (e) {
             console.error("Erro na IA:", e);
@@ -330,13 +328,9 @@ const [states, setStates] = useState<IBGEState[]>([]);
     const triggerMarketingCampaign = async (propertyId: string) => {
         if (!publishFeed && !publishStories && !publishAds) return;
         try {
-            const token = localStorage.getItem('iamobil_token');
-            const res = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
+            const res = await authFetch(`${getApiUrl()}/api/marketing/campaigns`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     property_id: propertyId,
                     budget: 20,
@@ -382,7 +376,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                 try {
                     const formDataVideo = new FormData();
                     formDataVideo.append('video', videoFile);
-                    const res = await fetch(`${getApiUrl()}/api/properties/${id}/video`, {
+                    const res = await authFetch(`${getApiUrl()}/api/properties/${id}/video`, {
                         method: 'POST',
                         body: formDataVideo
                     });
@@ -837,7 +831,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.bedrooms}
+                                    value={formData.bedrooms || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 0 });
                                         setSaved(false);
@@ -851,7 +845,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.suites}
+                                    value={formData.suites || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, suites: parseInt(e.target.value) || 0 });
                                         setSaved(false);
@@ -865,7 +859,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.bathrooms}
+                                    value={formData.bathrooms || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 0 });
                                         setSaved(false);
@@ -881,7 +875,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.livingRooms}
+                                    value={formData.livingRooms || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, livingRooms: parseInt(e.target.value) || 0 });
                                         setSaved(false);
@@ -897,7 +891,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.kitchens}
+                                    value={formData.kitchens || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, kitchens: parseInt(e.target.value) || 0 });
                                         setSaved(false);
@@ -911,7 +905,7 @@ const [states, setStates] = useState<IBGEState[]>([]);
                                     type="number"
                                     min="0"
                                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white font-bold outline-none text-center focus:border-orange-500/50 transition-all"
-                                    value={formData.parkingSpaces}
+                                    value={formData.parkingSpaces || ''}
                                     onChange={e => {
                                         setFormData({ ...formData, parkingSpaces: parseInt(e.target.value) || 0 });
                                         setSaved(false);

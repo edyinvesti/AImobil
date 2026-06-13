@@ -115,23 +115,7 @@ const TABLES = {
     )
   `,
 
-  pending_sync: `
-    CREATE TABLE IF NOT EXISTS pending_sync (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      operation TEXT,
-      data TEXT,
-      timestamp TEXT
-    )
-  `,
 
-  rag_vectors: `
-    CREATE TABLE IF NOT EXISTS rag_vectors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source TEXT,
-      content TEXT,
-      embedding TEXT
-    )
-  `,
 };
 
 const INDEXES = [

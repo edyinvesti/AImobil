@@ -1,9 +1,10 @@
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation, useParams } from "react-router-dom";
 import { SplashScreen } from "./components/SplashScreen";
 import { useState, useEffect } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { PropertyForm } from "./components/PropertyForm";
 import { PropertyDetails } from "./components/PropertyDetails";
+import { PropertyDetailPage } from "./components/PropertyDetailPage";
 import { Sidebar } from "./components/Sidebar";
 import { BottomBar } from "./components/BottomBar";
 import { BusinessCard } from "./components/BusinessCard";
@@ -18,7 +19,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
 import { useToast } from "./hooks/useToast";
-import { getApiUrl } from "./utils";
+import { getApiUrl, authFetch } from "./utils";
 
 function gerarThumbnail(imgBase64: string): Promise<string> {
   return new Promise((resolve) => {
@@ -149,7 +150,7 @@ export default function App() {
                       setPropertyToView(null); 
                       // Busca a mídia completa (vídeo/imagens grandes) que não vem na listagem
                       try {
-                        const res = await fetch(`${getApiUrl()}/api/partner/property-image?id=${p.id}`);
+                        const res = await authFetch(`${getApiUrl()}/api/partner/property-image?id=${p.id}`);
                         const data = await res.json();
                         if (data.success) {
                           p.videoData = data.videoData || p.videoData;
@@ -203,7 +204,7 @@ export default function App() {
               } />
 
               <Route path="/imovel/:id" element={
-                <div className="p-4 text-center text-gray-500 text-sm">Redirecionando...</div>
+                <PropertyDetailPage />
               } />
 
             </Routes>
@@ -213,6 +214,7 @@ export default function App() {
         <BottomBar 
           currentView={currentView} 
           onViewChange={(v) => navigate(v === 'dashboard' ? '/' : `/${v}`)} 
+          onLogout={handleLogout}
         />
       </div>
 

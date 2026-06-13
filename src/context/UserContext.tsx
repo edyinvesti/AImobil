@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { UserProfile } from '../types';
-import { getApiUrl } from '../utils';
+import { getApiUrl, authFetch } from '../utils';
 import { syncQueue } from '../sync-queue';
 
 interface UserContextType {
@@ -45,7 +45,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (!API_URL || !profile.login) return;
 
       try {
-        const response = await fetch(`${API_URL}/api/partner/register?login=${encodeURIComponent(profile.login)}`);
+        const response = await authFetch(`${API_URL}/api/partner/register?login=${encodeURIComponent(profile.login)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.broker) {
@@ -81,7 +81,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!apiUrl || !userData.login || userData.name === 'Buscando perfil...') return;
     
     try {
-      await fetch(`${apiUrl}/api/partner/register`, {
+      await authFetch(`${apiUrl}/api/partner/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)

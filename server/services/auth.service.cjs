@@ -46,15 +46,6 @@ class AuthService {
       passwordMatch = false;
     }
 
-    if (!passwordMatch && user.password === password) {
-      const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
-      await this.dataEngine.client.execute({
-        sql: 'UPDATE brokers SET password = ? WHERE rowid = ?',
-        args: [hashed, user.rowid]
-      });
-      passwordMatch = true;
-    }
-
     if (!passwordMatch) {
       throw new UnauthorizedError('Senha incorreta');
     }

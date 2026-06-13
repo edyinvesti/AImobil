@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useEffect, useCallback } from 'react';
 import { Property } from '../types';
-import { getApiUrl } from '../utils';
+import { getApiUrl, authFetch } from '../utils';
 
 interface RawPropertyInput {
   id?: string;
@@ -36,7 +36,7 @@ const API_BASE = getApiUrl();
 
 async function fetchProperties(login: string): Promise<Property[]> {
   const url = `${API_BASE}/api/partner/properties?login=${encodeURIComponent(login)}`;
-  const res = await fetch(url);
+  const res = await authFetch(url);
   if (!res.ok) throw new Error('Erro na API: ' + res.status);
   const data = await res.json();
   if (!data.success) throw new Error(data.message || 'Falha na operação da API');
@@ -61,30 +61,10 @@ export function useProperties(baseLogin?: string) {
     enabled: !!resolvedLogin,
   });
 
-  const uploadImage = async (img: string): Promise<string> => {
-    if (!img.startsWith('data:')) return img;
-    try {
-      const r = await fetch(`${API_BASE}/api/properties/upload-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: img })
-      });
-      const d = await r.json();
-      return d.url || img;
-    } catch { return img; }
-  };
-
   const savePropertyMutation = useMutation({
     mutationFn: async ({ property, profile }: { property: Property; profile: { name: string; login: string } }) => {
-      let prop = { ...property };
-      if (prop.images?.length > 0) {
-        const uploaded = await Promise.all(prop.images.map(uploadImage));
-        prop = { ...prop, images: uploaded };
-        if (prop.thumbnail?.startsWith('data:')) {
-          prop.thumbnail = await uploadImage(prop.thumbnail);
-        }
-      }
-      const res = await fetch(`${API_BASE}/api/partner/properties`, {
+      const prop = { ...property };
+      const res = await authFetch(`${API_BASE}/api/partner/properties`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...prop, brokerName: profile.name, brokerLogin: profile.login })
@@ -101,7 +81,7 @@ export function useProperties(baseLogin?: string) {
   });
 
   const deleteProperty = useCallback((id: string) => {
-    fetch(`${API_BASE}/api/partner/properties?id=${id}`, { method: 'DELETE' })
+    authFetch(`${API_BASE}/api/partner/properties?id=${id}`, { method: 'DELETE' })
       .then(res => {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         refetch();

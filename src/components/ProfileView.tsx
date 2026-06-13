@@ -1,8 +1,8 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useUser } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search, LogOut, Eye, EyeOff, KeyRound, CheckCircle2 } from 'lucide-react';
-import { getApiUrl } from '../utils';
+import { User, ShieldCheck, Mail, Phone, Camera, Save, Send, Search, LogOut, Eye, EyeOff, KeyRound, CheckCircle2, MessageCircle, Link2, Unlink, Copy, Check } from 'lucide-react';
+import { getApiUrl, authFetch } from '../utils';
 import { useToast } from '../hooks/useToast';
 
 export function ProfileView() {
@@ -14,6 +14,42 @@ export function ProfileView() {
   const [showPassword, setShowPassword] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [telegramCopied, setTelegramCopied] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+
+  useEffect(() => {
+    const fetchTelegram = async () => {
+      try {
+        const res = await authFetch(`${getApiUrl()}/api/profile/telegram-id`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.telegramId) setTelegramId(data.telegramId);
+        }
+      } catch (e) {}
+    };
+    if (profile.login) fetchTelegram();
+  }, [profile.login]);
+
+  const handleLinkTelegram = async () => {
+    if (!linkInput.trim()) return;
+    try {
+      const res = await authFetch(`${getApiUrl()}/api/profile/telegram-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: linkInput.trim() })
+      });
+      if (res.ok) {
+        setTelegramId(linkInput.trim());
+        setLinkInput('');
+        toast('✅ Conta Telegram vinculada com sucesso!', 'success');
+      } else {
+        toast('Erro ao vincular conta Telegram', 'error');
+      }
+    } catch (e) {
+      toast('Erro de conexão', 'error');
+    }
+  };
 
   useEffect(() => {
     setFormData({
@@ -30,7 +66,7 @@ export function ProfileView() {
     setIsLoading(true);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/partner/register?login=${encodeURIComponent(formData.login)}`);
+      const response = await authFetch(`${apiUrl}/api/partner/register?login=${encodeURIComponent(formData.login)}`);
       if (response.ok) {
         const data = await response.json();
         if (data.broker) {
@@ -197,6 +233,88 @@ export function ProfileView() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="bg-zinc-900 border border-white/10 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-500/20 rounded-2xl flex items-center justify-center">
+                  <MessageCircle size={20} className="text-sky-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase">Telegram</h3>
+                  <p className="text-[10px] text-gray-500">Receba notificações e gerencie pelo bot</p>
+                </div>
+              </div>
+
+              <div className="bg-black/40 border border-white/5 rounded-2xl p-4 space-y-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bot do Telegram</p>
+                <div className="flex items-center justify-between">
+                  <code className="text-sm font-mono text-orange-400">@iamobil_br_bot</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('@iamobil_br_bot');
+                      setTelegramCopied(true);
+                      setTimeout(() => setTelegramCopied(false), 2000);
+                    }}
+                    className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                  >
+                    {telegramCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-gray-400" />}
+                  </button>
+                </div>
+              </div>
+
+              {telegramId ? (
+                <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-400" />
+                    <span className="text-xs text-emerald-400 font-bold">Vinculado (ID: {telegramId})</span>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await authFetch(`${getApiUrl()}/api/profile/telegram-id`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ telegramId: '' })
+                        });
+                        setTelegramId(null);
+                        toast('❌ Conta Telegram desvinculada', 'info');
+                      } catch (e) {
+                        toast('Erro ao desvincular', 'error');
+                      }
+                    }}
+                    className="p-2 bg-red-500/20 rounded-xl hover:bg-red-500/30 transition-colors"
+                  >
+                    <Unlink size={14} className="text-red-400" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    1. Envie /start para <code className="text-orange-400">@iamobil_br_bot</code> no Telegram
+                  </p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    2. Digite /id no bot e cole abaixo:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      value={linkInput}
+                      onChange={e => setLinkInput(e.target.value)}
+                      placeholder="Cole seu Telegram ID aqui..."
+                      className="flex-1 bg-black/40 border border-white/5 rounded-2xl px-4 py-3 text-white text-sm"
+                    />
+                    <button
+                      onClick={handleLinkTelegram}
+                      disabled={!linkInput.trim()}
+                      className="bg-sky-500 hover:bg-sky-600 disabled:bg-sky-500/50 text-white px-4 rounded-2xl transition-colors"
+                    >
+                      <Link2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
             <button
               onClick={() => { logout(); navigate('/'); }}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all text-[9px] font-black uppercase tracking-widest border border-red-500/20"

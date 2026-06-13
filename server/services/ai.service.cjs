@@ -5,7 +5,7 @@ const path = require('path');
 const { ExternalServiceError } = require(path.join(__dirname, '..', 'utils', 'errors.cjs'));
 
 const logger = require(path.join(__dirname, '..', 'utils', 'logger.cjs'));
-const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const MISTRAL_API_KEY = process.env.MISTRAL_KEY || process.env.MISTRAL_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -29,8 +29,9 @@ class AIService {
   }
 
   async process(message, context = {}) {
+    const errors = [];
     if (this.providers.length === 0) {
-      return "IA não configurada. Contacte o administrador.";
+      return "Erro: Nenhuma API de IA configurada. Adicione GEMINI_API_KEY, GROQ_API_KEY ou MISTRAL_API_KEY no .env";
     }
 
     for (const provider of this.providers) {
@@ -39,13 +40,17 @@ class AIService {
         if (result && !result.startsWith('Erro:')) {
           return result;
         }
-        logger.warn(`AI provider ${provider.name} failed`, { result });
+        const msg = `Provedor ${provider.name} falhou: ${result || 'resposta vazia'}`;
+        logger.warn(msg);
+        errors.push(msg);
       } catch (e) {
-        logger.error(`AI provider ${provider.name} error`, { error: e.message });
+        const msg = `Provedor ${provider.name} erro: ${e.message}`;
+        logger.error(msg);
+        errors.push(msg);
       }
     }
 
-    return "Desculpe, não consegui processar sua solicitação no momento.";
+    return `Erro: Todas as APIs de IA falharam. ${errors.join(' | ')}`;
   }
 
   async processWithMistral(message, systemPrompt) {

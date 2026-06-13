@@ -29,12 +29,18 @@ const CATEGORIES = [
 export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onDelete, loading }: DashboardProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredProperties = properties.filter(p => {
     const matchesSearch = (p.title || '').toLowerCase().includes(search.toLowerCase()) || 
                           (p.address || '').toLowerCase().includes(search.toLowerCase());
     const matchesCategory = category === 'all' || (p.type || '').trim().toLowerCase() === category.toLowerCase();
-    return matchesSearch && matchesCategory;
+    const matchesStatus = statusFilter === 'all' || (p.status || '').toLowerCase() === statusFilter.toLowerCase();
+    const matchesPrice = (!priceMin || Number(p.price) >= Number(priceMin)) && (!priceMax || Number(p.price) <= Number(priceMax));
+    return matchesSearch && matchesCategory && matchesStatus && matchesPrice;
   });
 
   const totalValue = filteredProperties.reduce((acc, p) => acc + Number(p?.price || 0), 0);
@@ -87,11 +93,36 @@ export function Dashboard({ properties, onAddClick, onPropertyClick, onEdit, onD
                     onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
-            <button className="h-12 w-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+            <button onClick={() => setShowFilters(!showFilters)} className={`h-12 w-12 flex items-center justify-center border rounded-2xl transition-all ${showFilters ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'}`}>
                 <SlidersHorizontal size={20} />
             </button>
         </div>
       </header>
+
+      {showFilters && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-zinc-900/80 border border-white/10 rounded-2xl flex flex-wrap gap-4 items-end">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Preço mín.</label>
+            <input type="number" placeholder="R$ 0" value={priceMin} onChange={e => setPriceMin(e.target.value)} className="w-32 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-white text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Preço máx.</label>
+            <input type="number" placeholder="R$ 999+" value={priceMax} onChange={e => setPriceMax(e.target.value)} className="w-32 bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-white text-xs" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Status</label>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-white text-xs">
+              <option value="all">Todos</option>
+              <option value="Disponível">Disponível</option>
+              <option value="Vendido">Vendido</option>
+              <option value="Reservado">Reservado</option>
+            </select>
+          </div>
+          <button onClick={() => { setPriceMin(''); setPriceMax(''); setStatusFilter('all'); }} className="text-[9px] font-black uppercase tracking-widest text-orange-400 hover:text-orange-300 px-3 py-2">
+            Limpar
+          </button>
+        </motion.div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-6 scrollbar-hide">
         {CATEGORIES.map(cat => (

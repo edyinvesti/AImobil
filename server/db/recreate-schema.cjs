@@ -134,23 +134,7 @@ const NEW_SCHEMA = {
     )
   `,
 
-  pending_sync: `
-    CREATE TABLE IF NOT EXISTS pending_sync (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      operation TEXT,
-      data TEXT,
-      timestamp TEXT
-    )
-  `,
 
-  rag_vectors: `
-    CREATE TABLE IF NOT EXISTS rag_vectors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source TEXT,
-      content TEXT,
-      embedding TEXT
-    )
-  `
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -199,12 +183,7 @@ const COLUMN_MAP = {
   telegram_users: {
     keep: ['chat_id', 'username', 'creci', 'login', 'lang', 'created_at']
   },
-  pending_sync: {
-    keep: ['id', 'operation', 'data', 'timestamp']
-  },
-  rag_vectors: {
-    keep: ['id', 'source', 'content', 'embedding']
-  }
+
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -306,7 +285,7 @@ async function recreate() {
   // 2. Backup de todas as tabelas
   console.log('\n═══ FASE 1: Backup ═══');
   const backups = {};
-  const tableOrder = ['rag_vectors', 'pending_sync', 'telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'brokers'];
+  const tableOrder = ['telegram_users', 'campaigns', 'appointments', 'leads', 'properties', 'brokers'];
   
   for (const table of tableOrder) {
     backups[table] = await backupTable(table);
@@ -326,7 +305,7 @@ async function recreate() {
   
   // 5. Inserir dados com mapeamento (ordem: brokers → properties → campaigns → etc)
   console.log('\n═══ FASE 4: Migrate data ═══');
-  const insertOrder = ['brokers', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users', 'pending_sync', 'rag_vectors'];
+  const insertOrder = ['brokers', 'properties', 'leads', 'appointments', 'campaigns', 'telegram_users'];
   for (const table of insertOrder) {
     await insertData(table, backups[table], COLUMN_MAP[table]);
   }

@@ -47,18 +47,6 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       # ══════════════════════════════════════════
-      # STORAGE — Cloudflare R2
-      - key: R2_ENDPOINT
-        sync: false
-      - key: R2_ACCESS_KEY_ID
-        sync: false
-      - key: R2_SECRET_ACCESS_KEY
-        sync: false
-      - key: R2_BUCKET_NAME
-        value: "iamobil-images"
-      - key: R2_PUBLIC_URL
-        sync: false
-      # ══════════════════════════════════════════
       # MARKETING — Meta Ads
       - key: META_ADS_ACCESS_TOKEN
         sync: false

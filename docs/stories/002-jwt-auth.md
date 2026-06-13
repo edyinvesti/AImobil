@@ -32,7 +32,11 @@ O IAmobil não tem autenticação. Token base64 é gerado mas nunca validado. Qu
 ```javascript
 // auth.middleware.cjs
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'iamobil-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET não configurado');
+  process.exit(1);
+}
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;

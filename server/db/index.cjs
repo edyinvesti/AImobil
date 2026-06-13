@@ -548,6 +548,20 @@ class DataEngine {
       return null;
     }
   }
+
+  async getTelegramUserByLogin(login) {
+    if (!this.client) return null;
+    try {
+      const rs = await this.client.execute({
+        sql: 'SELECT * FROM telegram_users WHERE login = ?',
+        args: [login]
+      });
+      return rs.rows[0] || null;
+    } catch (e) {
+      console.error('getTelegramUserByLogin error:', e.message);
+      return null;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

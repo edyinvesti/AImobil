@@ -1,13 +1,14 @@
 
-import { Home, Plus, User, BarChart3, CreditCard, Layout } from 'lucide-react';
+import { Home, Plus, User, BarChart3, CreditCard, Layout, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface BottomBarProps {
   currentView: string;
   onViewChange: (view: any) => void;
+  onLogout?: () => void;
 }
 
-export const BottomBar = ({ currentView, onViewChange }: BottomBarProps) => {
+export const BottomBar = ({ currentView, onViewChange, onLogout }: BottomBarProps) => {
   const tabs = [
     { id: 'dashboard', label: 'Início', icon: Home },
     { id: 'appointments', label: 'Agenda', icon: Layout },
@@ -24,6 +25,12 @@ export const BottomBar = ({ currentView, onViewChange }: BottomBarProps) => {
           <button
             key={tab.id}
             onClick={() => onViewChange(tab.id)}
+            onContextMenu={(e) => {
+              if (tab.id === 'profile' && onLogout) {
+                e.preventDefault();
+                onLogout();
+              }
+            }}
             className={`relative flex flex-col items-center justify-center transition-all ${
               tab.primary 
                 ? 'w-14 h-14 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/40 -translate-y-2' 
@@ -43,6 +50,16 @@ export const BottomBar = ({ currentView, onViewChange }: BottomBarProps) => {
             {!tab.primary && <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${currentView === tab.id ? 'text-white' : 'text-gray-600'}`}>{tab.label}</span>}
           </button>
         ))}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex flex-col items-center justify-center flex-1 h-12 text-gray-500 hover:text-red-400 transition-colors"
+            title="Sair"
+          >
+            <LogOut size={16} className="rotate-180" />
+            <span className="text-[8px] font-black uppercase tracking-widest mt-1">Sair</span>
+          </button>
+        )}
       </nav>
     </div>
   );

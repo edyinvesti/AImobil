@@ -1,4 +1,4 @@
-import { getApiUrl } from './utils';
+import { getApiUrl, authFetch } from './utils';
 
 interface PendingOperation {
   id: string;
@@ -99,7 +99,7 @@ class SyncQueueManager {
 
     for (const op of batch) {
       try {
-        const res = await fetch(`${API_BASE}${op.endpoint}`, {
+        const res = await authFetch(`${API_BASE}${op.endpoint}`, {
           method: op.method,
           headers: { 'Content-Type': 'application/json' },
           body: op.body ? JSON.stringify(op.body) : undefined,

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { BarChart3, ExternalLink, Instagram, RefreshCw, Image, CheckCircle2, XCircle, Trash2, Clock, Filter, X, ChevronRight, Loader2 } from 'lucide-react';
 import { useCampaigns, useDeleteCampaign } from '../hooks/useCampaigns';
 import { useToast } from '../hooks/useToast';
+import { authFetch } from '../utils';
 
 interface Campaign {
   id: string;
@@ -89,7 +90,7 @@ export const Campaigns = () => {
     setIsApproving(true);
     try {
       const api = (await import('../utils')).getApiUrl();
-      const res = await fetch(`${api}/api/marketing/approve/${detail.id}`, {
+      const res = await authFetch(`${api}/api/marketing/approve/${detail.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caption: approvalCaption })

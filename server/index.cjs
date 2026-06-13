@@ -14,7 +14,6 @@ const AppointmentService = require(path.join(__dirname, 'services/appointment.se
 const AIService = require(path.join(__dirname, 'services/ai.service.cjs'));
 const TelegramService = require(path.join(__dirname, 'services/telegram.service.cjs'));
 const MarketingService = require(path.join(__dirname, 'services/marketing.service.cjs'));
-const StorageService = require(path.join(__dirname, 'services/storage.service.cjs'));
 const { MarketingEngine } = require(path.join(__dirname, 'marketing-engine.cjs'));
 
 // Cloudinary
@@ -107,20 +106,15 @@ let appointmentService = null;
 let aiService = null;
 let telegramService = null;
 let marketingService = null;
-let storageService = null;
 
 async function initializeServices() {
   try {
     dataEngine = await getDataEngine();
     logger.info('DataEngine initialized successfully');
 
-    // Initialize storage service
-    storageService = new StorageService();
-    logger.info('Storage service initialized', { configured: storageService.configured });
-
     // Initialize services
     authService = new AuthService(dataEngine);
-    propertyService = new PropertyService(dataEngine, storageService);
+    propertyService = new PropertyService(dataEngine);
     leadService = new LeadService(dataEngine);
     appointmentService = new AppointmentService(dataEngine);
     aiService = new AIService();
@@ -149,8 +143,7 @@ app.use('/api/health', healthRoutes(async () => ({
     ai: aiService?.getAvailableProviders() || [],
     telegram: !!process.env.TELEGRAM_BOT_TOKEN,
     instagram: !!process.env.INSTAGRAM_ACCESS_TOKEN,
-    metaAds: !!process.env.META_ADS_ACCESS_TOKEN,
-    storage: storageService?.getStatus() || { configured: false }
+    metaAds: !!process.env.META_ADS_ACCESS_TOKEN
   }
 })));
 
@@ -162,14 +155,11 @@ function registerRoutes() {
   // Auth routes (public)
   app.use('/api/auth', authLimiter, authRoutes(authService));
 
-  // Dummy middleware temporário para as rotas da API até que o frontend suporte JWT completo
-  const mockAuthMiddleware = (req, res, next) => next();
-
-  // Protected routes (Bypassed temporarily for partner UI compatibility)
-  app.use('/api/properties', propertyRoutes(propertyService, mockAuthMiddleware));
+  // Protected routes
+  app.use('/api/properties', propertyRoutes(propertyService, authMiddleware));
 
   // Serve media (image/video) from property data (used by marketing engine for Instagram/Facebook)
-  app.get('/api/properties/:id/image', async (req, res) => {
+  app.get('/api/properties/:id/image', authMiddleware, async (req, res) => {
     try {
       if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
       const property = await dataEngine.getPropertyById(req.params.id);
@@ -219,7 +209,7 @@ function registerRoutes() {
   });
 
   // POST /api/properties/:id/video — Upload video to Cloudinary
-  app.post('/api/properties/:id/video', mockAuthMiddleware, videoUpload.single('video'), async (req, res) => {
+  app.post('/api/properties/:id/video', authMiddleware, videoUpload.single('video'), async (req, res) => {
     try {
       if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
       if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado' });
@@ -259,7 +249,7 @@ function registerRoutes() {
   });
 
   // DELETE /api/properties/:id/video — Delete video from Cloudinary
-  app.delete('/api/properties/:id/video', mockAuthMiddleware, async (req, res) => {
+  app.delete('/api/properties/:id/video', authMiddleware, async (req, res) => {
     try {
       if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
 
@@ -282,9 +272,9 @@ function registerRoutes() {
     }
   });
 
-  app.use('/api/leads', leadRoutes(leadService, mockAuthMiddleware));
-  app.use('/api/appointments', appointmentRoutes(appointmentService, mockAuthMiddleware));
-  app.use('/api/marketing', marketingRoutes(marketingService, mockAuthMiddleware));
+  app.use('/api/leads', leadRoutes(leadService, authMiddleware));
+  app.use('/api/appointments', appointmentRoutes(appointmentService, authMiddleware));
+  app.use('/api/marketing', marketingRoutes(marketingService, authMiddleware));
 
   // Telegram routes (webhook is public, status is protected)
   app.use('/api/telegram', telegramRoutes(telegramService));
@@ -294,7 +284,7 @@ function registerRoutes() {
 // LEGACY PARTNER ROUTES (compatibilidade com frontend)
 // ═══════════════════════════════════════════════════════════════
 
-app.get('/api/partner/properties', async (req, res, next) => {
+app.get('/api/partner/properties', authMiddleware, async (req, res, next) => {
   try {
     let properties = await dataEngine.getProperties();
     const login = req.query?.login || req.query?.creci;
@@ -323,7 +313,7 @@ app.get('/api/partner/properties', async (req, res, next) => {
   }
 });
 
-app.post('/api/partner/properties', async (req, res, next) => {
+app.post('/api/partner/properties', authMiddleware, async (req, res, next) => {
   try {
     const property = req.body;
     if (!property.id) property.id = `prop_${Date.now()}`;
@@ -344,7 +334,7 @@ app.post('/api/partner/properties', async (req, res, next) => {
   }
 });
 
-app.delete('/api/partner/properties', async (req, res, next) => {
+app.delete('/api/partner/properties', authMiddleware, async (req, res, next) => {
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
@@ -357,7 +347,7 @@ app.delete('/api/partner/properties', async (req, res, next) => {
   }
 });
 
-app.get('/api/partner/properties/status', async (req, res, next) => {
+app.get('/api/partner/properties/status', authMiddleware, async (req, res, next) => {
   try {
     const properties = await dataEngine.getProperties();
     const statuses = {};
@@ -370,7 +360,7 @@ app.get('/api/partner/properties/status', async (req, res, next) => {
   }
 });
 
-app.get('/api/partner/property-image', async (req, res, next) => {
+app.get('/api/partner/property-image', authMiddleware, async (req, res, next) => {
   try {
     const { id } = req.query;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
@@ -430,44 +420,64 @@ app.post('/api/partner/register', async (req, res, next) => {
   }
 });
 
-// Image upload (Imgur fallback to base64)
-const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
+// ═══════════════════════════════════════════════════════════════
+// TELEGRAM PROFILE LINKING
+// ═══════════════════════════════════════════════════════════════
 
-app.post('/api/properties/upload-image', async (req, res, next) => {
+app.get('/api/profile/telegram-id', authMiddleware, async (req, res) => {
   try {
-    const { image } = req.body;
-    if (!image) return res.status(400).json({ error: 'Imagem não enviada' });
-
-    const base64 = image.replace(/^data:image\/\w+;base64,/, '');
-    let url = null;
-
-    if (IMGUR_CLIENT_ID) {
-      try {
-        const imgurRes = await fetch('https://api.imgur.com/3/image', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Client-ID ' + IMGUR_CLIENT_ID,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ image: base64, type: 'base64' })
-        });
-        const imgurData = await imgurRes.json();
-        if (imgurData.success && imgurData.data?.link) {
-          url = imgurData.data.link;
-        }
-      } catch (e) {
-        logger.warn('[Upload] Imgur failed, using base64');
-      }
-    }
-
-    if (url) {
-      res.json({ success: true, url });
-    } else {
-      res.json({ success: true, url: image });
-    }
+    if (!dataEngine) return res.json({ telegramId: null });
+    const user = await dataEngine.getTelegramUserByLogin(req.user.login);
+    res.json({ telegramId: user?.chat_id ? String(user.chat_id) : null });
   } catch (e) {
-    logger.error('Image upload error', { error: e.message });
-    res.status(500).json({ error: 'Erro ao fazer upload' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/profile/telegram-id', authMiddleware, async (req, res) => {
+  try {
+    const { telegramId } = req.body;
+    if (!telegramId) return res.status(400).json({ error: 'telegramId é obrigatório' });
+    if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+    await dataEngine.linkUserToTelegram(req.user.login, telegramId);
+    logger.info('Telegram ID linked', { login: req.user.login, chatId: telegramId });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/telegram/analytics', authMiddleware, (req, res) => {
+  const analytics = telegramService?.getAnalytics() || {};
+  res.json({
+    configured: !!process.env.TELEGRAM_BOT_TOKEN,
+    botUsername: process.env.TELEGRAM_BOT_USERNAME || 'iamobil_br_bot',
+    ...analytics
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT ROUTE
+// ═══════════════════════════════════════════════════════════════
+
+app.get('/api/properties/export', authMiddleware, async (req, res) => {
+  try {
+    if (!dataEngine) return res.status(503).json({ error: 'dataEngine não disponível' });
+    const properties = await dataEngine.getProperties();
+    const fields = ['id', 'title', 'type', 'price', 'status', 'city', 'neighborhood', 'address', 'bedrooms', 'bathrooms', 'parkingSpaces', 'size', 'brokerName', 'brokerLogin', 'createdAt'];
+    const csv = [fields.join(','),
+      ...properties.map(p => fields.map(f => {
+        const val = p[f] ?? '';
+        const str = String(val).replace(/"/g, '""');
+        return str.includes(',') || str.includes('"') ? `"${str}"` : str;
+      }).join(','))
+    ].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=imoveis.csv');
+    res.send('\uFEFF' + csv);
+  } catch (e) {
+    logger.error('Export error', { error: e.message });
+    res.status(500).json({ error: 'Erro ao exportar' });
   }
 });
 
@@ -480,9 +490,10 @@ app.post('/api/ai/process', authMiddleware, async (req, res, next) => {
   try {
     const { message, context } = req.body;
     const response = await aiService.process(message, context);
-    res.json({ response });
+    const available = aiService.getAvailableProviders();
+    res.json({ response, providers: available });
   } catch (e) {
-    next(e);
+    res.status(500).json({ response: null, error: 'Erro no servidor de IA: ' + e.message });
   }
 });
 
@@ -519,6 +530,12 @@ async function start() {
   app.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    
+    // Configurar webhook do Telegram após servidor iniciar
+    if (telegramService) {
+      const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
+      telegramService.setupWebhook(webhookUrl);
+    }
   });
 }
 

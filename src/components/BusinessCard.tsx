@@ -1,5 +1,5 @@
 
-import { Phone, Mail, MapPin, Globe, Share2, Download, Zap, ShieldCheck, QrCode } from 'lucide-react';
+import { Phone, Mail, MapPin, Globe, Share2, Download, Zap, ShieldCheck, QrCode, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '../types';
 
@@ -13,6 +13,10 @@ export const BusinessCard = ({ profile }: BusinessCardProps) => {
         const phone = profile.phone?.replace(/\D/g, '') || '';
         const url = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : 'https://wa.me/';
         window.open(url, '_blank');
+    };
+
+    const handleTelegram = () => {
+        window.open('https://t.me/iamobil_br_bot', '_blank');
     };
 
     const handleEmail = () => {
@@ -95,6 +99,19 @@ export const BusinessCard = ({ profile }: BusinessCardProps) => {
                         </button>
                         
                         <button 
+                            onClick={handleTelegram}
+                            className="w-full flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-all text-left"
+                        >
+                            <div className="p-4 bg-sky-500/10 rounded-2xl text-sky-400 group-hover:bg-sky-500 group-hover:text-white transition-all">
+                                <Send size={20} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest">Telegram</span>
+                                <span className="text-lg font-bold text-white">@iamobil_br_bot</span>
+                            </div>
+                        </button>
+
+                        <button 
                             onClick={handleEmail}
                             className="w-full flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-white/5 hover:bg-white/10 transition-all text-left"
                         >
@@ -103,7 +120,7 @@ export const BusinessCard = ({ profile }: BusinessCardProps) => {
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-[9px] font-black uppercase text-gray-500 tracking-widest">E-mail Corporativo</span>
-                                <span className="text-lg font-bold text-white truncate max-w-[200px]">{profile.email || 'Não informado'}</span>
+                                <span className="text-lg font-bold text-white truncate max-w-[200px]">{profile.email || 'Nao informado'}</span>
                             </div>
                         </button>
                     </div>

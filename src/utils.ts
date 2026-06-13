@@ -251,3 +251,17 @@ export function resolveImageUrl(path: string | undefined | null): string {
   const base = getApiUrl().replace(/\/$/, '');
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
+
+export async function authFetch(url: string, options?: RequestInit): Promise<Response> {
+  const token = localStorage.getItem('iamobil_token');
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> || {}),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}

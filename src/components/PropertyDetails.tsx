@@ -2,7 +2,7 @@ import { useState, useEffect, MouseEvent } from 'react';
 import { X, Bed, Square, Sofa, Utensils, Bath, MapPin, Car, Phone, Printer, Image, ChevronLeft, ChevronRight, Megaphone, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Property, UserProfile } from '../types';
-import { resolveImageUrl, getApiUrl, safeFormatCurrency } from '../utils';
+import { resolveImageUrl, getApiUrl, safeFormatCurrency, authFetch } from '../utils';
 import { useToast } from '../hooks/useToast';
 
 interface PropertyDetailsProps {
@@ -28,7 +28,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
             return;
         }
 
-        fetch(`${getApiUrl()}/api/partner/property-image?id=${initialProperty.id}`)
+        authFetch(`${getApiUrl()}/api/partner/property-image?id=${initialProperty.id}`)
             .then(r => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 return r.json();
@@ -67,7 +67,7 @@ export const PropertyDetails = ({ property: initialProperty, profile, onClose }:
         const includeOrganic = marketingOption !== 'none';
         const includeAds = marketingOption === 'instagram_ads';
         try {
-            const response = await fetch(`${getApiUrl()}/api/marketing/campaigns`, {
+            const response = await authFetch(`${getApiUrl()}/api/marketing/campaigns`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ property_id: property.id, budget: 20, campaignDays: 14, includeOrganic, includeAds })
