@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useUser } from '../context/UserContext';
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function Login() {
@@ -13,6 +14,7 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login: authLogin } = useAuth();
+  const { updateProfile } = useUser();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,13 +27,15 @@ export function Login() {
 
       const user = useAuth.getState().user;
       if (user) {
-        localStorage.setItem('iamobil_profile', JSON.stringify({
+        const profile = {
           login: user.login,
           name: user.name || '',
           email: user.email || '',
           phone: user.phone || '',
           photo: ''
-        }));
+        };
+        localStorage.setItem('iamobil_profile', JSON.stringify(profile));
+        updateProfile(profile);
       }
 
       navigate('/');

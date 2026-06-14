@@ -1,5 +1,6 @@
 import { Routes, Route, useNavigate, useLocation, useParams } from "react-router-dom";
 import { SplashScreen } from "./components/SplashScreen";
+import { Login } from "./components/Login";
 import { useState, useEffect } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { PropertyForm } from "./components/PropertyForm";
@@ -15,6 +16,7 @@ import { ConfirmationModal } from "./components/ConfirmationModal";
 import { Bell } from "lucide-react";
 import { useProperties } from "./hooks/useProperties";
 import { useUser } from "./context/UserContext";
+import { useAuth } from "./hooks/useAuth";
 import { AnimatePresence, motion } from "framer-motion";
 import { Property } from "./types";
 import { useNotifications } from "./hooks/useNotifications";
@@ -44,6 +46,7 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   useNotifications();
   const { profile, updateProfile, logout } = useUser();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
@@ -64,6 +67,7 @@ export default function App() {
   const location = useLocation();
 
   const handleLogout = () => {
+    useAuth.getState().logout();
     logout();
     setShowSplash(true);
     navigate('/');
@@ -81,10 +85,9 @@ export default function App() {
 
   if (showSplash) return <SplashScreen onEnter={() => {
     setShowSplash(false);
-    if (!profile.name) {
-      navigate('/profile');
-    }
   }} />;
+
+  if (!isAuthenticated) return <Login />;
 
   return (
     <div className="min-h-screen bg-[#030303] flex text-white font-sans selection:bg-orange-500 selection:text-white">
