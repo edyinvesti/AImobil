@@ -142,7 +142,7 @@ app.use('/api/health', healthRoutes(async () => ({
     dataEngine: !!dataEngine,
     ai: aiService?.getAvailableProviders() || [],
     telegram: !!process.env.TELEGRAM_BOT_TOKEN,
-    instagram: !!process.env.INSTAGRAM_ACCESS_TOKEN,
+    instagram: !!(process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_ADS_ACCESS_TOKEN),
     metaAds: !!process.env.META_ADS_ACCESS_TOKEN
   }
 })));
