@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth';
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export function Login() {
-  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -15,13 +14,15 @@ export function Login() {
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
 
+  const BROKER_LOGIN = '232120';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await authLogin(login, password);
+      await authLogin(BROKER_LOGIN, password);
 
       const user = useAuth.getState().user;
       if (user) {
@@ -56,7 +57,7 @@ export function Login() {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Entrar na sua conta</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-6">Acessar Carteira</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Error Message */}
@@ -65,23 +66,6 @@ export function Login() {
                 {error}
               </div>
             )}
-
-            {/* Login Field */}
-            <div>
-              <label htmlFor="login" className="block text-sm font-medium text-gray-700 mb-1">
-                Login
-              </label>
-              <input
-                id="login"
-                type="text"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                placeholder="Seu login"
-                required
-                autoComplete="username"
-              />
-            </div>
 
             {/* Password Field */}
             <div>
@@ -95,7 +79,7 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  placeholder="Sua senha"
+                  placeholder="Digite a senha"
                   required
                   autoComplete="current-password"
                 />
